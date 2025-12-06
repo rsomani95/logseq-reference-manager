@@ -10,9 +10,8 @@
     "main": "dist/index.html"
   },
   "scripts": {
-    "dev": "npx vite",
-    "build": "npx eslint . --fix && npx tsc && npx vite build",
-    "preview": "npx vite preview",
+    "dev": "bunx vite",
+    "build": "bunx eslint . --fix && bunx tsc && bunx vite build",
     "prepare": "husky"
   },
   "release": {
