@@ -73,8 +73,8 @@ export const ButtonContainer = ({
 
   const setupSchemaForZoteroProps = useCallback(async () => {
     setSettingSchema(true)
-    const { supportDb } = await logseq.App.getInfo()
-    if (supportDb) {
+    const isDb = await logseq.App.checkCurrentIsDbGraph()
+    if (isDb) {
       await setLogseqDbSchema()
       setSettingSchema(false)
     }

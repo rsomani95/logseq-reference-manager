@@ -11,8 +11,6 @@ import { handleSettings } from './settings'
 import { ZotContainer } from './ZotContainer'
 
 const main = async () => {
-  // Used to handle any popups
-
   // Get initial items
   const response = await testZotConnection()
   handleSettings(response)
