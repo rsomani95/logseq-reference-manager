@@ -1,4 +1,14 @@
-import { Button, Checkbox, Group, Select, Stack, Tooltip } from '@mantine/core'
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Code,
+  Group,
+  Select,
+  Stack,
+  Text,
+  Tooltip,
+} from '@mantine/core'
 import { Table } from '@tanstack/react-table'
 import {
   Ban,
@@ -69,15 +79,30 @@ export const ButtonContainer = ({
 
   return (
     <Stack gap="sm">
+      <Alert color={'teal'} title={'For Logseq DB users only'}>
+        <Group gap={10} display={'flex'}>
+          <Text size="xs">
+            To start using this plugin, the schema for all the Zotero item
+            properties (120 properties) will need to be defined first. You will
+            see these 120 properties within your <Code>#Property</Code> tag.
+          </Text>
+          <Button
+            size="xs"
+            onClick={setupSchemaForZoteroProps}
+            variant="outline"
+            color="red"
+          >
+            Proceed to setup schema for Zotero properties
+          </Button>
+        </Group>
+      </Alert>
+
       <Group>
         <Button
           size="xs"
           onClick={() => setShowColumnChooser(!showColumnChooser)}
         >
           {showColumnChooser ? 'Close' : 'Choose Columns'}
-        </Button>
-        <Button size="xs" onClick={setupSchemaForZoteroProps}>
-          Setup schema for Zotero properties
         </Button>
         {showColumnChooser && <ColumnVisibilityChooser />}
       </Group>

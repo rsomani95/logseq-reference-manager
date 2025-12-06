@@ -2,7 +2,7 @@ import { ZOT_DATA_KEY_MAP } from '../constants'
 
 export const setLogseqDbSchema = async () => {
   const addingTagMsg = await logseq.UI.showMsg(
-    'Adding tag. Please wait...',
+    'Setting up schema. Please wait...',
     'warning',
   )
   /**
@@ -98,27 +98,10 @@ export const setLogseqDbSchema = async () => {
   // Create Zotero tag
   await logseq.Editor.createTag(logseq.settings?.zotTag as string)
 
-  // Add props to Zotero tag
-  //const userDefinedProps = logseq.settings?.pageProps as string[]
-
-  //for (const prop of userDefinedProps) {
-  //  let fixedProp = ''
-  //  if (prop !== 'ISSN' && prop !== 'ISBN' && prop !== 'DOI') {
-  //    fixedProp = prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
-  //  } else {
-  //    fixedProp = prop
-  //  }
-
-  //  await logseq.Editor.addTagProperty(
-  //    logseq.settings?.zotTag as string,
-  //    fixedProp,
-  //  )
-  //}
-
   logseq.UI.closeMsg(addingTagMsg)
 
   await logseq.UI.showMsg(
-    `logseq-zoterolocal-plugin loaded. Tag: ${logseq.settings?.zotTag} added.`,
+    `Schema for tag: ${logseq.settings?.zotTag} setup completed.`,
     'success',
   )
 }

@@ -29,7 +29,12 @@ export const ItemsTable = () => {
     >
       <Group justify="space-between">
         <Title size="2rem">logseq-zoterolocal-plugin</Title>
-        <Button onClick={handleClose} id="zot-close-button">
+        <Button
+          onClick={handleClose}
+          id="zot-close-button"
+          variant="white"
+          p={0}
+        >
           <SquareX />
         </Button>
       </Group>
