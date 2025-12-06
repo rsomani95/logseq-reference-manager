@@ -43,6 +43,7 @@ export const ButtonContainer = ({
   })
   const [showColumnChooser, setShowColumnChooser] = useState(false)
   const [userConfirmation, setUserConfirmation] = useState(false)
+  const [settingSchema, setSettingSchema] = useState(false)
   const pageSize = watch('pageSize')
 
   useEffect(() => {
@@ -71,9 +72,11 @@ export const ButtonContainer = ({
   )
 
   const setupSchemaForZoteroProps = useCallback(async () => {
+    setSettingSchema(true)
     const { supportDb } = await logseq.App.getInfo()
     if (supportDb) {
       await setLogseqDbSchema()
+      setSettingSchema(false)
     }
   }, [pageSize])
 
@@ -91,6 +94,7 @@ export const ButtonContainer = ({
             onClick={setupSchemaForZoteroProps}
             variant="outline"
             color="red"
+            disabled={settingSchema}
           >
             Proceed to setup schema for Zotero properties
           </Button>

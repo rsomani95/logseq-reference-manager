@@ -4,7 +4,11 @@ export const setLogseqDbSchema = async () => {
   const addingTagMsg = await logseq.UI.showMsg(
     'Setting up schema. Please wait...',
     'warning',
+    {
+      timeout: 0,
+    },
   )
+
   /**
    Approach:
    1) Define all properties
@@ -12,11 +16,11 @@ export const setLogseqDbSchema = async () => {
    **/
   const allProps = await logseq.Editor.getAllProperties()
   if (allProps && allProps.length > 0) {
+    // Needed to check if the schema has already been inserted as re-setting the schema can messs with cardinality and type. Looks like at this point, Logseq allows duplicate properties
     const propsInserted = allProps.filter((prop) =>
       prop.ident?.includes('zoterolocal'),
     )
     if (propsInserted.length === 0) {
-      // Needed to check if the schema has already been inserted as re-setting the schema can messs with cardinality and type. Looks like at this point, Logseq allows duplicate properties
       const propsArray = Object.keys(ZOT_DATA_KEY_MAP)
       const allLsProps = await logseq.Editor.getAllProperties()
 
