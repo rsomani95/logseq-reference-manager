@@ -1,7 +1,6 @@
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user'
 
 import { ZOT_DATA_KEY_MAP } from './constants'
-import { isSchemaAdded } from './hooks/use-schema-added'
 
 const propsArray = Object.keys(ZOT_DATA_KEY_MAP)
 
@@ -34,7 +33,7 @@ export const handleSettings = async ({
       type: 'boolean',
       title: 'Setup Zotero Schema in Logseq',
       description:
-        '[This action cannot be undone] By toggling this setting, the schema for the above selected properties will be added to Logseq. This may take a while as there are ~120 items.',
+        '[This action cannot be undone] By toggling this setting, the schema for the above selected properties will be added to Logseq. This may take a while as there are ~120 items. If you changed your options above, please uncheck and check the box again',
       default: false,
     },
   ]
