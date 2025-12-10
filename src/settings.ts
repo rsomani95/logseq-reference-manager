@@ -1,6 +1,7 @@
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user'
 
 import { ZOT_DATA_KEY_MAP } from './constants'
+import { isSchemaAdded } from './hooks/use-schema-added'
 
 const propsArray = Object.keys(ZOT_DATA_KEY_MAP)
 
@@ -18,6 +19,23 @@ export const handleSettings = async ({
       title: 'Connection Test',
       description: msg,
       default: '',
+    },
+    {
+      key: 'pageProps',
+      type: 'enum',
+      title: 'Page Properties (DB version)',
+      description: 'Indicate the properties to include for each Zotero item',
+      default: propsArray,
+      enumPicker: 'checkbox',
+      enumChoices: propsArray.filter((prop) => prop !== 'abstractNote'),
+    },
+    {
+      key: 'agreementClause',
+      type: 'boolean',
+      title: 'Setup Zotero Schema in Logseq',
+      description:
+        '[This action cannot be undone] By toggling this setting, the schema for the above selected properties will be added to Logseq. This may take a while as there are ~120 items.',
+      default: false,
     },
   ]
 
@@ -43,15 +61,6 @@ export const handleSettings = async ({
         title: 'Zotero Tag Name',
         description: `Specify the tag name used for Zotero imports`,
         default: 'Zotero',
-      },
-      {
-        key: 'pageProps',
-        type: 'enum',
-        title: 'Page Properties (DB version)',
-        description: 'Indicate the properties to include for each Zotero item',
-        default: propsArray,
-        enumPicker: 'checkbox',
-        enumChoices: propsArray.filter((prop) => prop !== 'abstractNote'),
       },
       {
         key: 'zotTemplate',

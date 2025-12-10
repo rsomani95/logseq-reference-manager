@@ -1,11 +1,11 @@
 import { IBatchBlock } from '@logseq/libs/dist/LSPlugin'
 import { format, parse, parseISO } from 'date-fns'
 
+import { isSchemaAdded } from '../hooks/use-schema-added'
 import { ZotData } from '../interfaces'
 import { parseHtml } from './parse-html'
 
 export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
-  // Create page
   if (
     (logseq.settings!.pagenameTemplate as string).includes('<% citeKey %>') &&
     zotItem.citeKey === 'N/A'
@@ -17,6 +17,16 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
     return
   }
 
+  const schemaAdded = await isSchemaAdded()
+  if (!schemaAdded) {
+    await logseq.UI.showMsg(
+      'Double-check settings to ensure that all schema has been setup before trying again',
+      'error',
+    )
+    return
+  }
+
+  // Create page
   let existingPage = await logseq.Editor.getPage(pageName)
   if (existingPage) {
     await logseq.UI.showMsg('Page already exists', 'warning')
