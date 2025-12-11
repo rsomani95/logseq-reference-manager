@@ -3,6 +3,7 @@ import '@logseq/libs'
 import { BlockCursorPosition } from '@logseq/libs/dist/LSPlugin'
 import { createRoot } from 'react-dom/client'
 
+import { isSchemaAdded } from './hooks/use-schema-added'
 import { GlossaryObj } from './interfaces'
 import { isValidSettings } from './services/check-settings'
 import { createTemplateGlossary } from './services/create-template-glossary'
@@ -26,7 +27,8 @@ const main = async () => {
     // Check for valid settings
     await isValidSettings()
     // Set DB schema
-    if (settings.agreementClause) {
+    const schemaAdded = await isSchemaAdded()
+    if (settings.agreementClause && !schemaAdded) {
       await setLogseqDbSchema()
     }
   })

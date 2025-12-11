@@ -20,6 +20,7 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
+import { isSchemaAdded } from '../hooks/use-schema-added'
 import { ZotData } from '../interfaces'
 import { setLogseqDbSchema } from '../services/set-logseqdb-schema'
 
@@ -73,8 +74,9 @@ export const ButtonContainer = ({
 
   const setupSchemaForZoteroProps = useCallback(async () => {
     setSettingSchema(true)
-    const { supportDb } = await logseq.App.getInfo()
-    if (supportDb) {
+    const isDb = await logseq.App.checkCurrentIsDbGraph()
+    const schemaAdded = await isSchemaAdded()
+    if (isDb && !schemaAdded) {
       await setLogseqDbSchema()
       setSettingSchema(false)
     }
