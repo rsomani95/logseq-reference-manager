@@ -87,7 +87,7 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
       continue
     } else if (prop === 'attachments') {
       for (const attachment of value) {
-        const url = `[${attachment.title}](${decodeURI(attachment.url ?? attachment.href)})`
+        const url = `![${attachment.title}](${decodeURI(attachment.url ?? attachment.href)})`
         await logseq.Editor.upsertBlockProperty(
           existingPage.uuid,
           fixedProp,
