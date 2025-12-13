@@ -1,4 +1,4 @@
-import { ZotData, ZotItem } from './interfaces'
+import { ZotItem } from './interfaces'
 
 export const ZOT_URL = 'http://127.0.0.1:23119/api/users/0'
 export const COLLECTIONS_URL = 'http://127.0.0.1:23119/api/users/0/collections'
@@ -63,9 +63,9 @@ export const ZOT_DATA_KEY_MAP = {
   archive: true,
   archiveID: true,
   archiveLocation: true,
-  assignee: true,
   artworkMedium: true,
   artworkSize: true,
+  assignee: true,
   audioFileType: true,
   audioRecordingFormat: true,
   billNumber: true,
@@ -96,8 +96,8 @@ export const ZOT_DATA_KEY_MAP = {
   email: true,
   encyclopediaTitle: true,
   extra: true,
-  filename: true,
   filingDate: true,
+  filename: true,
   firstPage: true,
   forumTitle: true,
   genre: true,
@@ -170,10 +170,4 @@ export const ZOT_DATA_KEY_MAP = {
   websiteTitle: true,
   websiteType: true,
   year: true,
-  // --- Custom plugin fields ---
-  attachments: true,
-  citeKey: true,
-  inGraph: true,
-  libraryLink: true,
-  notes: true,
-} satisfies Record<keyof ZotData, true>
+} satisfies Record<keyof ZotItem['data'], true>
