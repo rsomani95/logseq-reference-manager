@@ -16,8 +16,6 @@ export const insertZotIntoGraph = async (zotItem: ZotData) => {
     .replace('<% citeKey %>', zotItem.citeKey)
     .trim()
 
-  console.log(zotItem)
-
   if (supportDb) {
     await handleZotInDb(zotItem, pageName)
   }

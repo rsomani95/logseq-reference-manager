@@ -1,11 +1,12 @@
 import { IBatchBlock } from '@logseq/libs/dist/LSPlugin'
 import { format, parse, parseISO } from 'date-fns'
 
-import { isSchemaAdded } from '../hooks/use-schema-added'
 import { ZotData } from '../interfaces'
+import { isSchemaAdded } from './is-schema-added'
 import { parseHtml } from './parse-html'
 
 export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
+  // Check if citekey has been configured correctly
   if (
     (logseq.settings!.pagenameTemplate as string).includes('<% citeKey %>') &&
     zotItem.citeKey === 'N/A'
@@ -17,6 +18,7 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
     return
   }
 
+  // Check if schema has been added
   const schemaAdded = await isSchemaAdded()
   if (!schemaAdded) {
     await logseq.UI.showMsg(
@@ -26,7 +28,7 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
     return
   }
 
-  // Create page
+  // Create page for Zotero item
   let existingPage = await logseq.Editor.getPage(pageName)
   if (existingPage) {
     await logseq.UI.showMsg('Page already exists', 'warning')
@@ -52,10 +54,14 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
     logseq.settings?.zotTag as string,
   )
 
-  // Manually add one property by one property
-  // Get properties on the fly in case it changes
-  const selectedPageProps = logseq.settings?.pageProps as string[]
-  for (const prop of selectedPageProps) {
+  /*
+  1. Adds props to page
+  2. Adds abstract, attachments and annotations to page
+  */
+
+  // Get user-defined props on the fly in case it changes
+  const userSelectedPageProps = logseq.settings?.pageProps as string[]
+  for (const prop of userSelectedPageProps) {
     console.log('Inserting prop into page', prop)
 
     let fixedProp = ''
@@ -72,6 +78,8 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
     Insert properties
     *******/
     if (
+      prop === 'inGraph' ||
+      prop === 'attachments' ||
       prop === 'abstractNote' ||
       prop === 'notes' ||
       prop === 'version' ||
@@ -85,15 +93,15 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
       (typeof value === 'object' && Object.keys(value).length === 0)
     ) {
       continue
-    } else if (prop === 'attachments') {
-      for (const attachment of value) {
-        const url = `![${attachment.title}](${decodeURI(attachment.url ?? attachment.href)})`
-        await logseq.Editor.upsertBlockProperty(
-          existingPage.uuid,
-          fixedProp,
-          url,
-        )
-      }
+      //} else if (prop === 'attachments') {
+      //  for (const attachment of value) {
+      //    const url = `![${attachment.title}](${decodeURI(attachment.url ?? attachment.href)})`
+      //    await logseq.Editor.upsertBlockProperty(
+      //      existingPage.uuid,
+      //      fixedProp,
+      //      url,
+      //    )
+      //  }
     } else if (
       prop === 'accessDate' ||
       prop === 'dateAdded' ||
@@ -159,6 +167,26 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
     *******/
 
   let glossaryBatchBlk: IBatchBlock[] = []
+
+  // Insert attachment
+  if (zotItem.attachments && zotItem.attachments.length > 0) {
+    const attachmentChildBlks = zotItem.attachments.map((attachment) => {
+      if (attachment.linkMode === 'linked_url') {
+        return {
+          content: `${logseq.settings?.openAttachmentInline ? '!' : ''}[${attachment.title}](${decodeURI(attachment.url)})`,
+        }
+      } else {
+        return {
+          content: `${logseq.settings?.openAttachmentInline ? '!' : ''}[${attachment.title}](${decodeURI(attachment.href)})`,
+        }
+      }
+    })
+
+    glossaryBatchBlk.push({
+      content: '## Attachments',
+      children: attachmentChildBlks,
+    })
+  }
 
   // Insert abstract
   if (zotItem.abstractNote) {

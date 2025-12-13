@@ -20,8 +20,8 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 
-import { isSchemaAdded } from '../hooks/use-schema-added'
 import { ZotData } from '../interfaces'
+import { isSchemaAdded } from '../services/is-schema-added'
 import { setLogseqDbSchema } from '../services/set-logseqdb-schema'
 
 interface FormValues {

@@ -92,7 +92,7 @@ Response: ${await error.response.text()}`,
       )
     } else {
       logseq.UI.showMsg(
-        `❌ An unexpected error occurred: ${(error as Error).message}`,
+        `❌ An unexpected error occurred: ${(error as Error).message}. Check if Zotero is running.`,
         'error',
       )
     }
@@ -126,7 +126,7 @@ Response: ${await error.response.text()}`,
       )
     } else {
       logseq.UI.showMsg(
-        `❌ An unexpected error occurred: ${(error as Error).message}`,
+        `❌ An unexpected error occurred: ${(error as Error).message}. Check if Zotero is running.`,
         'error',
       )
     }
