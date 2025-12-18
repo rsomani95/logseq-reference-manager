@@ -37,17 +37,17 @@ Connect locally to Zotero 7 (and above) and pull your items into Logseq without 
 
 ### Logseq-DB
 
-a. Ensure that you have completed the DB-related settings in the plugin settings.
-b. Trigger the command palette (`Mod+Shift+P`) and use `Add Zotero schema to Logseq` to configure the property types used by Zotero.
-c. If you encounter any issues, try using the following commands from the command palette:
-   i. `Remove all created schem`: This removes all the schema created by the plugin
-   ii. `Reset current settings`: This resets all settings to default. Restart Logseq after using this command.`
+1. Ensure that you have completed the DB-related settings in the plugin settings.
+2. Trigger the command palette (`Mod+Shift+P`) and use `Add Zotero schema to Logseq` to configure the property types used by Zotero.
+3. If you encounter any issues, try using the following commands from the command palette:
+   - `Remove all created schem`: This removes all the schema created by the plugin
+   - `Reset current settings`: This resets all settings to default. Restart Logseq after using this command.`
 
 Proceed to step 1 below.
 
 ### Logseq-MD
 
-a. Create a Zotero template:
+1. Create a Zotero template:
    - Go to any page that will hold your Zotero template.
    - Type `/Insert Zotero template`.
    - A sample template will be generated (example below). Customize as needed.
