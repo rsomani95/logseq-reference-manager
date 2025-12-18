@@ -17,14 +17,32 @@ export const insertZotIntoGraph = async (zotItem: ZotData) => {
     .trim()
 
   if (supportDb) {
-    await handleZotInDb(zotItem, pageName)
+    try {
+      await handleZotInDb(zotItem, pageName)
+      logseq.UI.closeMsg(msgId)
+      await logseq.UI.showMsg('Inserted Zotero item successfully', 'success')
+      return pageName
+    } catch (e) {
+      logseq.UI.closeMsg(msgId)
+      await logseq.UI.showMsg(
+        e instanceof Error ? e.message : String(e),
+        'error',
+      )
+    }
   }
 
   if (!supportDb) {
-    await handleZotInMd(zotItem, pageName)
+    try {
+      await handleZotInMd(zotItem, pageName)
+      logseq.UI.closeMsg(msgId)
+      await logseq.UI.showMsg('Inserted Zotero item successfully', 'success')
+      return pageName
+    } catch (e) {
+      logseq.UI.closeMsg(msgId)
+      await logseq.UI.showMsg(
+        e instanceof Error ? e.message : String(e),
+        'error',
+      )
+    }
   }
-
-  logseq.UI.closeMsg(msgId)
-  await logseq.UI.showMsg('Inserted zotero item successfully', 'success')
-  return pageName
 }

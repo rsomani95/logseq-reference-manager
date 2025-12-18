@@ -8,6 +8,7 @@ Connect locally to Zotero 7 (and above) and pull your items into Logseq without 
 
 ## Features
 
+- Supports Logseq-DB
 - Direct connection to Zotero 7+ without needing to sync with Zotero Cloud
 - Customisable templates
 - Easy insertion of Zotero items into your graph
@@ -32,11 +33,21 @@ Connect locally to Zotero 7 (and above) and pull your items into Logseq without 
 4. Verify that "Connection to Zotero is working" is checked.
 5. Complete the rest of the plugin settings.
 
-![Plugin Settings](/screenshots/plugin-settings.png)
-
 ## Usage
 
-1. Create a Zotero template:
+### Logseq-DB
+
+a. Ensure that you have completed the DB-related settings in the plugin settings.
+b. Trigger the command palette (`Mod+Shift+P`) and use `Add Zotero schema to Logseq` to configure the property types used by Zotero.
+c. If you encounter any issues, try using the following commands from the command palette:
+   i. `Remove all created schem`: This removes all the schema created by the plugin
+   ii. `Reset current settings`: This resets all settings to default. Restart Logseq after using this command.`
+
+Proceed to step 1 below.
+
+### Logseq-MD
+
+a. Create a Zotero template:
    - Go to any page that will hold your Zotero template.
    - Type `/Insert Zotero template`.
    - A sample template will be generated (example below). Customize as needed.
@@ -74,14 +85,14 @@ Connect locally to Zotero 7 (and above) and pull your items into Logseq without 
   volume:: <% volume %>
 ```
 
-2. Insert Zotero item:
+1. Insert Zotero item:
    - Navigate to the page where you want to insert a Zotero item.
    - Type `/Zotero: Insert full item`.
    - Perform your search.
    - Click the desired item.
    - A new page will be created, and a reference to it will be inserted at your cursor position.
   
-3. Insert citation
+2. Insert citation
    - Ensure that your citation key template is set up in your plugin settings.
    - Navigate to the page where you want to insert a Zotero item.
    - Type `/Zotero: Insert citation`.

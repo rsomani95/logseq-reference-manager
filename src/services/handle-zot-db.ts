@@ -11,11 +11,11 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
     (logseq.settings!.pagenameTemplate as string).includes('<% citeKey %>') &&
     zotItem.citeKey === 'N/A'
   ) {
-    logseq.UI.showMsg(
-      'Cite key is not configured properly in BetterBibTex',
-      'error',
-    )
-    return
+    //logseq.UI.showMsg(
+    //  'Cite key is not configured properly in BetterBibTex',
+    //  'error',
+    //)
+    throw new Error('Citekey has not been configured properly')
   }
 
   // Check if schema has been added
@@ -25,7 +25,7 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
       'Double-check settings to ensure that all schema has been setup before trying again',
       'error',
     )
-    return
+    throw new Error()
   }
 
   // Create page for Zotero item
