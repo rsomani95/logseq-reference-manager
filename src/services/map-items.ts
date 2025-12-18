@@ -1,19 +1,36 @@
 import { ZOTERO_LIBRARY_ITEM } from '../constants'
 import { getCiteKey } from '../features/items-table/Columns'
-import { ZotData, ZotItem } from '../interfaces'
+import { AttachmentItem, NoteItem, ZotData, ZotItem } from '../interfaces'
 
 export const mapItems = async (
   zotParentItems: ZotItem[],
-  noteAttachmentItems: ZotItem[],
+  noteAndAttachmentItems: ZotItem[],
 ): Promise<ZotData[]> => {
-  const parentZotData: ZotData[] = zotParentItems.map((item) => ({
-    ...item.data,
-    attachments: [],
-    citeKey: '',
-    inGraph: false,
-    libraryLink: '',
-    notes: [],
-  }))
+  /*
+   New props required:
+   - attachments
+   - citeKey
+   - inGraph
+   - libraryLink
+   - notes
+
+   Conflict with inbuilt props:
+   - code
+   - tags
+   */
+  const parentZotData = zotParentItems.map((item) => {
+    const { code, ...itemDataWithoutConflicts } = item.data
+
+    return {
+      ...itemDataWithoutConflicts,
+      attachments: [] as AttachmentItem[],
+      citeKey: '',
+      inGraph: false,
+      libraryLink: '',
+      notes: [] as NoteItem[],
+      'zotero-code': code,
+    }
+  })
 
   for (const item of parentZotData) {
     // Map citeKey
@@ -25,7 +42,6 @@ export const mapItems = async (
     const pageToCheck = (logseq.settings!.pagenameTemplate as string)
       .replace('<% citeKey %>', citeKey ?? '$&')
       .replace('<% title %>', title)
-
     const page = await logseq.Editor.getPage(pageToCheck)
     item.inGraph = !!page
 
@@ -33,43 +49,42 @@ export const mapItems = async (
     item.libraryLink = `${ZOTERO_LIBRARY_ITEM}${item.key}`
 
     // Map attachment
-    for (const noteAttachment of noteAttachmentItems) {
-      // itemType: 'attachment'
-
-      // linkMode: 'imported_file'
-      if (
-        noteAttachment.data.itemType === 'attachment' &&
-        noteAttachment.data.parentItem === item.key &&
-        noteAttachment.data.linkMode === 'imported_file' &&
-        noteAttachment.links.enclosure
-      ) {
-        item.attachments.push({
-          linkMode: 'imported_file',
-          ...noteAttachment.links.enclosure,
-        })
+    for (const noteAndAttachment of noteAndAttachmentItems) {
+      // Only consider when note and attachment has correct parent item
+      if (noteAndAttachment.data.parentItem !== item.key) {
+        continue
       }
 
-      // linkMode: 'linked_url'
-      if (
-        noteAttachment.data.itemType === 'attachment' &&
-        noteAttachment.data.parentItem === item.key &&
-        noteAttachment.data.linkMode === 'linked_url' &&
-        noteAttachment.data.url
+      if (noteAndAttachment.data.itemType === 'attachment') {
+        /*
+         ITEM TYPE == ATTACHMENT
+         */
+        if (
+          noteAndAttachment.data.linkMode === 'imported_file' &&
+          noteAndAttachment.links.enclosure
+        ) {
+          item.attachments.push({
+            linkMode: 'imported_file',
+            ...noteAndAttachment.links.enclosure,
+          })
+        } else if (
+          noteAndAttachment.data.linkMode === 'linked_url' &&
+          noteAndAttachment.data.url
+        ) {
+          item.attachments.push({
+            linkMode: 'linked_url',
+            title: noteAndAttachment.data.title,
+            url: noteAndAttachment.data.url,
+          })
+        }
+      } else if (
+        noteAndAttachment.data.itemType === 'note' &&
+        noteAndAttachment.data.note
       ) {
-        item.attachments.push({
-          linkMode: 'linked_url',
-          title: noteAttachment.data.title,
-          url: noteAttachment.data.url,
-        })
-      }
-
-      // itemType: 'note'
-      if (
-        noteAttachment.data.parentItem === item.key &&
-        noteAttachment.data.itemType === 'note' &&
-        noteAttachment.data.note
-      ) {
-        item.notes.push({ note: noteAttachment.data.note })
+        /*
+         ITEM TYPE == NOTE
+         */
+        item.notes.push({ note: noteAndAttachment.data.note })
       }
     }
   }

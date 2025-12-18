@@ -49,119 +49,119 @@ export interface ZotItem {
     parsedDate?: string
   }
   data: {
-    key: string
-    version: number
-    itemType: string
-    title: string
-    parentItem?: string
     abstractNote?: string
-    date?: string
-    language?: string
-    shortTitle?: string
-    libraryCatalog?: string
-    url?: string
     accessDate?: string
-    extra?: string
-    note?: string
-    linkMode?: string
-    contentType?: string
-    charset?: string
-    filename?: string
-    mtime?: number
-    md5?: string
-    tags: TagItem[]
-    collections?: string[]
-    relations: Record<string, never>
-    dateAdded: string
-    dateModified: string
-    creators?: CreatorItem[]
-    publisher?: string
-    ISBN?: string
-    ISSN?: string
-    pages?: string
-    bookTitle?: string
-    volume?: string
-    publicationTitle?: string
-    DOI?: string
-    issue?: string
-    journalAbbreviation?: string
-    repository?: string
-    archiveID?: string
+    applicationNumber?: string
     archive?: string
+    archiveID?: string
     archiveLocation?: string
+    artworkMedium?: string
+    artworkSize?: string
+    assignee?: string
+    audioFileType?: string
+    audioRecordingFormat?: string
+    billNumber?: string
+    blogTitle?: string
+    bookTitle?: string
     callNumber?: string
-    series?: string
-    seriesNumber?: string
-    seriesText?: string
-    seriesTitle?: string
-    numberOfVolumes?: string
-    numPages?: string
-    place?: string
-    university?: string
-    institution?: string
-    company?: string
-    country?: string
-    court?: string
-    legislativeBody?: string
-    committee?: string
-    distributor?: string
-    meetingPlace?: string
-    year?: string
-    month?: string
-    day?: string
-    filingDate?: string
-    issueDate?: string
     caseName?: string
-    docketNumber?: string
+    charset?: string
     code?: string
     codeNumber?: string
     codePages?: string
     codeVolume?: string
-    billNumber?: string
-    applicationNumber?: string
-    patentNumber?: string
+    collections?: string[]
+    committee?: string
+    company?: string
+    contentType?: string
+    country?: string
+    court?: string
+    creators?: CreatorItem[]
+    date?: string
+    dateAdded: string
+    dateModified: string
+    day?: string
+    distributor?: string
+    docketNumber?: string
+    DOI?: string
+    edition?: string
+    email?: string
+    encyclopediaTitle?: string
+    extra?: string
+    filingDate?: string
+    filename?: string
+    firstPage?: string
+    forumTitle?: string
+    genre?: string
+    history?: string
+    institution?: string
+    ISBN?: string
+    ISSN?: string
+    issue?: string
+    issueDate?: string
     issuingAuthority?: string
+    itemType: string
+    journalAbbreviation?: string
+    key: string
+    label?: string
+    language?: string
     legalStatus?: string
-    reportNumber?: string
-    reportType?: string
-    thesisType?: string
+    legislativeBody?: string
+    libraryCatalog?: string
+    license?: string
+    linkMode?: string
     manuscriptType?: string
     mapType?: string
-    scale?: string
-    presentationType?: string
-    meetingName?: string
-    artworkMedium?: string
-    artworkSize?: string
+    md5?: string
     medium?: string
-    audioFileType?: string
-    audioRecordingFormat?: string
-    videoRecordingFormat?: string
-    runningTime?: string
-    radioProgramTitle?: string
-    tvProgramTitle?: string
+    meetingName?: string
+    meetingPlace?: string
+    month?: string
+    mtime?: number
     network?: string
+    note?: string
+    numberOfVolumes?: string
+    number?: string
+    numPages?: string
+    pages?: string
+    parentItem?: string
+    patentNumber?: string
+    place?: string
+    postType?: string
+    presentationType?: string
+    publicationTitle?: string
+    publisher?: string
+    radioProgramTitle?: string
+    references?: string
+    relations: Record<string, never>
+    reportNumber?: string
+    reportType?: string
+    repository?: string
+    rights?: string
+    runningTime?: string
+    scale?: string
+    section?: string
+    series?: string
+    seriesNumber?: string
+    seriesText?: string
+    seriesTitle?: string
+    shortTitle?: string
     studio?: string
-    label?: string
+    subject?: string
+    system?: string
+    tags: TagItem[]
+    thesisType?: string
+    title: string
+    tvProgramTitle?: string
+    university?: string
+    url?: string
+    version: number
+    versionNumber?: string
+    videoRecordingFormat?: string
+    volume?: string
     websiteTitle?: string
     websiteType?: string
-    blogTitle?: string
-    forumTitle?: string
-    postType?: string
-    encyclopediaTitle?: string
-    edition?: string
-    firstPage?: string
-    section?: string
-    subject?: string
-    genre?: string
-    references?: string
-    history?: string
-    system?: string
-    versionNumber?: string
-    email?: string
-    rights?: string
-    license?: string
-    number?: string
-    assignee?: string
+    year?: string
   }
 }
 
@@ -207,12 +207,18 @@ export interface ZotCollection {
 }
 // DO NOT TOUCH ABOVE SECTION //
 
-export type ZotData = ZotItem['data'] & {
-  attachments: AttachmentItem[]
+/**
+ZotData maps Zotero schema to Logseq schema
+Handles additional schema that Logseq requires
+Or conflicts with Logseq's inbuilt properties
+**/
+export type ZotData = Omit<ZotItem['data'], 'code' | 'note'> & {
+  attachments: AttachmentItem[] | undefined
   citeKey: string
   inGraph: boolean
-  libraryLink: string
-  notes: NoteItem[]
+  libraryLink: string | undefined
+  notes: NoteItem[] | undefined
+  'zotero-code': string | undefined
 }
 
 export interface URLItem {
@@ -284,4 +290,16 @@ export interface GlossaryObj {
   url: string
   version: string
   volume: string
+}
+
+export interface PluginSettings {
+  testConnection: string
+  pageProps: ZotItem['data']
+  agreementClause: boolean
+  openAttachmentInline: boolean
+  pagenameTemplate: string
+  citekeyTemplate: string
+  zotTag: string
+  zotTemplate: string
+  authorTemplate: string
 }

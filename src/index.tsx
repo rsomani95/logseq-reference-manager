@@ -3,23 +3,25 @@ import '@logseq/libs'
 import { BlockCursorPosition } from '@logseq/libs/dist/LSPlugin'
 import { createRoot } from 'react-dom/client'
 
+import { handlePopup } from './handle-popup'
 import { GlossaryObj } from './interfaces'
-import { isValidSettings } from './services/check-settings'
 import { createTemplateGlossary } from './services/create-template-glossary'
 import { testZotConnection } from './services/get-zot-items'
+import { registerAdminCommands } from './services/register-admin-commands'
 import { handleSettings } from './settings'
 import { ZotContainer } from './ZotContainer'
 
 const main = async () => {
-  // Get initial items
+  await logseq.UI.showMsg(
+    `logseq-zoterolocal-plugin loaded. Please proceed to settings to continue setup.`,
+    'warning',
+  )
+
+  registerAdminCommands()
+  handlePopup()
+
   const response = await testZotConnection()
-  handleSettings(response)
-  if (response.code === 'error') return
-
-  // Check for valid settings
-  await isValidSettings()
-
-  // Create schema for ZotItem properties
+  handleSettings({ msg: response.msg })
 
   const el = document.getElementById('app')
   if (!el) return
@@ -67,16 +69,16 @@ const main = async () => {
   //////////////////////////////////////////
   // DEPRECATED: REGISTER ICON TO TOOLBAR //
   //////////////////////////////////////////
-  logseq.provideModel({
-    async viewZotItems() {
-      root.render(<ZotContainer flag={'table'} />)
-      logseq.showMainUI()
-    },
-  })
-  logseq.App.registerUIItem('toolbar', {
-    key: 'logseq-zoterolocal-plugin',
-    template: `<a data-on-click="viewZotItems" class="button"><i class="ti ti-news"></i></a>`,
-  })
+  //logseq.provideModel({
+  //  async viewZotItems() {
+  //    root.render(<ZotContainer flag={'table'} />)
+  //    logseq.showMainUI()
+  //  },
+  //})
+  //logseq.App.registerUIItem('toolbar', {
+  //  key: 'logseq-zoterolocal-plugin',
+  //  template: `<a data-on-click="viewZotItems" class="button"><i class="ti ti-news"></i></a>`,
+  //})
 
   // Insert glossary as blocks for user to choose
   logseq.Editor.registerSlashCommand('Insert Zotero template', async (e) => {

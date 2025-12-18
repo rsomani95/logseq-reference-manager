@@ -1,4 +1,70 @@
 import { ZOT_DATA_KEY_MAP } from '../constants'
+import { convertPropToKebabCase } from './convert-prop-to-kebab'
+
+const createTagProperties = async (props: string[]) => {
+  for (const prop of props) {
+    console.log('Adding property schema', prop, 'to Logseq')
+
+    if (prop === 'attachments') {
+      await logseq.Editor.upsertProperty(
+        prop,
+        {
+          cardinality: 'many',
+          type: 'default',
+        },
+        { name: prop },
+      )
+    } else if (prop === 'creators') {
+      await logseq.Editor.upsertProperty(
+        prop,
+        {
+          cardinality: 'many',
+          type: 'node',
+        },
+        { name: prop },
+      )
+    } else if (
+      prop === 'access-date' ||
+      prop === 'date-added' ||
+      prop === 'date-modified'
+    ) {
+      await logseq.Editor.upsertProperty(
+        prop,
+        {
+          type: 'date',
+          cardinality: 'one',
+        },
+        { name: prop },
+      )
+    } else if (prop === 'tags') {
+      await logseq.Editor.upsertProperty(
+        prop,
+        {
+          type: 'node',
+          cardinality: 'many',
+        },
+        { name: prop },
+      )
+    } else if (prop === 'url' || prop === 'libraryLink') {
+      await logseq.Editor.upsertProperty(
+        prop,
+        {
+          type: 'url',
+          cardinality: 'one',
+        },
+        { name: prop },
+      )
+    } else {
+      await logseq.Editor.upsertProperty(
+        prop,
+        {
+          type: 'default',
+        },
+        { name: prop },
+      )
+    }
+  }
+}
 
 export const setLogseqDbSchema = async () => {
   const addingTagMsg = await logseq.UI.showMsg(
@@ -9,98 +75,39 @@ export const setLogseqDbSchema = async () => {
     },
   )
 
-  /**
-   Approach:
-   1) Define all properties
-   2) Add user-defined properties to Zotero tag
-   **/
-  const allProps = await logseq.Editor.getAllProperties()
-  if (allProps && allProps.length > 0) {
-    // Needed to check if the schema has already been inserted as re-setting the schema can messs with cardinality and type. Looks like at this point, Logseq allows duplicate properties
-    const propsInserted = allProps.filter((prop) =>
-      prop.ident?.includes('zoterolocal'),
-    )
-    if (propsInserted.length === 0) {
-      const propsArray = Object.keys(ZOT_DATA_KEY_MAP)
-      const allLsProps = await logseq.Editor.getAllProperties()
-
-      for (const prop of propsArray) {
-        console.log('Adding property schema ', prop, ' to Logseq')
-        let fixedProp = ''
-        if (prop !== 'ISSN' && prop !== 'ISBN' && prop !== 'DOI') {
-          fixedProp = prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
-        } else {
-          fixedProp = prop
-        }
-
-        for (const lsProp of allLsProps!) {
-          if (fixedProp !== lsProp.name) {
-            if (prop === 'attachments') {
-              await logseq.Editor.upsertProperty(
-                fixedProp,
-                {
-                  cardinality: 'many',
-                  type: 'default',
-                },
-                { name: fixedProp },
-              )
-            } else if (prop === 'creators') {
-              await logseq.Editor.upsertProperty(
-                fixedProp,
-                {
-                  cardinality: 'many',
-                  type: 'node',
-                },
-                { name: fixedProp },
-              )
-            } else if (
-              prop === 'accessDate' ||
-              prop === 'dateAdded' ||
-              prop === 'dateModified'
-            ) {
-              await logseq.Editor.upsertProperty(
-                fixedProp,
-                {
-                  type: 'date',
-                  cardinality: 'one',
-                },
-                { name: fixedProp },
-              )
-            } else if (prop === 'tags') {
-              await logseq.Editor.upsertProperty(
-                fixedProp,
-                {
-                  type: 'node',
-                  cardinality: 'many',
-                },
-                { name: fixedProp },
-              )
-            } else if (prop === 'url' || prop === 'libraryLink') {
-              await logseq.Editor.upsertProperty(
-                fixedProp,
-                {
-                  type: 'url',
-                  cardinality: 'one',
-                },
-                { name: fixedProp },
-              )
-            } else {
-              await logseq.Editor.upsertProperty(
-                fixedProp,
-                {
-                  type: 'default',
-                },
-                { name: fixedProp },
-              )
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Create Zotero tag
+  // Create Zotero tag first
   await logseq.Editor.createTag(logseq.settings?.zotTag as string)
+
+  /**
+  All added properties follow the same structure: ":plugin.property.logseq-zoterolocal-plugin/year"
+  **/
+
+  const allZoteroPropsToBeSetup = [
+    ...['zotero-code'],
+    ...Object.keys(ZOT_DATA_KEY_MAP)
+      .filter((prop) => prop !== 'code')
+      .filter((prop) => prop !== 'abstractNote')
+      .filter((prop) => prop !== 'note'),
+  ]
+  const allPropsInLs = await logseq.Editor.getAllProperties()
+  const existingLsIdentifiers = new Set(
+    allPropsInLs?.map((LsProp) => LsProp.ident),
+  )
+  const zoteroPropsToBeSetup = allZoteroPropsToBeSetup
+    .map((prop) => convertPropToKebabCase(prop))
+    .filter((ZProp) => {
+      const fullIdentifierToExclude = `:plugin.property.logseq-zoterolocal-plugin/${ZProp}`
+      return !existingLsIdentifiers.has(fullIdentifierToExclude)
+    })
+
+  await logseq.UI.showMsg(
+    `No. of Zotero props to be setup: ${zoteroPropsToBeSetup.length}`,
+    'warning',
+  )
+
+  if (zoteroPropsToBeSetup.length > 0) {
+    await createTagProperties(zoteroPropsToBeSetup)
+  }
 
   logseq.UI.closeMsg(addingTagMsg)
 
