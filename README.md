@@ -1,4 +1,4 @@
-![Logseq Badge](https://img.shields.io/badge/logseq-%2385C8C8?style=for-the-badge&logo=logseq&logoColor=black)
+![Logseq Badge](https://img.shields.io/badge/logseq%20%7C%20db-%2385C8C8?style=for-the-badge&logo=logseq&logoColor=black)
 
 # Logseq Zotero Plugin
 
