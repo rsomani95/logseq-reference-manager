@@ -35,7 +35,7 @@ export const mapItems = async (
   for (const item of parentZotData) {
     // Map citeKey
     const title = item.title
-    const citeKey = getCiteKey(item.extra)
+    const citeKey = item.citationKey
     item.citeKey = citeKey ?? 'N/A'
 
     // Map "if in graph"
