@@ -1,20 +1,12 @@
-import { ZOT_DATA_KEY_MAP } from '../constants'
+import { PROP_PRESETS, ZOT_DATA_KEY_MAP } from '../constants'
+import { PropertyPreset } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
 
 const createTagProperties = async (props: string[]) => {
   for (const prop of props) {
     console.log('Adding property schema', prop, 'to Logseq')
 
-    if (prop === 'attachments') {
-      await logseq.Editor.upsertProperty(
-        prop,
-        {
-          cardinality: 'many',
-          type: 'default',
-        },
-        { name: prop },
-      )
-    } else if (prop === 'creators') {
+    if (prop === 'creators') {
       await logseq.Editor.upsertProperty(
         prop,
         {
@@ -82,9 +74,26 @@ export const setLogseqDbSchema = async () => {
   All added properties follow the same structure: ":plugin.property.logseq-zoterolocal-plugin/year"
   **/
 
+  // Resolve which properties to set up based on the selected preset
+  const preset = (logseq.settings?.propertyPreset as PropertyPreset) ?? 'Core'
+  let selectedProps: string[]
+  if (preset === 'Custom') {
+    selectedProps = logseq.settings?.pageProps as string[]
+  } else if (preset === 'Full') {
+    selectedProps = Object.keys(ZOT_DATA_KEY_MAP).filter(
+      (prop) =>
+        prop !== 'abstractNote' &&
+        prop !== 'attachments' &&
+        prop !== 'notes' &&
+        prop !== 'inGraph',
+    )
+  } else {
+    selectedProps = [...PROP_PRESETS[preset]]
+  }
+
   const allZoteroPropsToBeSetup = [
     ...['zotero-code'],
-    ...Object.keys(ZOT_DATA_KEY_MAP)
+    ...selectedProps
       .filter((prop) => prop !== 'code')
       .filter((prop) => prop !== 'abstractNote')
       .filter((prop) => prop !== 'note'),
@@ -107,6 +116,14 @@ export const setLogseqDbSchema = async () => {
 
   if (zoteroPropsToBeSetup.length > 0) {
     await createTagProperties(zoteroPropsToBeSetup)
+  }
+
+  // Associate all Zotero properties with the tag
+  const zotTag = logseq.settings?.zotTag as string
+  for (const prop of allZoteroPropsToBeSetup.map((p) =>
+    convertPropToKebabCase(p),
+  )) {
+    await logseq.Editor.addTagProperty(zotTag, prop)
   }
 
   logseq.UI.closeMsg(addingTagMsg)

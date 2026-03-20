@@ -308,8 +308,16 @@ export interface GlossaryObj {
   volume: string
 }
 
+export type PropertyPreset =
+  | 'Minimal'
+  | 'Core'
+  | 'Academic Extended'
+  | 'Full'
+  | 'Custom'
+
 export interface PluginSettings {
   testConnection: string
+  propertyPreset: string
   pageProps: ZotItem['data']
   agreementClause: boolean
   openAttachmentInline: boolean

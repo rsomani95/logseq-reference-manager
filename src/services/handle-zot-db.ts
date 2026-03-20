@@ -1,7 +1,8 @@
 import { IBatchBlock } from '@logseq/libs/dist/LSPlugin'
 import { format, parse, parseISO } from 'date-fns'
 
-import { ZotData } from '../interfaces'
+import { PROP_PRESETS, ZOT_DATA_KEY_MAP } from '../constants'
+import { PropertyPreset, ZotData } from '../interfaces'
 import { isSchemaAdded } from './is-schema-added'
 import { parseHtml } from './parse-html'
 
@@ -59,8 +60,22 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
   2. Adds abstract, attachments and annotations to page
   */
 
-  // Get user-defined props on the fly in case it changes
-  const userSelectedPageProps = logseq.settings?.pageProps as string[]
+  // Resolve which properties to use based on the selected preset
+  const preset = (logseq.settings?.propertyPreset as PropertyPreset) ?? 'Core'
+  let userSelectedPageProps: string[]
+  if (preset === 'Custom') {
+    userSelectedPageProps = logseq.settings?.pageProps as string[]
+  } else if (preset === 'Full') {
+    userSelectedPageProps = Object.keys(ZOT_DATA_KEY_MAP).filter(
+      (prop) =>
+        prop !== 'abstractNote' &&
+        prop !== 'attachments' &&
+        prop !== 'notes' &&
+        prop !== 'inGraph',
+    )
+  } else {
+    userSelectedPageProps = [...PROP_PRESETS[preset]]
+  }
   for (const prop of userSelectedPageProps) {
     console.log('Inserting prop into page', prop)
 

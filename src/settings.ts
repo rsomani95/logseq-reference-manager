@@ -1,6 +1,15 @@
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user'
 
 import { ZOT_DATA_KEY_MAP } from './constants'
+import { PropertyPreset } from './interfaces'
+
+export const PRESET_CHOICES: PropertyPreset[] = [
+  'Minimal',
+  'Core',
+  'Academic Extended',
+  'Full',
+  'Custom',
+]
 
 export const handleSettings = ({ msg }: { msg: string }) => {
   const propsArray = Object.keys(ZOT_DATA_KEY_MAP)
@@ -23,10 +32,20 @@ export const handleSettings = ({ msg }: { msg: string }) => {
       default: '',
     },
     {
+      key: 'propertyPreset',
+      type: 'enum',
+      title: 'Property Preset (DB version)',
+      description:
+        'Choose a preset to control which properties are added to Zotero pages. "Minimal" includes just the essentials (title, date, author, DOI/ISBN, item type, Zotero link). "Core" adds common citation fields. "Academic Extended" adds dates, institutional, and manuscript fields. "Full" includes everything. "Custom" lets you pick individual properties below.',
+      default: 'Core',
+      enumPicker: 'select',
+      enumChoices: PRESET_CHOICES,
+    },
+    {
       key: 'pageProps',
       type: 'enum',
-      title: 'Page Properties (DB version)',
-      description: `Indicate the properties to include for each Zotero item. After setting this up, invoke the command palette and use the command 'Add Zotero schema to Logseq'`,
+      title: 'Custom Page Properties (DB version)',
+      description: `Only used when Property Preset is set to "Custom". Select the properties to include for each Zotero item. After changing, invoke the command palette and use 'Add Zotero schema to Logseq'.`,
       default: filteredPropsArray,
       enumPicker: 'checkbox',
       enumChoices: filteredPropsArray,

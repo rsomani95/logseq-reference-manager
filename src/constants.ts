@@ -1,4 +1,4 @@
-import { ZotItem } from './interfaces'
+import { PropertyPreset, ZotItem } from './interfaces'
 
 export const ZOT_URL = 'http://127.0.0.1:23119/api/users/0'
 export const COLLECTIONS_URL = 'http://127.0.0.1:23119/api/users/0/collections'
@@ -55,6 +55,81 @@ export const FUSE_KEYS = [
 export const FUSE_THRESHOLD = 0.6
 
 export const DEBOUNCE_DELAY = 400
+
+// Property presets - each tier includes all properties from the tier(s) below it
+export const PROP_PRESET_MINIMAL = [
+  'title',
+  'date',
+  'creators',
+  'itemType',
+  'DOI',
+  'ISBN',
+  'publicationTitle',
+  'libraryLink',
+] as const
+
+export const PROP_PRESET_CORE = [
+  ...PROP_PRESET_MINIMAL,
+  'shortTitle',
+  'year',
+  'publisher',
+  'place',
+  'volume',
+  'issue',
+  'pages',
+  'numPages',
+  'edition',
+  'series',
+  'seriesTitle',
+  'seriesNumber',
+  'ISSN',
+  'url',
+  'language',
+  'tags',
+  'key',
+  'libraryCatalog',
+  'rights',
+  'license',
+  'citationKey',
+  'journalAbbreviation',
+  'bookTitle',
+  'callNumber',
+] as const
+
+export const PROP_PRESET_ACADEMIC = [
+  ...PROP_PRESET_CORE,
+  'accessDate',
+  'dateAdded',
+  'dateModified',
+  'month',
+  'day',
+  'number',
+  'versionNumber',
+  'parentItem',
+  'relations',
+  'references',
+  'university',
+  'institution',
+  'distributor',
+  'repository',
+  'manuscriptType',
+  'reportType',
+  'reportNumber',
+  'thesisType',
+  'extra',
+  'section',
+  'numberOfVolumes',
+  'firstPage',
+  'seriesText',
+  'subject',
+  'label',
+] as const
+
+export const PROP_PRESETS: Record<Exclude<PropertyPreset, 'Custom' | 'Full'>, readonly string[]> = {
+  'Minimal': PROP_PRESET_MINIMAL,
+  'Core': PROP_PRESET_CORE,
+  'Academic Extended': PROP_PRESET_ACADEMIC,
+}
 
 export const ZOT_DATA_KEY_MAP = {
   abstractNote: true,

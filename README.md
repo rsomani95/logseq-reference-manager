@@ -102,6 +102,34 @@ Proceed to step 1 below.
 
 ## Configuration
 
+### Property Presets (DB version)
+
+Choose a preset in the plugin settings to control which Zotero properties are added to your pages. The default is **Core**.
+
+| Preset | Description |
+|--------|-------------|
+| **Minimal** | Just the essentials: title, date, creators, itemType, DOI, ISBN, publicationTitle, libraryLink |
+| **Core** (default) | Minimal + common citation fields for journal articles, books, and chapters |
+| **Academic Extended** | Core + dates, institutional, manuscript, report, and thesis fields |
+| **Full** | Every available Zotero property |
+| **Custom** | Pick individual properties via the checkbox list in settings |
+
+<details>
+<summary>Core properties</summary>
+
+title, date, creators, itemType, DOI, ISBN, publicationTitle, libraryLink, shortTitle, year, publisher, place, volume, issue, pages, numPages, edition, series, seriesTitle, seriesNumber, ISSN, url, language, tags, key, libraryCatalog, rights, license, citationKey, journalAbbreviation, bookTitle, callNumber
+
+</details>
+
+<details>
+<summary>Academic Extended properties (includes Core)</summary>
+
+All Core properties, plus: accessDate, dateAdded, dateModified, month, day, number, versionNumber, parentItem, relations, references, university, institution, distributor, repository, manuscriptType, reportType, reportNumber, thesisType, extra, section, numberOfVolumes, firstPage, seriesText, subject, label
+
+</details>
+
+### Other Settings
+
 For Citation Key, Author and Page Name templates, use only the stated placeholders. Refer to the plugin settings for available options.
 
 ## Support
