@@ -21,7 +21,7 @@ export const columns: ColumnDef<ZotData>[] = [
   {
     header: 'Cite Key',
     id: 'citeKey',
-    accessorFn: (row) => getCiteKey(row.extra) ?? 'N/A',
+    accessorFn: (row) => row.citeKey || 'N/A',
   },
   {
     header: 'Creators',

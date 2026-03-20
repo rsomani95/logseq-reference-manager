@@ -66,6 +66,7 @@ export interface ZotItem {
     callNumber?: string
     caseName?: string
     charset?: string
+    citationKey?: string
     code?: string
     codeNumber?: string
     codePages?: string

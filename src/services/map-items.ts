@@ -1,5 +1,4 @@
 import { ZOTERO_LIBRARY_ITEM } from '../constants'
-import { getCiteKey } from '../features/items-table/Columns'
 import { AttachmentItem, NoteItem, ZotData, ZotItem } from '../interfaces'
 
 export const mapItems = async (

@@ -74,6 +74,7 @@ export const ZOT_DATA_KEY_MAP = {
   callNumber: true,
   caseName: true,
   charset: true,
+  citationKey: true,
   code: true,
   codeNumber: true,
   codePages: true,
