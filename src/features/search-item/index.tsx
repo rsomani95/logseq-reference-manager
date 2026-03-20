@@ -1,4 +1,3 @@
-import { Flex, Input, Text } from '@mantine/core'
 import { useForm } from 'react-hook-form'
 
 import { ResultCard } from '../../components/ResultCard'
@@ -31,40 +30,23 @@ export const SearchItem = ({
   const { data: zotDataResult } = useZotItem(debounceSearch)
 
   return (
-    <Flex
-      style={{ left: x, top: y, boxShadow: '0 4px 8px 0 rgba(0, 0, 0, 0.2)' }}
-      bg="#fff"
-      direction="column"
-      pos="absolute"
-      w="40rem"
-    >
-      <Input
-        id="search-field"
-        w="full"
-        {...register('search')}
-        type="text"
-        placeholder="Start searching"
-        rightSectionWidth="5rem"
-        rightSection={
-          <>
-            {zotDataResult && zotDataResult.length == 0 && (
-              <Text size="0.8rem" pl="sm" pt="0.2rem">
-                No results
-              </Text>
-            )}
-            {zotDataResult && zotDataResult.length > 0 && (
-              <Text size="0.8rem" pl="sm" pt="0.2rem">
-                {zotDataResult.length} results
-              </Text>
-            )}
-          </>
-        }
-      />
-      <Flex
-        direction="column"
-        mah="18rem"
-        style={{ flex: '0 1 auto', overflowY: 'scroll' }}
-      >
+    <div className="search-container" style={{ left: x, top: y }}>
+      <div className="search-input-wrapper">
+        <input
+          id="search-field"
+          {...register('search')}
+          type="text"
+          placeholder="Start searching"
+          className="search-input"
+        />
+        <span className="search-result-count">
+          {zotDataResult && zotDataResult.length === 0 && 'No results'}
+          {zotDataResult &&
+            zotDataResult.length > 0 &&
+            `${zotDataResult.length} results`}
+        </span>
+      </div>
+      <div className="results-list">
         {zotDataResult &&
           zotDataResult.map((item: ZotData) => (
             <ResultCard
@@ -75,7 +57,7 @@ export const SearchItem = ({
               reset={reset}
             />
           ))}
-      </Flex>
-    </Flex>
+      </div>
+    </div>
   )
 }

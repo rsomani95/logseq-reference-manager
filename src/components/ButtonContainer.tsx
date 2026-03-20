@@ -1,14 +1,3 @@
-import {
-  Alert,
-  Button,
-  Checkbox,
-  Code,
-  Group,
-  Select,
-  Stack,
-  Text,
-  Tooltip,
-} from '@mantine/core'
 import { Table } from '@tanstack/react-table'
 import {
   Ban,
@@ -59,13 +48,15 @@ export const ButtonContainer = ({
           control={control}
           name={`colVisibility.${column.id}`}
           render={({ field }) => (
-            <Checkbox
-              {...field}
-              label={column.id}
-              checked={column.getIsVisible()}
-              onChange={column.getToggleVisibilityHandler()}
-              size="xs"
-            />
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                {...field}
+                checked={column.getIsVisible()}
+                onChange={column.getToggleVisibilityHandler()}
+              />
+              {column.id}
+            </label>
           )}
         />
       ))}
@@ -83,125 +74,116 @@ export const ButtonContainer = ({
   }, [pageSize])
 
   return (
-    <Stack gap="sm">
-      <Alert color={'teal'} title={'For Logseq DB users only'}>
-        <Group gap={10} display={'flex'}>
-          <Text size="xs">
+    <div className="btn-stack">
+      <div className="alert-box">
+        <div className="alert-title">For Logseq DB users only</div>
+        <div className="alert-body">
+          <span className="alert-text">
             To start using this plugin, the schema for all the Zotero item
             properties (120 properties) will need to be defined first. You will
-            see these 120 properties within your <Code>#Property</Code> tag.
-          </Text>
-          <Button
-            size="xs"
+            see these 120 properties within your{' '}
+            <code className="inline-code">#Property</code> tag.
+          </span>
+          <button
+            className="btn btn-danger-outline"
             onClick={setupSchemaForZoteroProps}
-            variant="outline"
-            color="red"
             disabled={settingSchema}
           >
             Proceed to setup schema for Zotero properties
-          </Button>
-        </Group>
-      </Alert>
+          </button>
+        </div>
+      </div>
 
-      <Group>
-        <Button
-          size="xs"
+      <div className="btn-group">
+        <button
+          className="btn btn-primary"
           onClick={() => setShowColumnChooser(!showColumnChooser)}
         >
           {showColumnChooser ? 'Close' : 'Choose Columns'}
-        </Button>
+        </button>
         {showColumnChooser && <ColumnVisibilityChooser />}
-      </Group>
+      </div>
 
-      <Group gap={2}>
+      <div className="btn-group">
         {userConfirmation && (
-          <Button
-            size="xs"
-            w="11rem"
-            color="red"
-            radius="sm"
+          <button
+            className="btn btn-danger"
+            style={{ width: '11rem' }}
             onClick={insertAll}
           >
             Click to Proceed (re-index is recommended after completion)
-          </Button>
+          </button>
         )}
         {userConfirmation && (
-          <Button
-            size="xs"
-            color="gray"
-            radius="sm"
+          <button
+            className="btn btn-gray"
             onClick={() => setUserConfirmation(false)}
           >
             <Ban size="1rem" />
-          </Button>
+          </button>
         )}
         {!userConfirmation && (
-          <Tooltip
-            label={'There may be an issue inserting more than 100 items'}
-          >
-            <Button
-              size="xs"
-              w="11rem"
-              color="blue"
-              radius="sm"
-              disabled={table.getRowCount() > 100 ? true : false}
+          <div className="tooltip-wrapper">
+            <button
+              className="btn btn-primary"
+              style={{ width: '11rem' }}
+              disabled={table.getRowCount() > 100}
               onClick={() => setUserConfirmation(true)}
             >
               Insert {table.getRowCount().toLocaleString()} items
-            </Button>
-          </Tooltip>
+            </button>
+            <span className="tooltip-text">
+              There may be an issue inserting more than 100 items
+            </span>
+          </div>
         )}
         {!userConfirmation && (
           <>
-            <Button
-              size="xs"
+            <button
+              className="btn btn-primary"
               onClick={() => table.firstPage()}
               disabled={!table.getCanPreviousPage()}
             >
               <ChevronFirst size="1rem" />
-            </Button>
-            <Button
-              size="xs"
+            </button>
+            <button
+              className="btn btn-primary"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
               <ChevronLeft size="1rem" />
-            </Button>
-            <Button
-              size="xs"
+            </button>
+            <button
+              className="btn btn-primary"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
               <ChevronRight size="1rem" />
-            </Button>
-            <Button
-              size="xs"
+            </button>
+            <button
+              className="btn btn-primary"
               onClick={() => table.lastPage()}
               disabled={!table.getCanNextPage()}
             >
               <ChevronLast size="1rem" />
-            </Button>
+            </button>
 
             <Controller
               control={control}
               name="pageSize"
               render={({ field }) => (
-                <Select
-                  size="xs"
-                  {...field}
-                  data={[
-                    { value: '10', label: '10 results' },
-                    { value: '20', label: '20 results' },
-                    { value: '30', label: '30 results' },
-                    { value: '50', label: '50 results' },
-                    { value: '100', label: '100 results' },
-                  ]}
-                />
+                <select className="select-input" {...field}>
+                  <option value="10">10 results</option>
+                  <option value="20">20 results</option>
+                  <option value="30">30 results</option>
+                  <option value="50">50 results</option>
+                  <option value="100">100 results</option>
+                </select>
               )}
             />
           </>
         )}
-      </Group>
-    </Stack>
+      </div>
+    </div>
   )
 }

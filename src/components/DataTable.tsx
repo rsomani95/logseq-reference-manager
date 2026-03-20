@@ -1,4 +1,3 @@
-import { Container, Table } from '@mantine/core'
 import {
   flexRender,
   getCoreRowModel,
@@ -14,7 +13,6 @@ import { memo, useState } from 'react'
 import { columns } from '../features/items-table/Columns'
 import { ZotData } from '../interfaces'
 import { insertZotIntoGraph } from '../services/insert-zot-into-graph'
-import tdStyle from '../styles/Td.module.css'
 import { ButtonContainer } from './ButtonContainer'
 
 interface TableProps {
@@ -75,14 +73,14 @@ export const DataTable = memo(({ data }: TableProps) => {
   }
 
   return (
-    <Container m={0} p={0} w="100%" style={{ overflowX: 'scroll' }}>
+    <div className="data-table-wrapper">
       <ButtonContainer table={table} insertAll={insertAll} />
-      <Table mah="50rem" style={{ fontSize: '0.8rem' }}>
-        <Table.Thead>
+      <table className="data-table">
+        <thead>
           {table.getHeaderGroups().map((headerGroup) => (
-            <Table.Tr key={headerGroup.id}>
+            <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <Table.Th
+                <th
                   key={header.id}
                   onClick={header.column.getToggleSortingHandler()}
                 >
@@ -106,23 +104,23 @@ export const DataTable = memo(({ data }: TableProps) => {
                       />
                     ),
                   }[header.column.getIsSorted() as string] ?? null}
-                </Table.Th>
+                </th>
               ))}
-            </Table.Tr>
+            </tr>
           ))}
-        </Table.Thead>
-        <Table.Tbody>
+        </thead>
+        <tbody>
           {table.getRowModel().rows.map((row) => (
-            <Table.Tr key={row.id}>
+            <tr key={row.id}>
               {row.getVisibleCells().map((cell) => (
-                <Table.Td key={cell.id} maw="12rem" className={tdStyle.td}>
+                <td key={cell.id}>
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </Table.Td>
+                </td>
               ))}
-            </Table.Tr>
+            </tr>
           ))}
-        </Table.Tbody>
-      </Table>
-    </Container>
+        </tbody>
+      </table>
+    </div>
   )
 })

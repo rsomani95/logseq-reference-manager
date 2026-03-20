@@ -1,11 +1,9 @@
-import { Badge, Flex, Text, Title } from '@mantine/core'
 import { useCallback } from 'react'
 import { UseFormReset } from 'react-hook-form'
 
 import { FormValues } from '../features/search-item'
 import { CreatorItem, ZotData } from '../interfaces'
 import { insertZotIntoGraph } from '../services/insert-zot-into-graph'
-import divStyle from '../styles/Div.module.css'
 
 interface ResultCardProps {
   flag: 'full' | 'table' | 'citation'
@@ -24,10 +22,10 @@ const Creators = ({
   creator: CreatorItem
 }) => {
   return (
-    <Text size="sm" mr="0.2rem">
+    <span className="creator-text">
       {creator.firstName} {creator.lastName} ({creator.creatorType})
-      {length - index == 1 ? '' : ','}
-    </Text>
+      {length - index === 1 ? '' : ','}
+    </span>
   )
 }
 
@@ -66,21 +64,13 @@ export const ResultCard = ({ flag, uuid, item, reset }: ResultCardProps) => {
   }
 
   return (
-    <Flex
-      onClick={handleClick}
-      direction="row"
-      justify="space-between"
-      my="0.2rem"
-      className={divStyle.div}
-    >
-      <Flex p="lg" w="70%" direction="column">
-        <Title size="md">
-          {title}{' '}
-          <Badge radius="sm" color="#A9A9A9" px="0.2rem">
-            {itemType}
-          </Badge>
-        </Title>
-        <Flex dir="row" wrap="wrap" mt="0.2rem">
+    <div className="result-card" onClick={handleClick}>
+      <div className="result-card-left">
+        <div className="result-title-row">
+          <span className="result-title">{title}</span>
+          <span className="badge badge-type">{itemType}</span>
+        </div>
+        <div className="creators-list">
           {creators &&
             creators.map((creator, index) => (
               <Creators
@@ -90,20 +80,17 @@ export const ResultCard = ({ flag, uuid, item, reset }: ResultCardProps) => {
                 creator={creator}
               />
             ))}
-        </Flex>
-        {citeKey && <Text size="xs">Cite Key: {citeKey}</Text>}
-      </Flex>
-      <Flex p="lg" w="25%" direction="column" align="flex-end">
-        <Text size="sm">{date}</Text>
-        <Badge
-          radius="sm"
-          size="sm"
-          px="0.2rem"
-          color={item.inGraph ? 'green' : 'red'}
+        </div>
+        {citeKey && <span className="cite-key-text">Cite Key: {citeKey}</span>}
+      </div>
+      <div className="result-card-right">
+        <span className="date-text">{date}</span>
+        <span
+          className={`badge ${item.inGraph ? 'badge-in-graph' : 'badge-not-in-graph'}`}
         >
           {item.inGraph ? 'in graph' : 'not in graph'}
-        </Badge>
-      </Flex>
-    </Flex>
+        </span>
+      </div>
+    </div>
   )
 }
