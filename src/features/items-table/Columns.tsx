@@ -3,12 +3,6 @@ import { memo } from 'react'
 
 import { CreatorItem, ZotData } from '../../interfaces'
 
-export const getCiteKey = (extra: string | undefined) => {
-  if (!extra) return
-  const citeKey = /Citation Key: ([^\s\n]+)/.exec(extra)
-  if (citeKey && citeKey[1]) return citeKey[1]
-}
-
 export const CreatorsCell = memo(({ value }: { value: CreatorItem[] }) => {
   if (value.length == 0) return 'N/A'
   return value
