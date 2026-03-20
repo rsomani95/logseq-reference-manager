@@ -62,7 +62,7 @@ const getZotItems = async (queryString?: string) => {
           .url('/items')
           .addon(QueryAddon)
           .query({
-            itemType: 'note||attachment',
+            itemType: 'note||attachment||annotation',
           })
           .get()
           .json<ZotItem[]>(),

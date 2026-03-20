@@ -79,6 +79,7 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
     *******/
     if (
       prop === 'inGraph' ||
+      prop === 'annotations' ||
       prop === 'attachments' ||
       prop === 'abstractNote' ||
       prop === 'notes' ||
@@ -199,6 +200,26 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
       ],
     }
     glossaryBatchBlk.push(abstractBlk)
+  }
+
+  // Insert annotations
+  if (zotItem.annotations && zotItem.annotations.length > 0) {
+    const annotationChildBlks = zotItem.annotations
+      .filter((a) => a.annotationText)
+      .map((annotation) => {
+        const children = annotation.annotationComment
+          ? [{ content: `${annotation.annotationComment}` }]
+          : []
+        return {
+          content: `${annotation.annotationText}`,
+          children,
+        }
+      })
+
+    glossaryBatchBlk.push({
+      content: '## Annotations',
+      children: annotationChildBlks,
+    })
   }
 
   // Insert notes

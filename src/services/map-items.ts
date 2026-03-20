@@ -1,5 +1,11 @@
 import { ZOTERO_LIBRARY_ITEM } from '../constants'
-import { AttachmentItem, NoteItem, ZotData, ZotItem } from '../interfaces'
+import {
+  AnnotationItem,
+  AttachmentItem,
+  NoteItem,
+  ZotData,
+  ZotItem,
+} from '../interfaces'
 
 export const mapItems = async (
   zotParentItems: ZotItem[],
@@ -22,6 +28,7 @@ export const mapItems = async (
 
     return {
       ...itemDataWithoutConflicts,
+      annotations: [] as AnnotationItem[],
       attachments: [] as AttachmentItem[],
       citeKey: '',
       inGraph: false,
@@ -47,10 +54,22 @@ export const mapItems = async (
     // Map libraryLink
     item.libraryLink = `${ZOTERO_LIBRARY_ITEM}${item.key}`
 
+    // Collect attachment keys to match grandchildren (e.g. annotations)
+    const attachmentKeys = noteAndAttachmentItems
+      .filter(
+        (child) =>
+          child.data.itemType === 'attachment' &&
+          child.data.parentItem === item.key,
+      )
+      .map((child) => child.data.key)
+
     // Map attachment
     for (const noteAndAttachment of noteAndAttachmentItems) {
-      // Only consider when note and attachment has correct parent item
-      if (noteAndAttachment.data.parentItem !== item.key) {
+      // Only consider direct children or grandchildren (via attachments)
+      if (
+        noteAndAttachment.data.parentItem !== item.key &&
+        !attachmentKeys.includes(noteAndAttachment.data.parentItem ?? '')
+      ) {
         continue
       }
 
@@ -84,6 +103,14 @@ export const mapItems = async (
          ITEM TYPE == NOTE
          */
         item.notes.push({ note: noteAndAttachment.data.note })
+      } else if (noteAndAttachment.data.itemType === 'annotation') {
+        /*
+         ITEM TYPE == ANNOTATION
+         */
+        item.annotations.push({
+          annotationText: noteAndAttachment.data.annotationText ?? '',
+          annotationComment: noteAndAttachment.data.annotationComment ?? '',
+        })
       }
     }
   }

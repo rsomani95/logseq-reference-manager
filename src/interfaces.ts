@@ -51,6 +51,14 @@ export interface ZotItem {
   data: {
     abstractNote?: string
     accessDate?: string
+    annotationAuthorName?: string
+    annotationColor?: string
+    annotationComment?: string
+    annotationPageLabel?: string
+    annotationPosition?: string
+    annotationSortIndex?: string
+    annotationText?: string
+    annotationType?: string
     applicationNumber?: string
     archive?: string
     archiveID?: string
@@ -109,6 +117,7 @@ export interface ZotItem {
     legalStatus?: string
     legislativeBody?: string
     libraryCatalog?: string
+    libraryLink?: string
     license?: string
     linkMode?: string
     manuscriptType?: string
@@ -214,6 +223,7 @@ Handles additional schema that Logseq requires
 Or conflicts with Logseq's inbuilt properties
 **/
 export type ZotData = Omit<ZotItem['data'], 'code' | 'note'> & {
+  annotations: AnnotationItem[] | undefined
   attachments: AttachmentItem[] | undefined
   citeKey: string
   inGraph: boolean
@@ -251,6 +261,11 @@ export interface CreatorItem {
   firstName: string
   lastName: string
   creatorType: string
+}
+
+export interface AnnotationItem {
+  annotationText: string
+  annotationComment: string
 }
 
 export interface NoteItem {
