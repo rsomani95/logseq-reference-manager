@@ -178,30 +178,78 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
     }
   }
 
+  // Always populate zotero-code (not part of presets, but always needed)
+  if (zotItem['zotero-code']) {
+    await logseq.Editor.upsertBlockProperty(
+      existingPage.uuid,
+      'zotero-code',
+      zotItem['zotero-code'],
+    )
+  }
+
+  // Set initial sync timestamp
+  await logseq.Editor.upsertBlockProperty(
+    existingPage.uuid,
+    'zotero-last-sync',
+    new Date().toISOString(),
+  )
+
   /*******
     Insert blocks
     *******/
 
   let glossaryBatchBlk: IBatchBlock[] = []
 
-  // Insert attachment
+  // Insert attachments with annotations — done individually so we can set
+  // the zotero-attachment-key property on each attachment block for sync
   if (zotItem.attachments && zotItem.attachments.length > 0) {
-    const attachmentChildBlks = zotItem.attachments.map((attachment) => {
-      if (attachment.linkMode === 'linked_url') {
-        return {
-          content: `${logseq.settings?.openAttachmentInline ? '!' : ''}[${attachment.title}](${decodeURI(attachment.url)})`,
-        }
-      } else {
-        return {
-          content: `${logseq.settings?.openAttachmentInline ? '!' : ''}[${attachment.title}](${decodeURI(attachment.href)})`,
+    const headerBlock = await logseq.Editor.insertBlock(
+      existingPage.uuid,
+      '## Attachments and Annotations',
+      { sibling: false },
+    )
+
+    if (headerBlock) {
+      for (const attachment of zotItem.attachments) {
+        const link =
+          attachment.linkMode === 'linked_url'
+            ? `${logseq.settings?.openAttachmentInline ? '!' : ''}[${attachment.title}](${decodeURI(attachment.url)})`
+            : `${logseq.settings?.openAttachmentInline ? '!' : ''}[${attachment.title}](${decodeURI(attachment.href)})`
+
+        const attachmentBlock = await logseq.Editor.insertBlock(
+          headerBlock.uuid,
+          link,
+          { sibling: false },
+        )
+
+        if (attachmentBlock) {
+          // Store the Zotero attachment key for sync matching
+          await logseq.Editor.upsertBlockProperty(
+            attachmentBlock.uuid,
+            'zotero-attachment-key',
+            attachment.key,
+          )
+
+          // Insert annotations as children of the attachment block
+          for (const annotation of attachment.annotations) {
+            if (!annotation.annotationText) continue
+            const annotationBlock = await logseq.Editor.insertBlock(
+              attachmentBlock.uuid,
+              annotation.annotationText,
+              { sibling: false },
+            )
+
+            if (annotationBlock && annotation.annotationComment) {
+              await logseq.Editor.insertBlock(
+                annotationBlock.uuid,
+                annotation.annotationComment,
+                { sibling: false },
+              )
+            }
+          }
         }
       }
-    })
-
-    glossaryBatchBlk.push({
-      content: '## Attachments',
-      children: attachmentChildBlks,
-    })
+    }
   }
 
   // Insert abstract
@@ -211,34 +259,14 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
       children: [
         {
           content: zotItem.abstractNote
-                .split('\n')
-                .map((line) => line.replace(/\s+/g, ' ').trim())
-                .filter((line) => line.length > 0)
-                .join('\n'),
+            .split('\n')
+            .map((line) => line.replace(/\s+/g, ' ').trim())
+            .filter((line) => line.length > 0)
+            .join('\n'),
         },
       ],
     }
     glossaryBatchBlk.push(abstractBlk)
-  }
-
-  // Insert annotations
-  if (zotItem.annotations && zotItem.annotations.length > 0) {
-    const annotationChildBlks = zotItem.annotations
-      .filter((a) => a.annotationText)
-      .map((annotation) => {
-        const children = annotation.annotationComment
-          ? [{ content: `${annotation.annotationComment}` }]
-          : []
-        return {
-          content: `${annotation.annotationText}`,
-          children,
-        }
-      })
-
-    glossaryBatchBlk.push({
-      content: '## Annotations',
-      children: annotationChildBlks,
-    })
   }
 
   // Insert notes

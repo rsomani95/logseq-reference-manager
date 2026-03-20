@@ -1,0 +1,114 @@
+import { BlockEntity } from '@logseq/libs/dist/LSPlugin'
+
+import {
+  ZOTERO_ATTACHMENT_KEY_PROP,
+  ZOTERO_CODE_PROP,
+  ZOTERO_LAST_SYNC_PROP,
+} from '../constants'
+import { getAnnotationsByItemKey } from './get-zot-items'
+
+export const syncAnnotations = async (pageName: string) => {
+  const pageProps = await logseq.Editor.getPageProperties(pageName)
+  if (!pageProps) throw new Error('No page properties found')
+
+  const itemKey = pageProps[ZOTERO_CODE_PROP]
+  if (!itemKey) throw new Error('Not a valid Zotero page')
+
+  const lastSync = pageProps[ZOTERO_LAST_SYNC_PROP] as string | undefined
+
+  // Fetch new annotations from Zotero (only those added after last sync)
+  const annotationMap = await getAnnotationsByItemKey(
+    itemKey as string,
+    lastSync,
+  )
+
+  if (annotationMap.size === 0) {
+    await logseq.UI.showMsg('No new annotations found', 'warning')
+    return
+  }
+
+  // Find the "Attachments and Annotations" section in the page block tree
+  const blockTree = await logseq.Editor.getPageBlocksTree(pageName)
+  if (!blockTree) throw new Error('Could not read page blocks')
+
+  let attachmentsBlock = blockTree.find(
+    (b) =>
+      b.content === '## Attachments and Annotations' ||
+      b.content === '## Attachments',
+  )
+
+  // Create the section if it doesn't exist
+  if (!attachmentsBlock) {
+    const lastBlock = blockTree[blockTree.length - 1]
+    if (!lastBlock) throw new Error('Page has no blocks')
+    attachmentsBlock = (await logseq.Editor.insertBlock(
+      lastBlock.uuid,
+      '## Attachments and Annotations',
+      { sibling: true },
+    )) as BlockEntity
+  }
+
+  // Get existing attachment child blocks
+  const attachmentBlocks = attachmentsBlock.children as
+    | BlockEntity[]
+    | undefined
+
+  let totalInserted = 0
+
+  for (const [attachmentKey, annotations] of annotationMap) {
+    // Find the attachment block by matching the zotero-attachment-key property
+    let targetAttachmentBlock: BlockEntity | undefined
+
+    if (attachmentBlocks) {
+      for (const child of attachmentBlocks) {
+        const block = child as BlockEntity
+        const blockProps = await logseq.Editor.getBlockProperties(block.uuid)
+        if (blockProps?.[ZOTERO_ATTACHMENT_KEY_PROP] === attachmentKey) {
+          targetAttachmentBlock = block
+          break
+        }
+      }
+    }
+
+    if (!targetAttachmentBlock) {
+      console.log(
+        `logseq-zoterolocal-plugin: No matching attachment block for key ${attachmentKey}, skipping`,
+      )
+      continue
+    }
+
+    // Append new annotations as children of the attachment block
+    for (const annotation of annotations) {
+      const annotationBlock = await logseq.Editor.insertBlock(
+        targetAttachmentBlock.uuid,
+        annotation.annotationText,
+        { sibling: false },
+      )
+
+      if (annotationBlock && annotation.annotationComment) {
+        await logseq.Editor.insertBlock(
+          annotationBlock.uuid,
+          annotation.annotationComment,
+          { sibling: false },
+        )
+      }
+
+      totalInserted++
+    }
+  }
+
+  // Update the sync timestamp
+  const page = await logseq.Editor.getPage(pageName)
+  if (page) {
+    await logseq.Editor.upsertBlockProperty(
+      page.uuid,
+      'zotero-last-sync',
+      new Date().toISOString(),
+    )
+  }
+
+  await logseq.UI.showMsg(
+    `Synced ${totalInserted} new annotation(s)`,
+    'success',
+  )
+}

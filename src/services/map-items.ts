@@ -1,11 +1,5 @@
 import { ZOTERO_LIBRARY_ITEM } from '../constants'
-import {
-  AnnotationItem,
-  AttachmentItem,
-  NoteItem,
-  ZotData,
-  ZotItem,
-} from '../interfaces'
+import { AttachmentItem, NoteItem, ZotData, ZotItem } from '../interfaces'
 
 export const mapItems = async (
   zotParentItems: ZotItem[],
@@ -28,13 +22,12 @@ export const mapItems = async (
 
     return {
       ...itemDataWithoutConflicts,
-      annotations: [] as AnnotationItem[],
       attachments: [] as AttachmentItem[],
       citeKey: '',
       inGraph: false,
       libraryLink: '',
       notes: [] as NoteItem[],
-      'zotero-code': code,
+      'zotero-code': item.key,
     }
   })
 
@@ -54,63 +47,55 @@ export const mapItems = async (
     // Map libraryLink
     item.libraryLink = `${ZOTERO_LIBRARY_ITEM}${item.key}`
 
-    // Collect attachment keys to match grandchildren (e.g. annotations)
-    const attachmentKeys = noteAndAttachmentItems
-      .filter(
-        (child) =>
-          child.data.itemType === 'attachment' &&
-          child.data.parentItem === item.key,
-      )
-      .map((child) => child.data.key)
+    // First pass: collect attachments (with keys) for this parent item
+    const attachmentMap = new Map<string, AttachmentItem>()
+    for (const child of noteAndAttachmentItems) {
+      if (child.data.parentItem !== item.key) continue
+      if (child.data.itemType !== 'attachment') continue
 
-    // Map attachment
-    for (const noteAndAttachment of noteAndAttachmentItems) {
+      if (child.data.linkMode === 'imported_file' && child.links.enclosure) {
+        const att: AttachmentItem = {
+          linkMode: 'imported_file',
+          key: child.data.key,
+          annotations: [],
+          ...child.links.enclosure,
+        }
+        item.attachments.push(att)
+        attachmentMap.set(child.data.key, att)
+      } else if (child.data.linkMode === 'linked_url' && child.data.url) {
+        const att: AttachmentItem = {
+          linkMode: 'linked_url',
+          key: child.data.key,
+          annotations: [],
+          title: child.data.title,
+          url: child.data.url,
+        }
+        item.attachments.push(att)
+        attachmentMap.set(child.data.key, att)
+      }
+    }
+
+    // Second pass: collect notes and assign annotations to their parent attachment
+    const attachmentKeys = [...attachmentMap.keys()]
+    for (const child of noteAndAttachmentItems) {
       // Only consider direct children or grandchildren (via attachments)
       if (
-        noteAndAttachment.data.parentItem !== item.key &&
-        !attachmentKeys.includes(noteAndAttachment.data.parentItem ?? '')
+        child.data.parentItem !== item.key &&
+        !attachmentKeys.includes(child.data.parentItem ?? '')
       ) {
         continue
       }
 
-      if (noteAndAttachment.data.itemType === 'attachment') {
-        /*
-         ITEM TYPE == ATTACHMENT
-         */
-        if (
-          noteAndAttachment.data.linkMode === 'imported_file' &&
-          noteAndAttachment.links.enclosure
-        ) {
-          item.attachments.push({
-            linkMode: 'imported_file',
-            ...noteAndAttachment.links.enclosure,
-          })
-        } else if (
-          noteAndAttachment.data.linkMode === 'linked_url' &&
-          noteAndAttachment.data.url
-        ) {
-          item.attachments.push({
-            linkMode: 'linked_url',
-            title: noteAndAttachment.data.title,
-            url: noteAndAttachment.data.url,
+      if (child.data.itemType === 'note' && child.data.note) {
+        item.notes.push({ note: child.data.note })
+      } else if (child.data.itemType === 'annotation') {
+        const parentAttachment = attachmentMap.get(child.data.parentItem ?? '')
+        if (parentAttachment) {
+          parentAttachment.annotations.push({
+            annotationText: child.data.annotationText ?? '',
+            annotationComment: child.data.annotationComment ?? '',
           })
         }
-      } else if (
-        noteAndAttachment.data.itemType === 'note' &&
-        noteAndAttachment.data.note
-      ) {
-        /*
-         ITEM TYPE == NOTE
-         */
-        item.notes.push({ note: noteAndAttachment.data.note })
-      } else if (noteAndAttachment.data.itemType === 'annotation') {
-        /*
-         ITEM TYPE == ANNOTATION
-         */
-        item.annotations.push({
-          annotationText: noteAndAttachment.data.annotationText ?? '',
-          annotationComment: noteAndAttachment.data.annotationComment ?? '',
-        })
       }
     }
   }

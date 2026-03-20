@@ -8,6 +8,7 @@ import { GlossaryObj } from './interfaces'
 import { createTemplateGlossary } from './services/create-template-glossary'
 import { testZotConnection } from './services/get-zot-items'
 import { registerAdminCommands } from './services/register-admin-commands'
+import { syncAnnotations } from './services/sync-annotations'
 import { handleSettings } from './settings'
 import { ZotContainer } from './ZotContainer'
 
@@ -26,6 +27,20 @@ const main = async () => {
   const el = document.getElementById('app')
   if (!el) return
   const root = createRoot(el)
+
+  logseq.App.registerPageMenuItem(
+    'Zotero: Sync annotations',
+    async ({ page }) => {
+      try {
+        await syncAnnotations(page)
+      } catch (error) {
+        await logseq.UI.showMsg(
+          `Failed to sync annotations: ${(error as Error).message}`,
+          'error',
+        )
+      }
+    },
+  )
 
   ///////////////////////////////////
   // INSERT FULL DOCUMENT IN GRAPH //

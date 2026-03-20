@@ -14,6 +14,7 @@ Connect locally to Zotero 8 (and above) and pull your items into Logseq without 
 - Easy insertion of Zotero items into your graph
 - Track which items are already in your graph
 - Fuzzy search for the articles that you want to insert
+- Sync new annotations from Zotero to existing pages
 
 ## Installation
 
@@ -127,6 +128,16 @@ title, date, creators, itemType, DOI, ISBN, publicationTitle, libraryLink, short
 All Core properties, plus: accessDate, dateAdded, dateModified, month, day, number, versionNumber, parentItem, relations, references, university, institution, distributor, repository, manuscriptType, reportType, reportNumber, thesisType, extra, section, numberOfVolumes, firstPage, seriesText, subject, label
 
 </details>
+
+### Syncing Annotations (DB version)
+
+After importing a Zotero item, you can sync new annotations that you've added in Zotero since the last import or sync.
+
+1. Navigate to a Zotero item page in Logseq.
+2. Right-click the page title and select **Zotero: Sync annotations**.
+3. Only annotations added after the last sync will be appended under their respective attachment.
+
+The plugin tracks a `zotero-last-sync` timestamp on each page to determine which annotations are new. This timestamp is set automatically on initial import and updated after each sync.
 
 ### Other Settings
 

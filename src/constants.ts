@@ -1,5 +1,12 @@
 import { PropertyPreset, ZotItem } from './interfaces'
 
+export const ZOTERO_PROP = ':plugin.property.logseq-zoterolocal-plugin'
+export const ZOTERO_CODE_PROP =
+  ':plugin.property.logseq-zoterolocal-plugin/zotero-code'
+export const ZOTERO_LAST_SYNC_PROP =
+  ':plugin.property.logseq-zoterolocal-plugin/zotero-last-sync'
+export const ZOTERO_ATTACHMENT_KEY_PROP =
+  ':plugin.property.logseq-zoterolocal-plugin/zotero-attachment-key'
 export const ZOT_URL = 'http://127.0.0.1:23119/api/users/0'
 export const COLLECTIONS_URL = 'http://127.0.0.1:23119/api/users/0/collections'
 export const ZOTERO_LIBRARY_ITEM = 'zotero://select/library/items?itemKey='
@@ -125,9 +132,12 @@ export const PROP_PRESET_ACADEMIC = [
   'label',
 ] as const
 
-export const PROP_PRESETS: Record<Exclude<PropertyPreset, 'Custom' | 'Full'>, readonly string[]> = {
-  'Minimal': PROP_PRESET_MINIMAL,
-  'Core': PROP_PRESET_CORE,
+export const PROP_PRESETS: Record<
+  Exclude<PropertyPreset, 'Custom' | 'Full'>,
+  readonly string[]
+> = {
+  Minimal: PROP_PRESET_MINIMAL,
+  Core: PROP_PRESET_CORE,
   'Academic Extended': PROP_PRESET_ACADEMIC,
 }
 

@@ -1,4 +1,4 @@
-import { PROP_PRESETS, ZOT_DATA_KEY_MAP } from '../constants'
+import { PROP_PRESETS, ZOT_DATA_KEY_MAP, ZOTERO_PROP } from '../constants'
 import { PropertyPreset } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
 
@@ -12,6 +12,15 @@ const createTagProperties = async (props: string[]) => {
         {
           cardinality: 'many',
           type: 'node',
+        },
+        { name: prop },
+      )
+    } else if (prop === 'zotero-last-sync') {
+      await logseq.Editor.upsertProperty(
+        prop,
+        {
+          type: 'datetime',
+          cardinality: 'one',
         },
         { name: prop },
       )
@@ -92,7 +101,7 @@ export const setLogseqDbSchema = async () => {
   }
 
   const allZoteroPropsToBeSetup = [
-    ...['zotero-code'],
+    ...['zotero-code', 'zotero-last-sync', 'zotero-attachment-key'],
     ...selectedProps
       .filter((prop) => prop !== 'code')
       .filter((prop) => prop !== 'abstractNote')
@@ -105,7 +114,7 @@ export const setLogseqDbSchema = async () => {
   const zoteroPropsToBeSetup = allZoteroPropsToBeSetup
     .map((prop) => convertPropToKebabCase(prop))
     .filter((ZProp) => {
-      const fullIdentifierToExclude = `:plugin.property.logseq-zoterolocal-plugin/${ZProp}`
+      const fullIdentifierToExclude = `${ZOTERO_PROP}/${ZProp}`
       return !existingLsIdentifiers.has(fullIdentifierToExclude)
     })
 

@@ -42,7 +42,7 @@ export const handleContentBlocks = async (
           const blockArrRoot = blockArr[0]
           blockArr
             .slice(0)
-            .forEach((block) => blockArrRoot?.children!.push(block))
+            .forEach((block) => blockArrRoot?.children?.push(block))
         }
       })
     } else if (/\[.*?\]\(.*?\)/.test(content)) {

@@ -3,7 +3,12 @@ import QueryAddon from 'wretch/addons/queryString'
 import { WretchError } from 'wretch/resolver'
 
 import { BASE_QUERY, ZOT_URL } from '../constants'
-import { CollectionItem, ZotCollection, ZotItem } from '../interfaces'
+import {
+  AnnotationItem,
+  CollectionItem,
+  ZotCollection,
+  ZotItem,
+} from '../interfaces'
 import { mapItems } from './map-items'
 
 const api = wretch().url(ZOT_URL).headers({
@@ -104,6 +109,53 @@ export const getZotItemsFromQueryString = (queryString: string) =>
   getZotItems(queryString)
 
 export const getZotItemsWithoutQueryString = () => getZotItems()
+
+/**
+ * Fetches annotations for a given parent item key that were added after the specified date.
+ * Annotations in Zotero are grandchildren: parent item -> attachment -> annotation.
+ * Returns a map of attachment key -> annotations.
+ */
+export const getAnnotationsByItemKey = async (
+  itemKey: string,
+  since?: string,
+): Promise<Map<string, AnnotationItem[]>> => {
+  // Get attachment children of the parent item
+  const attachments: ZotItem[] = await api
+    .url(`/items/${itemKey}/children`)
+    .addon(QueryAddon)
+    .query({ itemType: 'attachment' })
+    .get()
+    .json()
+
+  // For each attachment, get its annotation children
+  const annotationMap = new Map<string, AnnotationItem[]>()
+
+  for (const attachment of attachments) {
+    const annotations: ZotItem[] = await api
+      .url(`/items/${attachment.data.key}/children`)
+      .addon(QueryAddon)
+      .query({ itemType: 'annotation' })
+      .get()
+      .json()
+
+    const filtered = annotations
+      .filter((a) => {
+        if (!since) return true
+        return new Date(a.data.dateAdded) > new Date(since)
+      })
+      .filter((a) => a.data.annotationText)
+      .map((a) => ({
+        annotationText: a.data.annotationText ?? '',
+        annotationComment: a.data.annotationComment ?? '',
+      }))
+
+    if (filtered.length > 0) {
+      annotationMap.set(attachment.data.key, filtered)
+    }
+  }
+
+  return annotationMap
+}
 
 export const getZotCollections = async (): Promise<CollectionItem[]> => {
   try {

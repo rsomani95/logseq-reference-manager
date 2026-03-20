@@ -28,7 +28,7 @@ export const parseHtml = (htmlString: string) => {
             children: [],
           })
         } else {
-          tempHighlightEl?.children!.push({
+          tempHighlightEl?.children?.push({
             content: element.textContent ?? '',
             children: [],
           })

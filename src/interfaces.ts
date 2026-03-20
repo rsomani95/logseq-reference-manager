@@ -223,7 +223,6 @@ Handles additional schema that Logseq requires
 Or conflicts with Logseq's inbuilt properties
 **/
 export type ZotData = Omit<ZotItem['data'], 'code' | 'note'> & {
-  annotations: AnnotationItem[] | undefined
   attachments: AttachmentItem[] | undefined
   citeKey: string
   inGraph: boolean
@@ -244,13 +243,20 @@ export interface FileItem {
   type: string
 }
 
+interface AttachmentBase {
+  key: string
+  annotations: AnnotationItem[]
+}
+
 export type AttachmentItem =
   | ({
       linkMode: 'linked_url'
-    } & URLItem)
+    } & URLItem &
+      AttachmentBase)
   | ({
       linkMode: 'imported_file'
-    } & FileItem)
+    } & FileItem &
+      AttachmentBase)
 
 export interface CollectionItem {
   key: string
