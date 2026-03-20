@@ -195,7 +195,11 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
       content: '## Abstract',
       children: [
         {
-          content: zotItem.abstractNote,
+          content: zotItem.abstractNote
+                .split('\n')
+                .map((line) => line.replace(/\s+/g, ' ').trim())
+                .filter((line) => line.length > 0)
+                .join('\n'),
         },
       ],
     }
