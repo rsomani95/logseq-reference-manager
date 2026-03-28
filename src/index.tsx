@@ -1,10 +1,11 @@
 import '@logseq/libs'
 
-import { BlockCursorPosition } from '@logseq/libs/dist/LSPlugin'
+import { BlockCursorPosition, BlockEntity } from '@logseq/libs/dist/LSPlugin'
 import { createRoot } from 'react-dom/client'
 
 import { handlePopup } from './handle-popup'
 import { GlossaryObj } from './interfaces'
+import { QUERY_ALL_ZOT_PAGES } from './queries'
 import { createTemplateGlossary } from './services/create-template-glossary'
 import { testZotConnection } from './services/get-zot-items'
 import { registerAdminCommands } from './services/register-admin-commands'
@@ -28,6 +29,9 @@ const main = async () => {
   if (!el) return
   const root = createRoot(el)
 
+  ///////////////////////////////////
+  ///////// SYNC ANNOTATIONS ////////
+  ///////////////////////////////////
   logseq.App.registerPageMenuItem(
     'Zotero: Sync annotations',
     async ({ page }) => {
@@ -38,6 +42,23 @@ const main = async () => {
           `Failed to sync annotations: ${(error as Error).message}`,
           'error',
         )
+      }
+    },
+  )
+
+  logseq.App.registerCommandPalette(
+    {
+      key: 'zoterolocal-plugin-sync-all-annotations',
+      label: 'logseq-zoterolocal-plugin: Sync all annotations',
+    },
+    async () => {
+      const allZoteroPages: BlockEntity[][] =
+        await logseq.DB.datascriptQuery(QUERY_ALL_ZOT_PAGES)
+      const flattenedPages = allZoteroPages.flat()
+
+      for (const page of flattenedPages) {
+        logseq.UI.showMsg(`Syncing annotations for ${page.title}`)
+        await syncAnnotations(page.title.toLowerCase())
       }
     },
   )

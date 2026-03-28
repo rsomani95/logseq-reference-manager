@@ -133,9 +133,9 @@ All Core properties, plus: accessDate, dateAdded, dateModified, month, day, numb
 
 After importing a Zotero item, you can sync new annotations that you've added in Zotero since the last import or sync.
 
-1. Navigate to a Zotero item page in Logseq.
-2. Right-click the page title and select **Zotero: Sync annotations**.
-3. Only annotations added after the last sync will be appended under their respective attachment.
+**Single page:** Navigate to a Zotero item page in Logseq, right-click the page title and select **Zotero: Sync annotations**. Only annotations added after the last sync will be appended under their respective attachment.
+
+**All pages:** Open the command palette (`Mod+Shift+P`) and run **logseq-zoterolocal-plugin: Sync all annotations**. This will sync annotations for every page tagged with "Zotero" in your graph.
 
 The plugin tracks a `zotero-last-sync` timestamp on each page to determine which annotations are new. This timestamp is set automatically on initial import and updated after each sync.
 

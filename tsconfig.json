@@ -26,6 +26,7 @@
     "node_modules",
     "./dist/**/*",
     "./screenshots",
-    "tailwind.config.js"
+    "tailwind.config.js",
+    "vite.config.ts"
   ]
 }
