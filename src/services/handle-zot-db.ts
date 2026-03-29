@@ -230,8 +230,11 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
             attachment.key,
           )
 
-          // Insert annotations as children of the attachment block
-          for (const annotation of attachment.annotations) {
+          // Insert annotations sorted by document position
+          const sortedAnnotations = [...attachment.annotations].sort((a, b) =>
+            a.annotationSortIndex.localeCompare(b.annotationSortIndex),
+          )
+          for (const annotation of sortedAnnotations) {
             if (!annotation.annotationText) continue
             const annotationBlock = await logseq.Editor.insertBlock(
               attachmentBlock.uuid,

@@ -94,6 +94,7 @@ export const mapItems = async (
           parentAttachment.annotations.push({
             annotationText: child.data.annotationText ?? '',
             annotationComment: child.data.annotationComment ?? '',
+            annotationSortIndex: child.data.annotationSortIndex ?? '',
           })
         }
       }

@@ -147,6 +147,7 @@ export const getAnnotationsByItemKey = async (
       .map((a) => ({
         annotationText: a.data.annotationText ?? '',
         annotationComment: a.data.annotationComment ?? '',
+        annotationSortIndex: a.data.annotationSortIndex ?? '',
       }))
 
     if (filtered.length > 0) {

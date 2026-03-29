@@ -272,6 +272,7 @@ export interface CreatorItem {
 export interface AnnotationItem {
   annotationText: string
   annotationComment: string
+  annotationSortIndex: string
 }
 
 export interface NoteItem {

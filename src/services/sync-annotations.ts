@@ -77,8 +77,11 @@ export const syncAnnotations = async (pageName: string) => {
       continue
     }
 
-    // Append new annotations as children of the attachment block
-    for (const annotation of annotations) {
+    // Append new annotations sorted by document position
+    const sortedAnnotations = [...annotations].sort((a, b) =>
+      a.annotationSortIndex.localeCompare(b.annotationSortIndex),
+    )
+    for (const annotation of sortedAnnotations) {
       const annotationBlock = await logseq.Editor.insertBlock(
         targetAttachmentBlock.uuid,
         annotation.annotationText,
