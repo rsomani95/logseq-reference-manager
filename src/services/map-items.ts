@@ -1,5 +1,6 @@
 import { ZOTERO_LIBRARY_ITEM } from '../constants'
 import { AttachmentItem, NoteItem, ZotData, ZotItem } from '../interfaces'
+import { isRecycledPage } from './is-recycled-page'
 
 export const mapItems = async (
   zotParentItems: ZotItem[],
@@ -51,7 +52,10 @@ export const mapItems = async (
       .replace('<% citeKey %>', citeKey ?? '$&')
       .replace('<% title %>', title)
     const page = await logseq.Editor.getPage(pageToCheck)
-    item.inGraph = !!page
+    // Treat recycled pages as not-in-graph. Logseq DB keeps deleted pages
+    // around for 30 days, and `getPage` still finds them — but for the user
+    // they're gone, so the badge would be misleading.
+    item.inGraph = !!page && !(await isRecycledPage(page))
 
     // Map libraryLink
     item.libraryLink = `${ZOTERO_LIBRARY_ITEM}${item.key}`

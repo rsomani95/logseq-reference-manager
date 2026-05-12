@@ -3,6 +3,7 @@ import { format, parse, parseISO } from 'date-fns'
 
 import { PROP_PRESETS, ZOT_DATA_KEY_MAP } from '../constants'
 import { PropertyPreset, ZotData } from '../interfaces'
+import { isRecycledPage } from './is-recycled-page'
 import { isSchemaAdded } from './is-schema-added'
 import { parseHtml } from './parse-html'
 
@@ -32,21 +33,30 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
   // Create page for Zotero item
   let existingPage = await logseq.Editor.getPage(pageName)
   if (existingPage) {
-    await logseq.UI.showMsg('Page already exists', 'warning')
+    // Logseq DB recycles pages instead of hard-deleting (30-day retention),
+    // so a "deleted" page still shows up here. The in-app restore handler
+    // retracts :block/parent, :block/order, :block/page and the recycle
+    // markers — none of which a plugin can do, and Editor.createPage on a
+    // recycled name silently returns the recycled entity without restoring
+    // (it short-circuits before the actual create). So we can't fix this in
+    // the plugin; punt to the user with an actionable message.
+    if (await isRecycledPage(existingPage)) {
+      throw new Error(
+        `"${pageName}" exists in Logseq's Recycle bin. Open the Recycle page, permanently delete this entry, then re-import.`,
+      )
+    }
     logseq.App.pushState('page', { name: existingPage.name })
-    return
-  } else {
-    //Create page
-    existingPage = await logseq.Editor.createPage(
-      pageName,
-      {},
-      {
-        redirect: true,
-        createFirstBlock: false,
-        journal: false,
-      },
-    )
+    throw new Error('Page already exists')
   }
+  existingPage = await logseq.Editor.createPage(
+    pageName,
+    {},
+    {
+      redirect: true,
+      createFirstBlock: false,
+      journal: false,
+    },
+  )
   if (!existingPage) return
 
   // Add Zotero tag to page
