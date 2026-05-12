@@ -20,8 +20,17 @@ export const mapItems = async (
   const parentZotData = zotParentItems.map((item) => {
     const { code, ...itemDataWithoutConflicts } = item.data
 
+    // Zotero's API doesn't return `year`; derive it from the parsed date.
+    const yearFromDate = item.data.date
+      ? new Date(item.data.date).getFullYear()
+      : NaN
+    const year = Number.isNaN(yearFromDate)
+      ? item.data.year
+      : yearFromDate.toString()
+
     return {
       ...itemDataWithoutConflicts,
+      year,
       attachments: [] as AttachmentItem[],
       citeKey: '',
       inGraph: false,
