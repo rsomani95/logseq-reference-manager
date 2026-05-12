@@ -36,74 +36,32 @@ Connect locally to Zotero 8 (and above) and pull your items into Logseq without 
 
 ## Usage
 
-### Logseq-DB
-
 1. Ensure that you have completed the DB-related settings in the plugin settings.
 2. Trigger the command palette (`Mod+Shift+P`) and use `Add Zotero schema to Logseq` to configure the property types used by Zotero.
 3. If you encounter any issues, try using the following commands from the command palette:
    - `Remove all created schem`: This removes all the schema created by the plugin
-   - `Reset current settings`: This resets all settings to default. Restart Logseq after using this command.`
+   - `Reset current settings`: This resets all settings to default. Restart Logseq after using this command.
 
-Proceed to step 1 below.
+### Insert Zotero item
 
-### Logseq-MD
+- Navigate to the page where you want to insert a Zotero item.
+- Type `/Zotero: Insert full item`.
+- Perform your search.
+- Click the desired item.
+- A new page will be created, and a reference to it will be inserted at your cursor position.
 
-1. Create a Zotero template:
-   - Go to any page that will hold your Zotero template.
-   - Type `/Insert Zotero template`.
-   - A sample template will be generated (example below). Customize as needed.
-   > Note: The <% notes %> should not be in the page properties as the content can be very long
-   - If you change the template name, update it in the plugin settings.
+### Insert citation
 
-```
-  accessDate:: <% accessDate %>
-  attachments:: <% attachments %>
-  citeKey:: <% citeKey %>
-  collections:: <% collections %>
-  authors:: <% creators %>
-  date:: <% date %>
-  dateAdded:: <% dateAdded %>
-  dateModified:: <% dateModified %>
-  DOI:: <% DOI %>
-  ISBN:: <% ISBN %>
-  ISSN:: <% ISSN %>
-  issue:: <% issue %>
-  itemTitle:: <% title %>
-  itemType:: <% itemType %>
-  journalAbbreviation:: <% journalAbbreviation %>
-  key:: <% key %>
-  language:: <% language %>
-  libraryCatalog:: <% libraryCatalog %>
-  libraryLink:: <% libraryLink %>
-  pages:: <% pages %>
-  parentItem:: <% parentItem %>
-  publicationTitle:: <% publicationTitle %>
-  relations:: <% relations %>
-  shortTitle:: <% shortTitle %>
-  tags:: <% tags %>
-  url:: <% url %>
-  version:: <% version %>
-  volume:: <% volume %>
-```
-
-1. Insert Zotero item:
-   - Navigate to the page where you want to insert a Zotero item.
-   - Type `/Zotero: Insert full item`.
-   - Perform your search.
-   - Click the desired item.
-   - A new page will be created, and a reference to it will be inserted at your cursor position.
-  
-2. Insert citation
-   - Ensure that your citation key template is set up in your plugin settings.
-   - Navigate to the page where you want to insert a Zotero item.
-   - Type `/Zotero: Insert citation`.
-   - Perform your search.
-   - Click the desired item.
-   - Citation will be added to your cursor position.
+- Ensure that your citation key template is set up in your plugin settings.
+- Navigate to the page where you want to insert a Zotero item.
+- Type `/Zotero: Insert citation`.
+- Perform your search.
+- Click the desired item.
+- Citation will be added to your cursor position.
 
 ## Configuration
 
-### Property Presets (DB version)
+### Property Presets
 
 Choose a preset in the plugin settings to control which Zotero properties are added to your pages. The default is **Core**.
 
@@ -129,7 +87,7 @@ All Core properties, plus: accessDate, dateAdded, dateModified, month, day, numb
 
 </details>
 
-### Syncing Annotations (DB version)
+### Syncing Annotations
 
 After importing a Zotero item, you can sync new annotations that you've added in Zotero since the last import or sync.
 
