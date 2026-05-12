@@ -67,6 +67,7 @@ Choose a preset in the plugin settings to control which Zotero properties are ad
 
 | Preset | Description |
 |--------|-------------|
+| **Essentials** | Personal preset based on my own Library |
 | **Minimal** | Just the essentials: title, date, creators, itemType, DOI, ISBN, publicationTitle, libraryLink |
 | **Core** (default) | Minimal + common citation fields for journal articles, books, and chapters |
 | **Academic Extended** | Core + dates, institutional, manuscript, report, and thesis fields |

@@ -4,6 +4,7 @@ import { ZOT_DATA_KEY_MAP } from './constants'
 import { PropertyPreset } from './interfaces'
 
 export const PRESET_CHOICES: PropertyPreset[] = [
+  'Essentials',
   'Minimal',
   'Core',
   'Academic Extended',

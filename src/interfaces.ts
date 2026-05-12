@@ -316,6 +316,7 @@ export interface GlossaryObj {
 }
 
 export type PropertyPreset =
+  | 'Essentials'
   | 'Minimal'
   | 'Core'
   | 'Academic Extended'

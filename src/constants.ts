@@ -64,6 +64,33 @@ export const FUSE_THRESHOLD = 0.6
 export const DEBOUNCE_DELAY = 400
 
 // Property presets - each tier includes all properties from the tier(s) below it
+export const PROP_PRESET_ESSENTIALS = [
+  'title',
+  'itemType',
+  'creators',
+  'date',
+  'url',
+  'accessDate',
+  'citationKey',
+  'libraryLink',
+  'DOI',
+  'ISSN',
+  'libraryCatalog',
+  'repository',
+  'archiveID',
+  'extra',
+  'shortTitle',
+  'publicationTitle',
+  'proceedingsTitle',
+  'volume',
+  'issue',
+  'journalAbbreviation',
+  'websiteTitle',
+  'blogTitle',
+  'language',
+  'tags',
+] as const
+
 export const PROP_PRESET_MINIMAL = [
   'title',
   'date',
@@ -136,6 +163,7 @@ export const PROP_PRESETS: Record<
   Exclude<PropertyPreset, 'Custom' | 'Full'>,
   readonly string[]
 > = {
+  Essentials: PROP_PRESET_ESSENTIALS,
   Minimal: PROP_PRESET_MINIMAL,
   Core: PROP_PRESET_CORE,
   'Academic Extended': PROP_PRESET_ACADEMIC,
