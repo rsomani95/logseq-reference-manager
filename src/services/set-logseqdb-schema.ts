@@ -25,10 +25,21 @@ const createTagProperties = async (props: string[]) => {
       schema = { type: 'default' }
     }
 
-    // Hide by default: property is not shown on a block unless zoomed in.
-    schema.hide = true
-
     await logseq.Editor.upsertProperty(prop, schema, { name: prop })
+
+    // The plugin SDK rewrites `schema.hide` to the unqualified attribute
+    // `:hide?` on the property, but the UI's "Hide by default" toggle reads
+    // the qualified `:logseq.property/hide?` — so the schema flag is a no-op.
+    // Qualified keywords pass through `upsertBlockProperty` unchanged, so
+    // setting it directly on the property block is the working path.
+    const property = await logseq.Editor.getProperty(`${ZOTERO_PROP}/${prop}`)
+    if (property?.uuid) {
+      await logseq.Editor.upsertBlockProperty(
+        property.uuid,
+        'logseq.property/hide?',
+        true,
+      )
+    }
   }
 }
 
@@ -72,16 +83,11 @@ export const setLogseqDbSchema = async () => {
       .filter((prop) => prop !== 'abstractNote')
       .filter((prop) => prop !== 'note'),
   ]
-  const allPropsInLs = await logseq.Editor.getAllProperties()
-  const existingLsIdentifiers = new Set(
-    allPropsInLs?.map((LsProp) => LsProp.ident),
+  // upsertProperty is idempotent, and the qualified-hide step needs to run
+  // every time anyway to fix properties created before this fix landed.
+  const zoteroPropsToBeSetup = allZoteroPropsToBeSetup.map((prop) =>
+    convertPropToKebabCase(prop),
   )
-  const zoteroPropsToBeSetup = allZoteroPropsToBeSetup
-    .map((prop) => convertPropToKebabCase(prop))
-    .filter((ZProp) => {
-      const fullIdentifierToExclude = `${ZOTERO_PROP}/${ZProp}`
-      return !existingLsIdentifiers.has(fullIdentifierToExclude)
-    })
 
   await logseq.UI.showMsg(
     `No. of Zotero props to be setup: ${zoteroPropsToBeSetup.length}`,
