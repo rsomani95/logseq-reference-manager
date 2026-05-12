@@ -111,6 +111,29 @@ export const getZotItemsFromQueryString = (queryString: string) =>
 export const getZotItemsWithoutQueryString = () => getZotItems()
 
 /**
+ * Pure filter: keep annotations strictly added after `since`, drop empties.
+ * If `since` is omitted, every annotation passes — callers (syncAnnotations)
+ * are responsible for guarding against that case to avoid duplicates.
+ */
+export const filterAnnotationsSince = (
+  annotations: ZotItem[],
+  since?: string,
+): AnnotationItem[] => {
+  const sinceMs = since ? new Date(since).getTime() : undefined
+  return annotations
+    .filter((a) => {
+      if (sinceMs === undefined) return true
+      return new Date(a.data.dateAdded).getTime() > sinceMs
+    })
+    .filter((a) => a.data.annotationText)
+    .map((a) => ({
+      annotationText: a.data.annotationText ?? '',
+      annotationComment: a.data.annotationComment ?? '',
+      annotationSortIndex: a.data.annotationSortIndex ?? '',
+    }))
+}
+
+/**
  * Fetches annotations for a given parent item key that were added after the specified date.
  * Annotations in Zotero are grandchildren: parent item -> attachment -> annotation.
  * Returns a map of attachment key -> annotations.
@@ -138,17 +161,7 @@ export const getAnnotationsByItemKey = async (
       .get()
       .json()
 
-    const filtered = annotations
-      .filter((a) => {
-        if (!since) return true
-        return new Date(a.data.dateAdded) > new Date(since)
-      })
-      .filter((a) => a.data.annotationText)
-      .map((a) => ({
-        annotationText: a.data.annotationText ?? '',
-        annotationComment: a.data.annotationComment ?? '',
-        annotationSortIndex: a.data.annotationSortIndex ?? '',
-      }))
+    const filtered = filterAnnotationsSince(annotations, since)
 
     if (filtered.length > 0) {
       annotationMap.set(attachment.data.key, filtered)

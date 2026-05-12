@@ -15,15 +15,6 @@ const createTagProperties = async (props: string[]) => {
         },
         { name: prop },
       )
-    } else if (prop === 'zotero-last-sync') {
-      await logseq.Editor.upsertProperty(
-        prop,
-        {
-          type: 'datetime',
-          cardinality: 'one',
-        },
-        { name: prop },
-      )
     } else if (
       prop === 'access-date' ||
       prop === 'date-added' ||
@@ -46,7 +37,7 @@ const createTagProperties = async (props: string[]) => {
         },
         { name: prop },
       )
-    } else if (prop === 'url' || prop === 'libraryLink') {
+    } else if (prop === 'url' || prop === 'library-link') {
       await logseq.Editor.upsertProperty(
         prop,
         {

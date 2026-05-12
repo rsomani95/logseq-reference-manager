@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "bunx vite",
     "build": "bunx vite build",
+    "test": "bun test",
     "prepare": "husky",
     "lint:precommit": "echo \"Running biome\" && bunx biome check . --write && echo \"Running tsc\" && bunx tsc --noEmit"
   },
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.8",
+    "@types/bun": "^1.3.13",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

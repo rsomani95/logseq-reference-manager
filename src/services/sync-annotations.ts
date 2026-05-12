@@ -7,6 +7,20 @@ import {
 } from '../constants'
 import { getAnnotationsByItemKey } from './get-zot-items'
 
+/**
+ * Parse a stored zotero-last-sync value into a Date, or null if it's missing
+ * or unparseable. Without this guard, sync would re-fetch every annotation
+ * from Zotero and append each one again, duplicating the page contents.
+ */
+export const parseLastSync = (raw: unknown): Date | null => {
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (trimmed.length === 0) return null
+  const date = new Date(trimmed)
+  if (Number.isNaN(date.getTime())) return null
+  return date
+}
+
 export const syncAnnotations = async (pageName: string) => {
   const pageProps = await logseq.Editor.getPageProperties(pageName)
   if (!pageProps) throw new Error('No page properties found')
@@ -14,12 +28,17 @@ export const syncAnnotations = async (pageName: string) => {
   const itemKey = pageProps[ZOTERO_CODE_PROP]
   if (!itemKey) throw new Error('Not a valid Zotero page')
 
-  const lastSync = pageProps[ZOTERO_LAST_SYNC_PROP] as string | undefined
+  const lastSync = parseLastSync(pageProps[ZOTERO_LAST_SYNC_PROP])
+  if (!lastSync) {
+    throw new Error(
+      'This page is missing a valid zotero-last-sync timestamp. Re-import the item to set one — refusing to sync to avoid duplicating annotations.',
+    )
+  }
 
   // Fetch new annotations from Zotero (only those added after last sync)
   const annotationMap = await getAnnotationsByItemKey(
     itemKey as string,
-    lastSync,
+    lastSync.toISOString(),
   )
 
   if (annotationMap.size === 0) {
