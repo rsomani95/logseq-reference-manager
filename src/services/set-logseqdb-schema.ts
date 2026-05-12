@@ -1,3 +1,5 @@
+import { PropertySchema } from '@logseq/libs/dist/LSPlugin'
+
 import { PROP_PRESETS, ZOT_DATA_KEY_MAP, ZOTERO_PROP } from '../constants'
 import { PropertyPreset } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
@@ -6,55 +8,27 @@ const createTagProperties = async (props: string[]) => {
   for (const prop of props) {
     console.log('Adding property schema', prop, 'to Logseq')
 
+    let schema: Partial<PropertySchema>
     if (prop === 'creators') {
-      await logseq.Editor.upsertProperty(
-        prop,
-        {
-          cardinality: 'many',
-          type: 'node',
-        },
-        { name: prop },
-      )
+      schema = { type: 'node', cardinality: 'many' }
     } else if (
       prop === 'access-date' ||
       prop === 'date-added' ||
       prop === 'date-modified'
     ) {
-      await logseq.Editor.upsertProperty(
-        prop,
-        {
-          type: 'date',
-          cardinality: 'one',
-        },
-        { name: prop },
-      )
+      schema = { type: 'date', cardinality: 'one' }
     } else if (prop === 'tags') {
-      await logseq.Editor.upsertProperty(
-        prop,
-        {
-          type: 'node',
-          cardinality: 'many',
-        },
-        { name: prop },
-      )
+      schema = { type: 'node', cardinality: 'many' }
     } else if (prop === 'url' || prop === 'library-link') {
-      await logseq.Editor.upsertProperty(
-        prop,
-        {
-          type: 'url',
-          cardinality: 'one',
-        },
-        { name: prop },
-      )
+      schema = { type: 'url', cardinality: 'one' }
     } else {
-      await logseq.Editor.upsertProperty(
-        prop,
-        {
-          type: 'default',
-        },
-        { name: prop },
-      )
+      schema = { type: 'default' }
     }
+
+    // Hide by default: property is not shown on a block unless zoomed in.
+    schema.hide = true
+
+    await logseq.Editor.upsertProperty(prop, schema, { name: prop })
   }
 }
 
