@@ -35,7 +35,7 @@ export const handleSettings = ({ msg }: { msg: string }) => {
     {
       key: 'propertyPreset',
       type: 'enum',
-      title: 'Property Preset (DB version)',
+      title: 'Property Preset',
       description:
         'Choose a preset to control which properties are added to Zotero pages. "Minimal" includes just the essentials (title, date, author, DOI/ISBN, item type, Zotero link). "Core" adds common citation fields. "Academic Extended" adds dates, institutional, and manuscript fields. "Full" includes everything. "Custom" lets you pick individual properties below.',
       default: 'Core',
@@ -45,7 +45,7 @@ export const handleSettings = ({ msg }: { msg: string }) => {
     {
       key: 'pageProps',
       type: 'enum',
-      title: 'Custom Page Properties (DB version)',
+      title: 'Custom Page Properties',
       description: `Only used when Property Preset is set to "Custom". Select the properties to include for each Zotero item. After changing, invoke the command palette and use 'Add Zotero schema to Logseq'.`,
       default: filteredPropsArray,
       enumPicker: 'checkbox',
@@ -54,7 +54,7 @@ export const handleSettings = ({ msg }: { msg: string }) => {
     {
       key: 'openAttachmentInline',
       type: 'boolean',
-      title: 'Open Attachment in Logseq (DB version)',
+      title: 'Open Attachment in Logseq',
       description:
         'If disabled, attachments will open in the default system app. If enabled, attachments will open in Logseq.',
       default: true,
@@ -79,22 +79,6 @@ export const handleSettings = ({ msg }: { msg: string }) => {
       title: 'Zotero Tag Name',
       description: `Specify the tag name used for Zotero imports`,
       default: 'Zotero',
-    },
-    {
-      key: 'zotTemplate',
-      type: 'string',
-      title: 'Template Name (MD version)',
-      description:
-        'The template name that holds your template for a Zotero page. Ensure that include parent is set to false. ',
-      default: 'Zotero Template',
-    },
-    {
-      key: 'authorTemplate',
-      type: 'string',
-      title: 'Author Template (MD version)',
-      description:
-        'Specify how authors should be shown in the properties. Available placeholders: <% firstName %>, <% lastName %>, <% creatorType %>',
-      default: '<% firstName %> <% lastName %> (<% creatorType %>)',
     },
   ]
 

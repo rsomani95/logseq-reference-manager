@@ -8,7 +8,6 @@ export const ZOTERO_LAST_SYNC_PROP =
 export const ZOTERO_ATTACHMENT_KEY_PROP =
   ':plugin.property.logseq-zoterolocal-plugin/zotero-attachment-key'
 export const ZOT_URL = 'http://127.0.0.1:23119/api/users/0'
-export const COLLECTIONS_URL = 'http://127.0.0.1:23119/api/users/0/collections'
 export const ZOTERO_LIBRARY_ITEM = 'zotero://select/library/items?itemKey='
 export const BASE_QUERY = {
   sort: 'dateAdded',

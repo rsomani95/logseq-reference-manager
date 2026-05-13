@@ -3,12 +3,7 @@ import QueryAddon from 'wretch/addons/queryString'
 import { WretchError } from 'wretch/resolver'
 
 import { BASE_QUERY, ZOT_URL } from '../constants'
-import {
-  AnnotationItem,
-  CollectionItem,
-  ZotCollection,
-  ZotItem,
-} from '../interfaces'
+import { AnnotationItem, ZotItem } from '../interfaces'
 import { mapItems } from './map-items'
 
 const api = wretch().url(ZOT_URL).headers({
@@ -169,33 +164,4 @@ export const getAnnotationsByItemKey = async (
   }
 
   return annotationMap
-}
-
-export const getZotCollections = async (): Promise<CollectionItem[]> => {
-  try {
-    const allCollectionNames: ZotCollection[] = await api
-      .url('/collections')
-      .get()
-      .json()
-
-    return allCollectionNames.map((item: ZotCollection) => ({
-      key: item.data.key,
-      name: item.data.name,
-    }))
-  } catch (error) {
-    if (error instanceof WretchError) {
-      logseq.UI.showMsg(
-        `❌ Connection error: ${error.message}
-Status: ${error.status}
-Response: ${await error.response.text()}`,
-        'error',
-      )
-    } else {
-      logseq.UI.showMsg(
-        `❌ An unexpected error occurred: ${(error as Error).message}. Check if Zotero is running.`,
-        'error',
-      )
-    }
-    return []
-  }
 }

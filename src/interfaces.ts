@@ -175,46 +175,6 @@ export interface ZotItem {
   }
 }
 
-export interface ZotCollection {
-  key: string
-  version: number
-  library: {
-    type: string
-    id: number
-    name: string
-    links: {
-      self: {
-        href: string
-        type: string
-      }
-      alternate: {
-        href: string
-        type: string
-      }
-    }
-  }
-  links: {
-    self: {
-      href: string
-      type: string
-    }
-    alternate: {
-      href: string
-      type: string
-    }
-  }
-  meta: {
-    numCollections: number
-    numItems: number
-  }
-  data: {
-    key: string
-    version: number
-    name: string
-    parentCollection: boolean
-    relations: Record<string, never>
-  }
-}
 // DO NOT TOUCH ABOVE SECTION //
 
 /**
@@ -258,11 +218,6 @@ export type AttachmentItem =
     } & FileItem &
       AttachmentBase)
 
-export interface CollectionItem {
-  key: string
-  name: string
-}
-
 export interface CreatorItem {
   firstName: string
   lastName: string
@@ -283,38 +238,6 @@ export interface TagItem {
   tag: string
 }
 
-export interface GlossaryObj {
-  accessDate: string
-  attachments: string
-  citeKey: string
-  collections: string
-  authors: string
-  date: string
-  dateAdded: string
-  dateModified: string
-  DOI: string
-  ISSN: string
-  ISBN: string
-  issue: string
-  itemType: string
-  journalAbbreviation: string
-  key: string
-  language: string
-  libraryCatalog: string
-  libraryLink: string
-  notes: string
-  pages: string
-  parentItem: string
-  publicationTitle: string
-  relations: string
-  shortTitle: string
-  tags: string
-  itemTitle: string
-  url: string
-  version: string
-  volume: string
-}
-
 export type PropertyPreset =
   | 'Essentials'
   | 'Minimal'
@@ -332,6 +255,4 @@ export interface PluginSettings {
   pagenameTemplate: string
   citekeyTemplate: string
   zotTag: string
-  zotTemplate: string
-  authorTemplate: string
 }
