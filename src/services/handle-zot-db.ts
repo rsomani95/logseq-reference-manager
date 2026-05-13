@@ -268,7 +268,7 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
   // Insert abstract
   if (zotItem.abstractNote) {
     const abstractBlk = {
-      content: '## Abstract',
+      content: '**Abstract**',
       children: [
         {
           content: zotItem.abstractNote
