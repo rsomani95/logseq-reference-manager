@@ -3,14 +3,7 @@ import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user'
 import { ZOT_DATA_KEY_MAP } from './constants'
 import { PropertyPreset } from './interfaces'
 
-export const PRESET_CHOICES: PropertyPreset[] = [
-  'Essentials',
-  'Minimal',
-  'Core',
-  'Academic Extended',
-  'Full',
-  'Custom',
-]
+export const PRESET_CHOICES: PropertyPreset[] = ['Essentials', 'Full', 'Custom']
 
 export const handleSettings = ({ msg }: { msg: string }) => {
   const propsArray = Object.keys(ZOT_DATA_KEY_MAP)
@@ -37,8 +30,8 @@ export const handleSettings = ({ msg }: { msg: string }) => {
       type: 'enum',
       title: 'Property Preset',
       description:
-        'Choose a preset to control which properties are added to Zotero pages. "Minimal" includes just the essentials (title, date, author, DOI/ISBN, item type, Zotero link). "Core" adds common citation fields. "Academic Extended" adds dates, institutional, and manuscript fields. "Full" includes everything. "Custom" lets you pick individual properties below.',
-      default: 'Core',
+        'Choose a preset to control which properties are added to Zotero pages. "Essentials" covers the common citation fields for papers/articles. "Full" includes everything. "Custom" lets you pick individual properties below.',
+      default: 'Essentials',
       enumPicker: 'select',
       enumChoices: PRESET_CHOICES,
     },

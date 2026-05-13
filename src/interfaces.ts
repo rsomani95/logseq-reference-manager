@@ -182,8 +182,10 @@ ZotData maps Zotero schema to Logseq schema
 Handles additional schema that Logseq requires
 Or conflicts with Logseq's inbuilt properties
 **/
-export type ZotData = Omit<ZotItem['data'], 'code' | 'note'> & {
+export type ZotData = Omit<ZotItem['data'], 'code' | 'note' | 'creators'> & {
   attachments: AttachmentItem[] | undefined
+  authors: CreatorItem[] | undefined
+  creators: CreatorItem[] | undefined
   citeKey: string
   inGraph: boolean
   libraryLink: string | undefined
@@ -238,13 +240,7 @@ export interface TagItem {
   tag: string
 }
 
-export type PropertyPreset =
-  | 'Essentials'
-  | 'Minimal'
-  | 'Core'
-  | 'Academic Extended'
-  | 'Full'
-  | 'Custom'
+export type PropertyPreset = 'Essentials' | 'Full' | 'Custom'
 
 export interface PluginSettings {
   testConnection: string

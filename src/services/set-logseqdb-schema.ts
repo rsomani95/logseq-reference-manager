@@ -9,7 +9,7 @@ const createTagProperties = async (props: string[]) => {
     console.log('Adding property schema', prop, 'to Logseq')
 
     let schema: Partial<PropertySchema>
-    if (prop === 'creators') {
+    if (prop === 'authors' || prop === 'creators') {
       schema = { type: 'node', cardinality: 'many' }
     } else if (
       prop === 'access-date' ||
@@ -60,7 +60,8 @@ export const setLogseqDbSchema = async () => {
   **/
 
   // Resolve which properties to set up based on the selected preset
-  const preset = (logseq.settings?.propertyPreset as PropertyPreset) ?? 'Core'
+  const preset =
+    (logseq.settings?.propertyPreset as PropertyPreset) ?? 'Essentials'
   let selectedProps: string[]
   if (preset === 'Custom') {
     selectedProps = logseq.settings?.pageProps as string[]

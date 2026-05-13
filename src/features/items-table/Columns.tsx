@@ -6,10 +6,7 @@ import { CreatorItem, ZotData } from '../../interfaces'
 export const CreatorsCell = memo(({ value }: { value: CreatorItem[] }) => {
   if (value.length == 0) return 'N/A'
   return value
-    .map(
-      (creator) =>
-        `${creator.firstName} ${creator.lastName} (${creator.creatorType})`,
-    )
+    .map((c) => `${c.firstName} ${c.lastName} (${c.creatorType})`)
     .join(', ')
 })
 
@@ -22,6 +19,12 @@ export const columns: ColumnDef<ZotData>[] = [
     header: 'Cite Key',
     id: 'citeKey',
     accessorFn: (row) => row.citeKey || 'N/A',
+  },
+  {
+    header: 'Authors',
+    accessorFn: (row) => row.authors || [],
+    cell: ({ getValue }) =>
+      getValue() ? <CreatorsCell value={getValue() as CreatorItem[]} /> : 'N/A',
   },
   {
     header: 'Creators',

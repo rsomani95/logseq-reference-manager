@@ -12,7 +12,7 @@ interface ResultCardProps {
   reset: UseFormReset<FormValues>
 }
 
-const Creators = ({
+const CreatorEntry = ({
   index,
   length,
   creator,
@@ -22,7 +22,7 @@ const Creators = ({
   creator: CreatorItem
 }) => {
   return (
-    <span className="creator-text">
+    <span className="author-text">
       {creator.firstName} {creator.lastName} ({creator.creatorType})
       {length - index === 1 ? '' : ','}
     </span>
@@ -30,7 +30,9 @@ const Creators = ({
 }
 
 export const ResultCard = ({ flag, uuid, item, reset }: ResultCardProps) => {
-  const { title, creators, itemType, citeKey, date } = item
+  const { title, authors, creators, itemType, citeKey, date } = item
+  const displayCreators =
+    authors && authors.length > 0 ? authors : (creators ?? [])
 
   const insertCitation = useCallback(async () => {
     if (!citeKey || citeKey === 'N/A') {
@@ -70,16 +72,15 @@ export const ResultCard = ({ flag, uuid, item, reset }: ResultCardProps) => {
           <span className="result-title">{title}</span>
           <span className="badge badge-type">{itemType}</span>
         </div>
-        <div className="creators-list">
-          {creators &&
-            creators.map((creator, index) => (
-              <Creators
-                key={index}
-                index={index}
-                length={creators.length}
-                creator={creator}
-              />
-            ))}
+        <div className="authors-list">
+          {displayCreators.map((creator, index) => (
+            <CreatorEntry
+              key={index}
+              index={index}
+              length={displayCreators.length}
+              creator={creator}
+            />
+          ))}
         </div>
         {citeKey && <span className="cite-key-text">Cite Key: {citeKey}</span>}
       </div>

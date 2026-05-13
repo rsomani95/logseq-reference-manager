@@ -19,7 +19,11 @@ export const mapItems = async (
    - tags
    */
   const parentZotData = zotParentItems.map((item) => {
-    const { code, ...itemDataWithoutConflicts } = item.data
+    const {
+      code,
+      creators: rawCreators,
+      ...itemDataWithoutConflicts
+    } = item.data
 
     // Zotero's API doesn't return `year`; derive it from the parsed date.
     const yearFromDate = item.data.date
@@ -29,10 +33,15 @@ export const mapItems = async (
       ? item.data.year
       : yearFromDate.toString()
 
+    const authors = rawCreators?.filter((c) => c.creatorType === 'author')
+    const creators = rawCreators?.filter((c) => c.creatorType !== 'author')
+
     return {
       ...itemDataWithoutConflicts,
       year,
       attachments: [] as AttachmentItem[],
+      authors,
+      creators,
       citeKey: '',
       inGraph: false,
       libraryLink: '',

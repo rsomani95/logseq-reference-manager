@@ -66,6 +66,7 @@ export const DEBOUNCE_DELAY = 400
 export const PROP_PRESET_ESSENTIALS = [
   'title',
   'itemType',
+  'authors',
   'creators',
   'date',
   'dateAdded',
@@ -91,82 +92,11 @@ export const PROP_PRESET_ESSENTIALS = [
   'tags',
 ] as const
 
-export const PROP_PRESET_MINIMAL = [
-  'title',
-  'date',
-  'creators',
-  'itemType',
-  'DOI',
-  'ISBN',
-  'publicationTitle',
-  'libraryLink',
-] as const
-
-export const PROP_PRESET_CORE = [
-  ...PROP_PRESET_MINIMAL,
-  'shortTitle',
-  'year',
-  'publisher',
-  'place',
-  'volume',
-  'issue',
-  'pages',
-  'numPages',
-  'edition',
-  'series',
-  'seriesTitle',
-  'seriesNumber',
-  'ISSN',
-  'url',
-  'language',
-  'tags',
-  'key',
-  'libraryCatalog',
-  'rights',
-  'license',
-  'citationKey',
-  'journalAbbreviation',
-  'bookTitle',
-  'callNumber',
-] as const
-
-export const PROP_PRESET_ACADEMIC = [
-  ...PROP_PRESET_CORE,
-  'accessDate',
-  'dateAdded',
-  'dateModified',
-  'month',
-  'day',
-  'number',
-  'versionNumber',
-  'parentItem',
-  'relations',
-  'references',
-  'university',
-  'institution',
-  'distributor',
-  'repository',
-  'manuscriptType',
-  'reportType',
-  'reportNumber',
-  'thesisType',
-  'extra',
-  'section',
-  'numberOfVolumes',
-  'firstPage',
-  'seriesText',
-  'subject',
-  'label',
-] as const
-
 export const PROP_PRESETS: Record<
   Exclude<PropertyPreset, 'Custom' | 'Full'>,
   readonly string[]
 > = {
   Essentials: PROP_PRESET_ESSENTIALS,
-  Minimal: PROP_PRESET_MINIMAL,
-  Core: PROP_PRESET_CORE,
-  'Academic Extended': PROP_PRESET_ACADEMIC,
 }
 
 export const ZOT_DATA_KEY_MAP = {
@@ -206,6 +136,7 @@ export const ZOT_DATA_KEY_MAP = {
   contentType: true,
   country: true,
   court: true,
+  authors: true,
   creators: true,
   date: true,
   dateAdded: true,
@@ -293,4 +224,4 @@ export const ZOT_DATA_KEY_MAP = {
   websiteTitle: true,
   websiteType: true,
   year: true,
-} satisfies Record<keyof ZotItem['data'], true>
+}

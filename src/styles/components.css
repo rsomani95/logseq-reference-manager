@@ -124,15 +124,15 @@
   color: #c92a2a;
 }
 
-/* Creators */
-.creators-list {
+/* Authors */
+.authors-list {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   gap: 0.1rem;
 }
 
-.creator-text {
+.author-text {
   font-size: 0.8rem;
   color: #495057;
 }

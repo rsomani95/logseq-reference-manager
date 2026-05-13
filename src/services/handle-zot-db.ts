@@ -71,7 +71,8 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
   */
 
   // Resolve which properties to use based on the selected preset
-  const preset = (logseq.settings?.propertyPreset as PropertyPreset) ?? 'Core'
+  const preset =
+    (logseq.settings?.propertyPreset as PropertyPreset) ?? 'Essentials'
   let userSelectedPageProps: string[]
   if (preset === 'Custom') {
     userSelectedPageProps = logseq.settings?.pageProps as string[]
@@ -145,22 +146,22 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
         fixedProp,
         page.id,
       )
-    } else if (prop === 'creators') {
-      const creatorPageIds: number[] = []
+    } else if (prop === 'authors' || prop === 'creators') {
+      const pageIds: number[] = []
 
-      for (const creator of value) {
+      for (const c of value) {
         const page = await logseq.Editor.createPage(
-          `${creator.firstName} ${creator.lastName}`,
+          `${c.firstName} ${c.lastName}`,
           {},
           { redirect: false },
         )
-        if (page) creatorPageIds.push(page.id)
+        if (page) pageIds.push(page.id)
       }
 
-      for (const id of creatorPageIds) {
+      for (const id of pageIds) {
         await logseq.Editor.upsertBlockProperty(
           existingPage.uuid,
-          'creators',
+          fixedProp,
           id,
         )
       }
