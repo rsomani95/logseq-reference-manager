@@ -1,6 +1,11 @@
 import { PropertySchema } from '@logseq/libs/dist/LSPlugin'
 
-import { PROP_PRESETS, ZOT_DATA_KEY_MAP, ZOTERO_PROP } from '../constants'
+import {
+  PROP_PRESETS,
+  PROP_PRIORITY_ORDER,
+  ZOT_DATA_KEY_MAP,
+  ZOTERO_PROP,
+} from '../constants'
 import { PropertyPreset } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
 
@@ -77,12 +82,27 @@ export const setLogseqDbSchema = async () => {
     selectedProps = [...PROP_PRESETS[preset]]
   }
 
+  const filteredSelectedProps = selectedProps
+    .filter((prop) => prop !== 'code')
+    .filter((prop) => prop !== 'abstractNote')
+    .filter((prop) => prop !== 'note')
+
+  // Priority props are added first so they appear at the top of the tag's
+  // property list. Only include the ones the active preset actually selects.
+  const priorityProps = PROP_PRIORITY_ORDER.filter((prop) =>
+    filteredSelectedProps.includes(prop),
+  )
+  const remainingProps = filteredSelectedProps.filter(
+    (prop) =>
+      !priorityProps.includes(prop as (typeof PROP_PRIORITY_ORDER)[number]),
+  )
+
   const allZoteroPropsToBeSetup = [
-    ...['zotero-code', 'zotero-last-sync', 'zotero-attachment-key'],
-    ...selectedProps
-      .filter((prop) => prop !== 'code')
-      .filter((prop) => prop !== 'abstractNote')
-      .filter((prop) => prop !== 'note'),
+    ...priorityProps,
+    'zotero-code',
+    'zotero-last-sync',
+    'zotero-attachment-key',
+    ...remainingProps,
   ]
   // upsertProperty is idempotent, and the qualified-hide step needs to run
   // every time anyway to fix properties created before this fix landed.

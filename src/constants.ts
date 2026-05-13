@@ -62,6 +62,19 @@ export const FUSE_THRESHOLD = 0.6
 
 export const DEBOUNCE_DELAY = 400
 
+// Properties displayed first on the Zotero tag. Logseq orders tag properties
+// by the sequence in which `addTagProperty` is called, so these are added to
+// the tag before anything else. Kept in camelCase to match the preset lists;
+// `convertPropToKebabCase` runs at schema setup.
+export const PROP_PRIORITY_ORDER = [
+  'authors',
+  'shortTitle',
+  'title',
+  'url',
+  'date',
+  'dateAdded',
+] as const
+
 // Property presets - each tier includes all properties from the tier(s) below it
 export const PROP_PRESET_ESSENTIALS = [
   'title',
@@ -71,7 +84,6 @@ export const PROP_PRESET_ESSENTIALS = [
   'date',
   'dateAdded',
   'url',
-  'accessDate',
   'citationKey',
   'libraryLink',
   'DOI',
