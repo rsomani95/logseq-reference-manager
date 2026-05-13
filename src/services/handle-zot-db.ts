@@ -2,6 +2,7 @@ import { IBatchBlock } from '@logseq/libs/dist/LSPlugin'
 import { format, parse, parseISO } from 'date-fns'
 
 import { PROP_PRESETS, ZOT_DATA_KEY_MAP } from '../constants'
+import { matchTagRules } from '../extended-tags'
 import { PropertyPreset, ZotData } from '../interfaces'
 import { isRecycledPage } from './is-recycled-page'
 import { isSchemaAdded } from './is-schema-added'
@@ -60,10 +61,16 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
   if (!existingPage) return
 
   // Add Zotero tag to page
-  await logseq.Editor.addBlockTag(
-    existingPage.uuid,
-    logseq.settings?.zotTag as string,
-  )
+  const zotTag = logseq.settings?.zotTag as string
+  await logseq.Editor.addBlockTag(existingPage.uuid, zotTag)
+
+  // Apply matched extended tags, if any. Assumes each tag exists in Logseq
+  // and extends the base Zotero tag — see feature_extended_tags.md.
+  for (const tag of matchTagRules(zotItem)) {
+    if (tag === zotTag) continue
+    console.log(`[extended-tags] Applying matched tag: ${tag}`)
+    await logseq.Editor.addBlockTag(existingPage.uuid, tag)
+  }
 
   /*
   1. Adds props to page
