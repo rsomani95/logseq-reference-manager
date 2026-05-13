@@ -46,7 +46,7 @@ const getZotItems = async (queryString?: string) => {
       ? {
           ...BASE_QUERY,
           q: queryString,
-          qmode: 'everything',
+          qmode: 'titleCreatorYear',
         }
       : BASE_QUERY
 

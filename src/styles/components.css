@@ -1,7 +1,7 @@
 /* Search container */
 .search-container {
   position: absolute;
-  width: 40rem;
+  width: 44rem;
   background: #fff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   border-radius: 6px;
@@ -46,9 +46,29 @@
 .results-list {
   display: flex;
   flex-direction: column;
-  max-height: 18rem;
+  max-height: 60vh;
   overflow-y: auto;
   flex: 0 1 auto;
+}
+
+/* Time-grouped recents */
+.time-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.time-group-header {
+  position: sticky;
+  top: 0;
+  background: #f8f9fa;
+  color: #868e96;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.35rem 0.85rem;
+  border-bottom: 1px solid #e9ecef;
+  z-index: 1;
 }
 
 /* Result card */
@@ -84,7 +104,7 @@
 .result-title-row {
   display: flex;
   flex-direction: row;
-  align-items: baseline;
+  align-items: center;
   flex-wrap: wrap;
   gap: 0.3rem;
 }
@@ -94,6 +114,11 @@
   font-weight: 600;
   color: #212529;
   line-height: 1.3;
+}
+
+.item-type-icon {
+  color: #868e96;
+  flex-shrink: 0;
 }
 
 /* Badge */
@@ -129,12 +154,34 @@
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 0.1rem;
+  align-items: baseline;
+  gap: 0.25rem;
 }
 
 .author-text {
   font-size: 0.8rem;
   color: #495057;
+}
+
+.author-match {
+  background-color: #fff3bf;
+  color: inherit;
+  padding: 0 0.1rem;
+  border-radius: 2px;
+}
+
+.more-authors-toggle {
+  font-size: 0.75rem;
+  color: #1c7ed6;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.more-authors-toggle:hover {
+  text-decoration: underline;
 }
 
 .cite-key-text {
