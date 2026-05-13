@@ -68,6 +68,7 @@ export const PROP_PRESET_ESSENTIALS = [
   'itemType',
   'creators',
   'date',
+  'dateAdded',
   'url',
   'accessDate',
   'citationKey',
