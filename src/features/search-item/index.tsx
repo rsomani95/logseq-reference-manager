@@ -40,11 +40,9 @@ const groupByBucket = (items: ZotData[]): Map<Bucket, ZotData[]> => {
 }
 
 export const SearchItem = ({
-  flag,
   rect: { x, y },
   uuid,
 }: {
-  flag: 'full' | 'table' | 'citation'
   rect: { x: number; y: number }
   uuid: string
 }) => {
@@ -98,7 +96,6 @@ export const SearchItem = ({
                   {items.map((item) => (
                     <ResultCard
                       key={item.key}
-                      flag={flag}
                       uuid={uuid}
                       item={item}
                       reset={reset}
@@ -111,7 +108,6 @@ export const SearchItem = ({
           : results.map((item) => (
               <ResultCard
                 key={item.key}
-                flag={flag}
                 uuid={uuid}
                 item={item}
                 reset={reset}

@@ -67,7 +67,7 @@ const main = async () => {
   logseq.Editor.registerSlashCommand('Zotero: Insert full item', async (e) => {
     const { rect } =
       (await logseq.Editor.getEditingCursorPosition()) as BlockCursorPosition
-    root.render(<ZotContainer flag={'full'} uuid={e.uuid} rect={rect} />)
+    root.render(<ZotContainer uuid={e.uuid} rect={rect} />)
     logseq.showMainUI()
 
     document.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -78,27 +78,6 @@ const main = async () => {
       }
     })
   })
-
-  //////////////////////////////
-  // INSERT CITATION IN GRAPH //
-  //////////////////////////////
-  logseq.Editor.registerSlashCommand(
-    'Zotero: Cite (insert citation)',
-    async (e) => {
-      const { rect } =
-        (await logseq.Editor.getEditingCursorPosition()) as BlockCursorPosition
-      root.render(<ZotContainer flag={'citation'} uuid={e.uuid} rect={rect} />)
-      logseq.showMainUI()
-
-      document.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key !== 'Escape') {
-          const searchField: HTMLInputElement =
-            document.querySelector('#search-field')!
-          searchField.focus()
-        }
-      })
-    },
-  )
 }
 
 logseq.ready(main).catch(console.error)

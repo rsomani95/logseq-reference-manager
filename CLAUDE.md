@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Logseq plugin that connects directly to a running Zotero 7+ instance (via its local HTTP API on `http://127.0.0.1:23119`) and imports items into a Logseq graph without needing Zotero Cloud sync. The plugin targets **Logseq-DB only** (the older Markdown path is still present in code but not the supported usage path).
+Logseq plugin that connects directly to a running Zotero 7+ instance (via its local HTTP API on `http://127.0.0.1:23119`) and imports items into a Logseq graph without needing Zotero Cloud sync. The plugin targets **Logseq-DB only**.
 
 ## Commands
 
@@ -29,9 +29,8 @@ The `.bruno/` directory contains Bruno HTTP request collections for ad-hoc explo
 1. Tests the connection to Zotero (`testZotConnection` in `services/get-zot-items.ts`).
 2. Registers settings via `settings.ts` (`handleSettings`).
 3. Registers admin commands via `services/register-admin-commands.ts` (schema setup, schema removal, settings reset).
-4. Registers the three user-facing commands:
+4. Registers the user-facing commands:
    - Slash `Zotero: Insert full item` → opens the search popup, on pick creates a new Logseq page for the item.
-   - Slash `Zotero: Cite (insert citation)` → opens the search popup, inserts a citation key string at the cursor.
    - Page menu `Zotero: Sync annotations` + command palette `Sync all annotations` → fetches new annotations from Zotero and appends them under the matching attachment block.
 
 The search popup renders into the `#app` div as a React tree: `ZotContainer` → `SearchItem` → `ResultCard`. `logseq.showMainUI()` / `hideMainUI()` toggle the popup overlay.
@@ -42,9 +41,7 @@ The search popup renders into the `#app` div as a React tree: `ZotContainer` →
 2. `services/map-items.ts` transforms raw `ZotItem[]` into the plugin's `ZotData[]`:
    - Adds `attachments` (with their annotations attached), `notes`, `citeKey`, `inGraph`, `libraryLink` (a `zotero://select/library/items?itemKey=…` URI), and `zotero-code` (the Zotero item key).
    - `inGraph` is computed by interpolating `pagenameTemplate` against title/citeKey and checking if a Logseq page with that name exists.
-3. User picks a result → `services/insert-zot-into-graph.ts` dispatches to:
-   - `handle-zot-db.ts` if `supportDb` is true (the only path supported now), OR
-   - `handle-zot-md.ts` (legacy MD path using user-defined Logseq templates).
+3. User picks a result → `services/insert-zot-into-graph.ts` calls `handle-zot-db.ts`.
 4. `handle-zot-db.ts` creates the page, tags it with the configured `zotTag` (default `Zotero`), then iterates the resolved property list (`PROP_PRESETS[preset]` or the custom list from settings) and writes properties with `logseq.Editor.upsertBlockProperty`. Special-cased properties:
    - `creators`, `tags` — each value becomes its own Logseq page; the property gets the page id.
    - `accessDate`, `dateAdded`, `dateModified` — written as Logseq journal page references.
@@ -83,11 +80,7 @@ The "Sync all annotations" command uses a datascript query (`src/queries.ts:QUER
 
 ### Template placeholders
 
-`<% placeholder %>` strings are used in two places:
-- `pagenameTemplate` setting → only `<% citeKey %>`, `<% title %>`, `<% shortTitle %>` are supported.
-- Markdown templates (legacy MD path) and the cite-key template (`citekeyTemplate`).
-
-`services/replace-template-with-values.ts` does the substitution and removes lines whose placeholder resolved to empty. `check-settings.ts` validates that templates contain at least one of the supported placeholders.
+`<% placeholder %>` strings are used in `pagenameTemplate` — only `<% citeKey %>`, `<% title %>`, `<% shortTitle %>` are supported. Substitution is inlined in `services/insert-zot-into-graph.ts` (and in `services/map-items.ts` for the `inGraph` badge).
 
 ## Style and tooling
 

@@ -7,7 +7,6 @@ import { insertZotIntoGraph } from '../services/insert-zot-into-graph'
 import { getItemTypeIcon } from '../services/item-type-icon'
 
 interface ResultCardProps {
-  flag: 'full' | 'table' | 'citation'
   uuid: string
   item: ZotData
   reset: UseFormReset<FormValues>
@@ -57,13 +56,7 @@ const CreatorEntry = ({
   )
 }
 
-export const ResultCard = ({
-  flag,
-  uuid,
-  item,
-  reset,
-  query,
-}: ResultCardProps) => {
+export const ResultCard = ({ uuid, item, reset, query }: ResultCardProps) => {
   const { title, authors, creators, itemType, citeKey, date } = item
   const displayCreators = useMemo(
     () => (authors && authors.length > 0 ? authors : (creators ?? [])),
@@ -95,36 +88,13 @@ export const ResultCard = ({
 
   const hiddenCount = displayCreators.length - visibleCreators.length
 
-  const insertCitation = useCallback(async () => {
-    if (!citeKey || citeKey === 'N/A') {
-      logseq.UI.showMsg(
-        'Citation key not configured properly in Better BibTex',
-        'error',
-      )
-      return
-    }
-    const templateStr = (logseq.settings!.citekeyTemplate as string).replace(
-      `<% citeKey %>`,
-      citeKey,
-    )
-    await logseq.Editor.insertAtEditingCursor(templateStr)
-
-    reset()
-    logseq.hideMainUI()
-  }, [item])
-
-  const insertZot = useCallback(async () => {
+  const handleClick = useCallback(async () => {
     const pageName = await insertZotIntoGraph(item)
     reset()
     if (!pageName) return
 
     await logseq.Editor.updateBlock(uuid, `[[${pageName}]]`)
   }, [item])
-
-  const handleClick = () => {
-    if (flag === 'citation') insertCitation()
-    if (flag === 'full') insertZot()
-  }
 
   const TypeIcon = getItemTypeIcon(itemType)
 

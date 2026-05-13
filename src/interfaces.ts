@@ -249,6 +249,5 @@ export interface PluginSettings {
   agreementClause: boolean
   openAttachmentInline: boolean
   pagenameTemplate: string
-  citekeyTemplate: string
   zotTag: string
 }
