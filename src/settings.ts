@@ -57,14 +57,7 @@ export const handleSettings = ({ msg }: { msg: string }) => {
       type: 'string',
       title: 'Page Name Template',
       description: `Specify the page name for each Zotero import. Available placeholders: <% citeKey %>, <% title %>`,
-      default: `R: <% citeKey %>`,
-    },
-    {
-      key: 'citekeyTemplate',
-      type: 'string',
-      title: 'Template for Cite Key',
-      description: `Specify the template when using the command /Zotero: Insert citation. Ensure that <% citeKey %> placeholder is indicated in your template`,
-      default: '[@<% citeKey %>]',
+      default: `@<% citeKey %>`,
     },
     {
       key: 'zotTag',
