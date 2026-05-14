@@ -70,7 +70,9 @@ const main = async () => {
   logseq.Editor.registerSlashCommand('Zotero: Insert full item', async (e) => {
     const { rect } =
       (await logseq.Editor.getEditingCursorPosition()) as BlockCursorPosition
-    root.render(<ZotContainer uuid={e.uuid} rect={rect} />)
+    root.render(
+      <ZotContainer uuid={e.uuid} rect={rect} openedAt={Date.now()} />,
+    )
     logseq.showMainUI()
 
     document.addEventListener('keydown', (e: KeyboardEvent) => {

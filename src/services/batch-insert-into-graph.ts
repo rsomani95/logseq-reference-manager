@@ -1,6 +1,7 @@
 import { ZotData } from '../interfaces'
 import { handleZotInDb, resolvePageName } from './handle-zot-db'
 import { isSchemaAdded } from './is-schema-added'
+import { buildZoteroCodeIndex } from './zotero-code-index'
 
 export interface BatchProgress {
   /** Items fully processed so far (imported, skipped, or failed). */
@@ -51,6 +52,10 @@ export const batchInsertIntoGraph = async (
     )
   }
 
+  // Build the rename-proof in-graph index once for the whole run, rather than
+  // re-querying Logseq per item.
+  const zoteroCodeIndex = await buildZoteroCodeIndex()
+
   const result: BatchResult = {
     imported: [],
     skipped: [],
@@ -73,8 +78,17 @@ export const batchInsertIntoGraph = async (
     }
 
     try {
-      await handleZotInDb(item, resolvePageName(item), { navigate: false })
-      result.imported.push(item)
+      const { status } = await handleZotInDb(item, resolvePageName(item), {
+        navigate: false,
+        zoteroCodeIndex,
+      })
+      // `status === 'exists'` means the item was already in the graph but the
+      // UI's pre-filter missed it — count it as skipped, not imported.
+      if (status === 'exists') {
+        result.skipped.push(item)
+      } else {
+        result.imported.push(item)
+      }
     } catch (e) {
       result.failed.push({
         item,

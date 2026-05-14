@@ -42,9 +42,11 @@ const groupByBucket = (items: ZotData[]): Map<Bucket, ZotData[]> => {
 export const SearchItem = ({
   rect: { x, y },
   uuid,
+  openedAt,
 }: {
   rect: { x: number; y: number }
   uuid: string
+  openedAt?: number
 }) => {
   const { register, watch, reset } = useForm<FormValues>({
     defaultValues: {
@@ -54,7 +56,7 @@ export const SearchItem = ({
   const queryString = watch('search')
 
   const { results, mode, isLoadingInitial, isLoadingFallback, error } =
-    useSearchItems(queryString)
+    useSearchItems(queryString, openedAt)
 
   const grouped = useMemo(
     () => (mode === 'recents' ? groupByBucket(results) : null),

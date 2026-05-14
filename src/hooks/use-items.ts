@@ -7,6 +7,7 @@ import {
   getZotItemsFromQueryString,
   getZotItemsWithoutQueryString,
 } from '../services/get-zot-items'
+import { refreshInGraphFlags } from '../services/zotero-code-index'
 
 export type SearchMode = 'recents' | 'search'
 
@@ -34,7 +35,7 @@ const FUSE_OPTIONS: IFuseOptions<ZotData> = {
   ],
 }
 
-export const useSearchItems = (query: string) => {
+export const useSearchItems = (query: string, openedAt?: number) => {
   const cacheRef = useRef<ZotData[]>([])
   const [cache, setCache] = useState<ZotData[]>([])
   const [isLoadingInitial, setIsLoadingInitial] = useState(true)
@@ -60,6 +61,28 @@ export const useSearchItems = (query: string) => {
       cancelled = true
     }
   }, [])
+
+  // Refresh `inGraph` on the cached snapshot every time the popup reopens
+  // (`openedAt` changes). The plugin gets no signal when the user renames,
+  // imports, or removes pages, so flags baked in at fetch time go stale —
+  // only the cheap local zotero-code index is rebuilt here, the Zotero items
+  // stay cached.
+  useEffect(() => {
+    const snapshot = cacheRef.current
+    if (snapshot.length === 0) return
+    let cancelled = false
+    refreshInGraphFlags(snapshot).then((refreshed) => {
+      // Bail if unmounted, nothing changed, or another effect swapped the
+      // cache out from under us while the index was building.
+      if (cancelled || refreshed === snapshot) return
+      if (cacheRef.current !== snapshot) return
+      cacheRef.current = refreshed
+      setCache(refreshed)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [openedAt])
 
   useEffect(() => {
     if (query.length < MIN_SERVER_QUERY_LENGTH) {

@@ -9,12 +9,18 @@ export const insertZotIntoGraph = async (zotItem: ZotData) => {
     {},
   )
 
-  const pageName = resolvePageName(zotItem)
-
   try {
-    await handleZotInDb(zotItem, pageName)
+    const { status, pageName } = await handleZotInDb(
+      zotItem,
+      resolvePageName(zotItem),
+    )
     logseq.UI.closeMsg(msgId)
-    await logseq.UI.showMsg('Inserted Zotero item successfully', 'success')
+    await logseq.UI.showMsg(
+      status === 'exists'
+        ? `Already in graph as "${pageName}" — linked here`
+        : 'Inserted Zotero item successfully',
+      'success',
+    )
     return pageName
   } catch (e) {
     logseq.UI.closeMsg(msgId)

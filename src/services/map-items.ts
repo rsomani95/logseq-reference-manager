@@ -4,7 +4,7 @@ import {
   ZOTERO_LIBRARY_ITEM,
 } from '../constants'
 import { AttachmentItem, NoteItem, ZotData, ZotItem } from '../interfaces'
-import { isRecycledPage } from './is-recycled-page'
+import { buildZoteroCodeIndex, isItemInGraph } from './zotero-code-index'
 
 export interface MapItemsOptions {
   /**
@@ -134,34 +134,27 @@ export const mapItems = async (
     }
   }
 
-  // In-graph pass: each item's badge is a Logseq page lookup — the slow part
-  // of loading a big container. Run them in parallel, in growing chunks: the
-  // small first chunk lets the list paint almost immediately, and `onChunk`
-  // streams the rest in as they resolve.
-  const pagenameTemplate = logseq.settings!.pagenameTemplate as string
+  // In-graph pass: an item is "in graph" when the graph already holds a page
+  // carrying its Zotero item key (`zotero-code`). Matching the key — not a
+  // page name rebuilt from `pagenameTemplate` — means renaming an imported
+  // page in Logseq doesn't flip its badge back to "not in graph". One bulk
+  // query builds the index; the per-item check is then an instant Map lookup.
+  // Still walked in growing chunks, with a yield between them, so a big
+  // container's list paints progressively rather than in one jump.
+  const codeIndex = await buildZoteroCodeIndex()
   const { onChunk, isCancelled } = options
   let cursor = 0
   let chunkSize = MAP_CHUNK_INITIAL
   while (cursor < parentZotData.length) {
     if (isCancelled?.()) break
     const chunk = parentZotData.slice(cursor, cursor + chunkSize)
-    await Promise.all(
-      chunk.map(async (item) => {
-        const pageToCheck = pagenameTemplate
-          .replace('<% citeKey %>', item.citationKey ?? '$&')
-          .replace('<% title %>', item.title)
-        const page = await logseq.Editor.getPage(pageToCheck)
-        // Treat recycled pages as not-in-graph. Logseq DB keeps deleted pages
-        // around for 30 days, and `getPage` still finds them — but for the
-        // user they're gone, so the badge would be misleading.
-        item.inGraph = !!page && !(await isRecycledPage(page))
-      }),
-    )
+    for (const item of chunk) {
+      item.inGraph = isItemInGraph(item, codeIndex)
+    }
     cursor += chunk.length
     onChunk?.(parentZotData.slice(0, cursor))
     // Hand the frame back to the browser so React actually paints this chunk
-    // before the next one starts — otherwise fast page lookups drain the whole
-    // loop in a single task and the list still appears all at once.
+    // before the next one starts.
     if (onChunk && cursor < parentZotData.length) {
       await new Promise((resolve) => setTimeout(resolve, 0))
     }

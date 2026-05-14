@@ -8,6 +8,7 @@ import { convertPropToKebabCase } from './convert-prop-to-kebab'
 import { isRecycledPage } from './is-recycled-page'
 import { isSchemaAdded } from './is-schema-added'
 import { parseHtml } from './parse-html'
+import { buildZoteroCodeIndex, ZoteroCodedPage } from './zotero-code-index'
 
 /**
  * Resolves the Logseq page name for a Zotero item by filling the configured
@@ -22,8 +23,11 @@ export const resolvePageName = (zotItem: ZotData): string =>
 export const handleZotInDb = async (
   zotItem: ZotData,
   pageName: string,
-  opts: { navigate?: boolean } = {},
-) => {
+  opts: {
+    navigate?: boolean
+    zoteroCodeIndex?: Map<string, ZoteroCodedPage>
+  } = {},
+): Promise<{ status: 'created' | 'exists'; pageName: string }> => {
   // When false (batch import), suppress the page navigation that's helpful for
   // a single insert but would yank the user around mid-batch.
   const navigate = opts.navigate ?? true
@@ -50,6 +54,25 @@ export const handleZotInDb = async (
     throw new Error()
   }
 
+  // Rename-proof in-graph check: match the item by its Zotero key, not by the
+  // page name. If this item was imported and the user later renamed the page,
+  // this still finds it — so we surface / link the existing page instead of
+  // creating a duplicate under the template-derived name.
+  const codeIndex = opts.zoteroCodeIndex ?? (await buildZoteroCodeIndex())
+  const zoteroCode = zotItem['zotero-code']
+  const alreadyInGraph = zoteroCode ? codeIndex.get(zoteroCode) : undefined
+  if (alreadyInGraph) {
+    if (navigate) {
+      // pushState resolves by the lowercased page name (cf. PageEntity.name,
+      // and `page.title.toLowerCase()` in index.tsx); the [[link]] / message
+      // use the display title.
+      logseq.App.pushState('page', {
+        name: alreadyInGraph.title.toLowerCase(),
+      })
+    }
+    return { status: 'exists', pageName: alreadyInGraph.title }
+  }
+
   // Create page for Zotero item
   let existingPage = await logseq.Editor.getPage(pageName)
   if (existingPage) {
@@ -65,6 +88,9 @@ export const handleZotInDb = async (
         `"${pageName}" exists in Logseq's Recycle bin. Open the Recycle page, permanently delete this entry, then re-import.`,
       )
     }
+    // A different page already occupies this name — one the user made by
+    // hand, or an imported page whose zotero-code we couldn't read. Don't
+    // clobber it.
     if (navigate) logseq.App.pushState('page', { name: existingPage.name })
     throw new Error('Page already exists')
   }
@@ -77,7 +103,9 @@ export const handleZotInDb = async (
       journal: false,
     },
   )
-  if (!existingPage) return
+  if (!existingPage) {
+    throw new Error('Failed to create the Logseq page')
+  }
 
   // Add Zotero tag to page
   const zotTag = logseq.settings?.zotTag as string
@@ -312,4 +340,6 @@ export const handleZotInDb = async (
 
   if (glossaryBatchBlk.length > 0)
     await logseq.Editor.insertBatchBlock(existingPage.uuid, glossaryBatchBlk)
+
+  return { status: 'created', pageName }
 }
