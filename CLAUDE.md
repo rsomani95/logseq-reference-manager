@@ -6,6 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Logseq plugin that connects directly to a running Zotero 7+ instance (via its local HTTP API on `http://127.0.0.1:23119`) and imports items into a Logseq graph without needing Zotero Cloud sync. The plugin targets **Logseq-DB only**.
 
+## Design context
+
+Grounding for any UI/visual work. Established via the `design-for-ai` skill.
+
+**Purpose.** Pulling a Zotero reference into Logseq should feel instant and native. The generated page is not an archive record — it's the user's note-taking workbench and a link target from across their graph. Design the page, *and the act of importing it*, as the **start** of work, not the end.
+
+**Primary user.** A practitioner-researcher — equal parts academic and PKM user, leaning practical. Reads papers daily; manages references in Zotero but thinks in Logseq. Representative voice: *"My Zotero pages in Logseq are where I actually think — I take all my notes there and link to them from everywhere else."* Needs: near-zero-friction import; a generated page that's a good place to **write**, not a metadata dump; nothing that feels foreign inside Logseq; reliable speed every time.
+
+**Aesthetic direction.** Calm, fast, warm — roughly that order of dominance. Craft level of **Vercel / Arc, expressed with restraint**: flair lives in the details (timing, easing, a confident type scale, considered empty states) — never in decoration (no gradients for their own sake, no motion as ornament). *Not* over-designed or flashy; *not* cold or templatey. Appropriate polish, not maximum polish.
+
+**Medium / constraints.** React 19 inside Logseq's plugin iframe. Mirror Logseq's resolved theme tokens (light + dark) — native feel is a feature, not a limitation. Elevate with shadow, not borders; surface color matches page background. Target **WCAG AA** (contrast, visible focus, keyboard navigation).
+
+**Open design questions** (structure precedes styling):
+- **Invocation surface is not settled.** Today: slash command → search popup (single item); command palette → centered modal (batch). Single-as-slash feels right; batch may also become a slash command. The *form* of invocation — popup, modal, inline, palette — is an active design decision per use case, not a fixed constraint.
+- **Two use cases, different weights.** (1) Mid-writing single import — near-instant, minimal ceremony. (2) Deliberate batch import from a collection/saved search — can carry more UI. Invocation and layout of each should follow from this difference.
+
 ## Commands
 
 Package manager is **bun**. Husky pre-commit runs `npm run lint:precommit` (Biome check + `tsc --noEmit`).
@@ -95,5 +111,6 @@ The list is `SelectableResultCard`s; selection is a `Map` keyed by Zotero item k
 
 - TypeScript strict mode with `noUncheckedIndexedAccess`. Path alias `../*` → `src/*` (see `tsconfig.json`).
 - Biome handles both lint and format. Single quotes, no semicolons, spaces. Import groups: node → packages → aliases → relative paths.
+- **Typography tokens.** `src/styles/components.css` opens with a `:root` block of `--zot-*` tokens — type scale, weights, leading, tracking. Use them; don't hardcode `font-size`/`font-weight`/`line-height`/`letter-spacing`. Font families inherit from Logseq's theme via `--zot-font` / `--zot-font-mono` (the plugin ships no face of its own). Color is not yet tokenized — those values are still inline.
 - React 19, react-hook-form for the search form, fuse.js for fuzzy search (`hooks/use-items.ts` filters a locally-cached library snapshot, with a debounced `q=` server fallback), date-fns for dates, wretch for HTTP, lucide-react for icons.
 - Release is automated via semantic-release on push to `main` (`.github/workflows/publish.yml`); the workflow builds, zips `dist + README + package.json + icon.svg` as `logseq-zoterolocal-plugin.zip`, and uploads it as a GitHub release asset.

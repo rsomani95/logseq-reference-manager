@@ -1,3 +1,52 @@
+/* ─── Design tokens ───────────────────────────────────────────────────────────
+   Typography system. Font families are inherited from Logseq's active theme
+   (sync-theme.ts mirrors the --ls-* vars onto :root) — the plugin ships no face
+   of its own. The scale, weights, leading and tracking below are the plugin's
+   own, and apply on top of whatever face the theme provides. */
+:root {
+  /* Families — inherited; the fallbacks name Inter, the face Logseq ships.
+     Logseq doesn't sync a mono family var, so the fallback stack carries mono. */
+  --zot-font: var(
+    --ls-font-family,
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
+  --zot-font-mono: var(
+    --ls-font-family-mono,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    "Liberation Mono",
+    monospace
+  );
+
+  /* Type scale — 4 deliberate steps, ~1.2-1.25x apart, replacing 9 ad-hoc
+     sizes that were crammed into 0.70-0.90rem. Assumes a 16px root. */
+  --zot-text-sm: 0.6875rem; /* 11px — captions, eyebrows, badges, dim metadata */
+  --zot-text-base: 0.8125rem; /* 13px — workhorse UI text */
+  --zot-text-title: 1rem; /* 16px — per-item anchor: card title, search input */
+  --zot-text-heading: 1.25rem; /* 20px — section / modal headings */
+
+  /* Weights — three only; hierarchy leans on weight + color before size. */
+  --zot-weight-normal: 400;
+  --zot-weight-medium: 500;
+  --zot-weight-semibold: 600;
+
+  /* Leading */
+  --zot-leading-none: 1; /* single-line: buttons, chips, inline counts */
+  --zot-leading-tight: 1.3; /* titles, headings */
+  --zot-leading-normal: 1.4; /* body: abstract, author line, statuses */
+
+  /* Tracking */
+  --zot-tracking-caps: 0.04em; /* uppercase eyebrows / labels */
+  --zot-tracking-tight: -0.01em; /* Inter at title / heading sizes */
+}
+
 /* Dims the rest of the app behind an active plugin modal. */
 .zot-backdrop {
   position: fixed;
@@ -26,14 +75,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  font-family: var(
-    --ls-font-family,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    sans-serif
-  );
+  font-family: var(--zot-font);
 }
 
 .search-container {
@@ -71,7 +113,7 @@ html[data-theme="light"] .batch-container {
   padding-right: 6.5rem;
   border: none;
   outline: none;
-  font-size: 0.9rem;
+  font-size: var(--zot-text-title);
   font-family: inherit;
   background: transparent;
   color: var(--ls-primary-text-color, #212529);
@@ -85,7 +127,8 @@ html[data-theme="light"] .batch-container {
 .search-result-count {
   position: absolute;
   right: 0.85rem;
-  font-size: 0.75rem;
+  font-size: var(--zot-text-sm);
+  font-variant-numeric: tabular-nums;
   color: var(--ls-secondary-text-color, #868e96);
   white-space: nowrap;
 }
@@ -111,10 +154,10 @@ html[data-theme="light"] .batch-container {
   top: 0;
   background: var(--ls-secondary-background-color, #f8f9fa);
   color: var(--ls-secondary-text-color, #868e96);
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: var(--zot-text-sm);
+  font-weight: var(--zot-weight-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--zot-tracking-caps);
   padding: 0.35rem 0.85rem;
   border-bottom: 1px solid var(--ls-border-color, #e9ecef);
   z-index: 1;
@@ -176,9 +219,10 @@ html[data-theme="light"] .batch-container {
 .result-card-title {
   flex: 1;
   min-width: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
-  line-height: 1.35;
+  font-size: var(--zot-text-title);
+  font-weight: var(--zot-weight-semibold);
+  line-height: var(--zot-leading-tight);
+  letter-spacing: var(--zot-tracking-tight);
   color: var(--ls-primary-text-color, #212529);
   white-space: nowrap;
   overflow: hidden;
@@ -197,9 +241,9 @@ html[data-theme="light"] .batch-container {
 .result-card-authors {
   margin-top: 0.12rem;
   padding-left: 1.3rem;
-  font-size: 0.78rem;
-  font-weight: 500;
-  line-height: 1.4;
+  font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-medium);
+  line-height: var(--zot-leading-normal);
   color: var(--ls-secondary-text-color, #495057);
   white-space: nowrap;
   overflow: hidden;
@@ -207,7 +251,7 @@ html[data-theme="light"] .batch-container {
 }
 
 .result-card-authors-count {
-  font-weight: 400;
+  font-weight: var(--zot-weight-normal);
   opacity: 0.8;
 }
 
@@ -216,9 +260,9 @@ html[data-theme="light"] .batch-container {
 .result-card-abstract {
   margin-top: 0.34rem;
   padding-left: 1.3rem;
-  font-size: 0.78rem;
-  font-weight: 400;
-  line-height: 1.5;
+  font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-normal);
+  line-height: var(--zot-leading-normal);
   color: var(--ls-secondary-text-color, #868e96);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -232,8 +276,8 @@ html[data-theme="light"] .batch-container {
   align-items: baseline;
   margin-top: 0.32rem;
   padding-left: 1.3rem;
-  font-size: 0.72rem;
-  line-height: 1.4;
+  font-size: var(--zot-text-sm);
+  line-height: var(--zot-leading-normal);
   color: var(--ls-secondary-text-color, #868e96);
   opacity: 0.85;
   overflow: hidden;
@@ -249,6 +293,7 @@ html[data-theme="light"] .batch-container {
 
 .result-card-source-year {
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Match-reason line — only when the hit lands on a field with no home on
@@ -259,8 +304,8 @@ html[data-theme="light"] .batch-container {
   gap: 0.4rem;
   margin-top: 0.14rem;
   padding-left: 1.3rem;
-  font-size: 0.73rem;
-  line-height: 1.4;
+  font-size: var(--zot-text-sm);
+  line-height: var(--zot-leading-normal);
   overflow: hidden;
 }
 
@@ -315,8 +360,9 @@ html[data-theme="light"] .batch-container {
 }
 
 .items-table-title {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: var(--zot-text-heading);
+  font-weight: var(--zot-weight-semibold);
+  letter-spacing: var(--zot-tracking-tight);
   color: #212529;
 }
 
@@ -341,7 +387,7 @@ html[data-theme="light"] .batch-container {
 
 .data-table {
   width: 100%;
-  font-size: 0.8rem;
+  font-size: var(--zot-text-base);
   border-collapse: collapse;
 }
 
@@ -379,8 +425,8 @@ html[data-theme="light"] .batch-container {
 }
 
 .alert-title {
-  font-weight: 600;
-  font-size: 0.85rem;
+  font-weight: var(--zot-weight-semibold);
+  font-size: var(--zot-text-base);
   color: #087f5b;
   margin-bottom: 0.4rem;
 }
@@ -393,13 +439,13 @@ html[data-theme="light"] .batch-container {
 }
 
 .alert-text {
-  font-size: 0.8rem;
+  font-size: var(--zot-text-base);
   color: #343a40;
 }
 
 .inline-code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 0.8rem;
+  font-family: var(--zot-font-mono);
+  font-size: var(--zot-text-base);
   background-color: #f1f3f5;
   padding: 0.1rem 0.3rem;
   border-radius: 3px;
@@ -412,15 +458,15 @@ html[data-theme="light"] .batch-container {
   align-items: center;
   justify-content: center;
   padding: 0.35rem 0.7rem;
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-medium);
   border: 1px solid transparent;
   border-radius: 4px;
   cursor: pointer;
   transition:
     background-color 0.15s ease,
     opacity 0.15s ease;
-  line-height: 1;
+  line-height: var(--zot-leading-none);
   white-space: nowrap;
 }
 
@@ -489,7 +535,7 @@ html[data-theme="light"] .batch-container {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  font-size: 0.8rem;
+  font-size: var(--zot-text-base);
   cursor: pointer;
 }
 
@@ -511,7 +557,7 @@ html[data-theme="light"] .batch-container {
   transform: translateX(-50%);
   background-color: #212529;
   color: #fff;
-  font-size: 0.7rem;
+  font-size: var(--zot-text-sm);
   padding: 0.3rem 0.5rem;
   border-radius: 4px;
   white-space: nowrap;
@@ -553,12 +599,12 @@ html[data-theme="light"] .batch-container {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  font-size: 0.9rem;
+  font-size: var(--zot-text-title);
   color: var(--ls-primary-text-color, #212529);
 }
 
 .search-importing-sub {
-  font-size: 0.78rem;
+  font-size: var(--zot-text-base);
   color: var(--ls-secondary-text-color, #868e96);
 }
 
@@ -576,7 +622,7 @@ html[data-theme="light"] .batch-container {
   align-items: center;
   gap: 0.35rem;
   padding: 0.55rem 0.85rem;
-  font-size: 0.8rem;
+  font-size: var(--zot-text-base);
   font-family: inherit;
   color: var(--ls-secondary-text-color, #868e96);
   background: transparent;
@@ -628,7 +674,7 @@ html[data-theme="light"] .batch-container {
 }
 
 .batch-picker-status {
-  font-size: 0.8rem;
+  font-size: var(--zot-text-base);
   color: var(--ls-secondary-text-color, #868e96);
 }
 
@@ -637,7 +683,7 @@ html[data-theme="light"] .batch-container {
   align-items: center;
   gap: 0.3rem;
   padding: 0.3rem 0.6rem;
-  font-size: 0.78rem;
+  font-size: var(--zot-text-base);
   font-family: inherit;
   color: var(--ls-primary-text-color, #212529);
   background: var(--ls-tertiary-background-color, #e9ecef);
@@ -664,7 +710,8 @@ html[data-theme="light"] .batch-container {
 }
 
 .batch-picker-count {
-  font-size: 0.7rem;
+  font-size: var(--zot-text-sm);
+  font-variant-numeric: tabular-nums;
   opacity: 0.65;
 }
 
@@ -685,7 +732,8 @@ html[data-theme="light"] .batch-container {
 }
 
 .batch-list-header-status {
-  font-size: 0.75rem;
+  font-size: var(--zot-text-sm);
+  font-variant-numeric: tabular-nums;
   color: var(--ls-secondary-text-color, #868e96);
 }
 
@@ -707,7 +755,7 @@ html[data-theme="light"] .batch-container {
 .batch-empty {
   padding: 1.5rem 0.85rem;
   text-align: center;
-  font-size: 0.8rem;
+  font-size: var(--zot-text-base);
   color: var(--ls-secondary-text-color, #868e96);
 }
 
@@ -715,7 +763,7 @@ html[data-theme="light"] .batch-container {
 .batch-loading-more {
   padding: 0.5rem 0.85rem;
   text-align: center;
-  font-size: 0.75rem;
+  font-size: var(--zot-text-sm);
   color: var(--ls-secondary-text-color, #868e96);
   animation: batch-pulse 1.2s ease-in-out infinite;
 }
@@ -797,7 +845,8 @@ html[data-theme="light"] .batch-container {
 }
 
 .batch-footer-status {
-  font-size: 0.8rem;
+  font-size: var(--zot-text-base);
+  font-variant-numeric: tabular-nums;
   color: var(--ls-secondary-text-color, #868e96);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -829,7 +878,7 @@ html[data-theme="light"] .batch-container {
 }
 
 .batch-summary-note {
-  font-size: 0.78rem;
+  font-size: var(--zot-text-base);
   color: var(--ls-secondary-text-color, #868e96);
   background: var(--ls-secondary-background-color, #f8f9fa);
   padding: 0.5rem 0.65rem;
@@ -845,12 +894,13 @@ html[data-theme="light"] .batch-container {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.85rem;
+  font-size: var(--zot-text-base);
   color: var(--ls-secondary-text-color, #495057);
 }
 
 .batch-stat-count {
-  font-weight: 700;
+  font-weight: var(--zot-weight-semibold);
+  font-variant-numeric: tabular-nums;
   color: var(--ls-primary-text-color, #212529);
 }
 
@@ -877,10 +927,10 @@ html[data-theme="light"] .batch-container {
 }
 
 .batch-summary-failed-header {
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: var(--zot-text-sm);
+  font-weight: var(--zot-weight-semibold);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--zot-tracking-caps);
   color: var(--ls-secondary-text-color, #868e96);
 }
 
@@ -897,18 +947,18 @@ html[data-theme="light"] .batch-container {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  font-size: 0.8rem;
+  font-size: var(--zot-text-base);
   padding: 0.4rem 0.5rem;
   border-radius: 4px;
   background: var(--ls-secondary-background-color, #f8f9fa);
 }
 
 .batch-summary-failed-title {
-  font-weight: 600;
+  font-weight: var(--zot-weight-semibold);
   color: var(--ls-primary-text-color, #212529);
 }
 
 .batch-summary-failed-reason {
-  font-size: 0.75rem;
+  font-size: var(--zot-text-sm);
   color: #e03131;
 }
