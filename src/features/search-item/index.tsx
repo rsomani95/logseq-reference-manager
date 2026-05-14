@@ -1,10 +1,11 @@
 import { differenceInDays, isToday } from 'date-fns'
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { ResultCard } from '../../components/ResultCard'
 import { useSearchItems } from '../../hooks/use-items'
 import { ZotData } from '../../interfaces'
+import { insertZotIntoGraph } from '../../services/insert-zot-into-graph'
 
 export interface FormValues {
   search: string
@@ -63,6 +64,29 @@ export const SearchItem = ({
     [mode, results],
   )
 
+  const [importing, setImporting] = useState<ZotData | null>(null)
+
+  // This UI reconciles across slash invocations (it isn't keyed — see the
+  // openedAt refresh in use-items.ts), so clear a leftover import spinner
+  // whenever the popup is reopened.
+  useEffect(() => {
+    setImporting(null)
+  }, [openedAt])
+
+  const handlePick = useCallback(
+    async (item: ZotData) => {
+      // Show the inline spinner, build the page off-screen, then drop the
+      // overlay to reveal the finished page (handleZotInDb already navigated).
+      setImporting(item)
+      const pageName = await insertZotIntoGraph(item)
+      logseq.hideMainUI()
+      if (pageName) await logseq.Editor.updateBlock(uuid, `[[${pageName}]]`)
+      reset()
+      setImporting(null)
+    },
+    [uuid, reset],
+  )
+
   const renderStatus = () => {
     if (isLoadingInitial) return 'Loading library…'
     if (error) return 'Connection error'
@@ -72,6 +96,24 @@ export const SearchItem = ({
     return isLoadingFallback
       ? `${results.length} results · searching…`
       : `${results.length} results`
+  }
+
+  if (importing) {
+    return (
+      <div className="search-container" style={{ left: x, top: y }}>
+        <div className="search-importing">
+          <span className="spinner" />
+          <div className="search-importing-text">
+            <span>
+              Importing <strong>{importing.title}</strong>…
+            </span>
+            <span className="search-importing-sub">
+              Writing properties, attachments and abstract
+            </span>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -98,10 +140,9 @@ export const SearchItem = ({
                   {items.map((item) => (
                     <ResultCard
                       key={item.key}
-                      uuid={uuid}
                       item={item}
-                      reset={reset}
                       query=""
+                      onPick={handlePick}
                     />
                   ))}
                 </div>
@@ -110,10 +151,9 @@ export const SearchItem = ({
           : results.map((item) => (
               <ResultCard
                 key={item.key}
-                uuid={uuid}
                 item={item}
-                reset={reset}
                 query={queryString}
+                onPick={handlePick}
               />
             ))}
       </div>

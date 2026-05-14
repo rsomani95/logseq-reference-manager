@@ -98,7 +98,7 @@ export const handleZotInDb = async (
     pageName,
     {},
     {
-      redirect: navigate,
+      redirect: false,
       createFirstBlock: false,
       journal: false,
     },
@@ -340,6 +340,12 @@ export const handleZotInDb = async (
 
   if (glossaryBatchBlk.length > 0)
     await logseq.Editor.insertBatchBlock(existingPage.uuid, glossaryBatchBlk)
+
+  // The page is fully built — navigate to it now. Deferring the redirect to
+  // here (createPage above uses redirect:false) means a single-item insert
+  // lands on a populated page instead of watching it fill in block by block.
+  // Batch passes navigate:false and stays put.
+  if (navigate) logseq.App.pushState('page', { name: existingPage.name })
 
   return { status: 'created', pageName }
 }

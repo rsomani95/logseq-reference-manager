@@ -77,9 +77,7 @@ const main = async () => {
 
     document.addEventListener('keydown', (e: KeyboardEvent) => {
       if (e.key !== 'Escape') {
-        const searchField: HTMLInputElement =
-          document.querySelector('#search-field')!
-        searchField.focus()
+        document.querySelector<HTMLInputElement>('#search-field')?.focus()
       }
     })
   })

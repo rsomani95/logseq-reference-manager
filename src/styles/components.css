@@ -490,6 +490,28 @@ html[data-theme="light"] .batch-container {
   }
 }
 
+/* Single-item import — the search box morphs to this while the page is
+   built off-screen, then the overlay closes to reveal the finished page. */
+.search-importing {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1.1rem 0.95rem;
+}
+
+.search-importing-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+  color: var(--ls-primary-text-color, #212529);
+}
+
+.search-importing-sub {
+  font-size: 0.78rem;
+  color: var(--ls-secondary-text-color, #868e96);
+}
+
 /* ─── Batch import ─────────────────────────────────────────────────────────── */
 
 /* Source tabs */

@@ -1,29 +1,15 @@
-import { useCallback } from 'react'
-import { UseFormReset } from 'react-hook-form'
-
-import { FormValues } from '../features/search-item'
 import { ZotData } from '../interfaces'
-import { insertZotIntoGraph } from '../services/insert-zot-into-graph'
 import { ResultCardBody } from './ResultCardBody'
 
 interface ResultCardProps {
-  uuid: string
   item: ZotData
-  reset: UseFormReset<FormValues>
   query: string
+  onPick: (item: ZotData) => void
 }
 
-export const ResultCard = ({ uuid, item, reset, query }: ResultCardProps) => {
-  const handleClick = useCallback(async () => {
-    const pageName = await insertZotIntoGraph(item)
-    reset()
-    if (!pageName) return
-
-    await logseq.Editor.updateBlock(uuid, `[[${pageName}]]`)
-  }, [item])
-
+export const ResultCard = ({ item, query, onPick }: ResultCardProps) => {
   return (
-    <div className="result-card" onClick={handleClick}>
+    <div className="result-card" onClick={() => onPick(item)}>
       <ResultCardBody item={item} query={query} />
     </div>
   )
