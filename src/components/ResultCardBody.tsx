@@ -1,56 +1,215 @@
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo } from 'react'
 
 import { CreatorItem, ZotData } from '../interfaces'
 import { getItemTypeIcon } from '../services/item-type-icon'
 
-const COLLAPSED_AUTHOR_COUNT = 3
+// How many names the author line shows before "+N more".
+const AUTHORS_LINE_LIMIT = 10
 
-const matchesQuery = (creator: CreatorItem, q: string): boolean => {
-  if (!q) return false
-  const fullName = `${creator.firstName} ${creator.lastName}`.toLowerCase()
-  return fullName.includes(q.toLowerCase())
+// Suffixes Zotero sometimes mis-files into the `lastName` field — e.g. a bad
+// import lands firstName "Sebastian Raschka" / lastName "PhD". When the last
+// name is really a suffix, the first name carries the actual name.
+const NAME_SUFFIXES = new Set([
+  'phd',
+  'md',
+  'jr',
+  'sr',
+  'ii',
+  'iii',
+  'iv',
+  'msc',
+  'ma',
+  'ba',
+])
+
+const isSuffix = (s: string): boolean =>
+  NAME_SUFFIXES.has(s.toLowerCase().replace(/\./g, ''))
+
+const fullNameOf = (c: CreatorItem): string => {
+  const last = c.lastName.trim()
+  const first = c.firstName.trim()
+  return isSuffix(last) ? first : `${first} ${last}`.trim()
 }
 
-const HighlightedName = ({ name, query }: { name: string; query: string }) => {
-  if (!query) return <>{name}</>
-  const lowerName = name.toLowerCase()
-  const lowerQuery = query.toLowerCase()
-  const idx = lowerName.indexOf(lowerQuery)
-  if (idx === -1) return <>{name}</>
+// The source shown on the footer line: a named publication when there is one,
+// otherwise the URL's host — so a bare webpage still says where it lives.
+const venueOf = (item: ZotData): string => {
+  const named =
+    item.publicationTitle ||
+    item.repository ||
+    item.libraryCatalog ||
+    item.websiteTitle ||
+    item.blogTitle
+  if (named) return named
+  if (item.url) {
+    try {
+      return new URL(item.url).hostname.replace(/^www\./, '')
+    } catch {
+      // not a parseable URL — no source
+    }
+  }
+  return ''
+}
+
+interface MatchInfo {
+  titleHit: boolean
+  authorHit: boolean
+  venueHit: boolean
+  yearHit: boolean
+  abstractHit: boolean
+  // A hit on a field with no home on the card (cite key / short title /
+  // journal abbreviation), surfaced as the `↳` match line so the result
+  // never looks like a phantom.
+  hidden: { label: string; value: string } | null
+}
+
+// The popup searches more fields than the card shows (see the fuse keys in
+// `use-items.ts`). This works out where a query landed so every match can
+// explain itself — substring matching, consistent with `Highlighted` below.
+const analyzeMatch = (
+  item: ZotData,
+  query: string,
+  displayCreators: CreatorItem[],
+  venue: string,
+  year: string,
+): MatchInfo => {
+  const has = (s: string | undefined): boolean =>
+    !!s && s.toLowerCase().includes(query)
+
+  const titleHit = has(item.title)
+  const authorHit = displayCreators.some((c) =>
+    fullNameOf(c).toLowerCase().includes(query),
+  )
+  const venueHit = has(venue)
+  const yearHit = has(year)
+  const abstractHit = has(item.abstractNote)
+
+  let hidden: MatchInfo['hidden'] = null
+  if (!titleHit && !authorHit && !venueHit && !yearHit && !abstractHit) {
+    const offRow: [string, string | undefined][] = [
+      ['short title', item.shortTitle],
+      ['cite key', item.citationKey],
+      ['journal', item.journalAbbreviation],
+    ]
+    for (const [label, value] of offRow) {
+      if (has(value)) {
+        hidden = { label, value: value as string }
+        break
+      }
+    }
+  }
+  return { titleHit, authorHit, venueHit, yearHit, abstractHit, hidden }
+}
+
+// Wraps every occurrence of `query` (already lower-cased) in a <mark>.
+const Highlighted = ({ text, query }: { text: string; query: string }) => {
+  if (!query) return text
+  const lower = text.toLowerCase()
+  if (!lower.includes(query)) return text
+
+  const parts: ReactNode[] = []
+  let cursor = 0
+  let idx = lower.indexOf(query)
+  let key = 0
+  while (idx !== -1) {
+    if (idx > cursor) parts.push(text.slice(cursor, idx))
+    parts.push(
+      <mark key={key++} className="result-card-mark">
+        {text.slice(idx, idx + query.length)}
+      </mark>,
+    )
+    cursor = idx + query.length
+    idx = lower.indexOf(query, cursor)
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor))
+  return <>{parts}</>
+}
+
+// A comma-joined run of highlighted full names.
+const nameRun = (creators: CreatorItem[], query: string): ReactNode[] =>
+  creators.map((c, i) => (
+    <span key={`${c.lastName}-${i}`}>
+      {i > 0 ? ', ' : ''}
+      <Highlighted text={fullNameOf(c)} query={query} />
+    </span>
+  ))
+
+// The author line: up to AUTHORS_LINE_LIMIT names, then "+N more". When a
+// query matches a co-author past that cut, it's surfaced after a "…" so the
+// search hit is never hidden — "Gadre, Ilharco, … , Schmidt +22 more".
+const AuthorsLine = ({
+  creators,
+  query,
+}: {
+  creators: CreatorItem[]
+  query: string
+}) => {
+  const shown = creators.slice(0, AUTHORS_LINE_LIMIT)
+  const matchedBeyond = query
+    ? creators
+        .slice(AUTHORS_LINE_LIMIT)
+        .filter((c) => fullNameOf(c).toLowerCase().includes(query))
+    : []
+
+  if (matchedBeyond.length === 0) {
+    const extra = creators.length - shown.length
+    return (
+      <>
+        {nameRun(shown, query)}
+        {extra > 0 && (
+          <span className="result-card-authors-count"> +{extra} more</span>
+        )}
+      </>
+    )
+  }
+
+  const rest = creators.length - shown.length - matchedBeyond.length
   return (
     <>
-      {name.slice(0, idx)}
-      <mark className="author-match">
-        {name.slice(idx, idx + lowerQuery.length)}
-      </mark>
-      {name.slice(idx + lowerQuery.length)}
+      {nameRun(shown, query)}
+      <span className="result-card-ellipsis"> … </span>
+      {nameRun(matchedBeyond, query)}
+      {rest > 0 && (
+        <span className="result-card-authors-count"> +{rest} more</span>
+      )}
     </>
   )
 }
 
-const CreatorEntry = ({
-  creator,
-  isLast,
+// The abstract block — a static two-line clamp. No query, or a hit near the
+// start → show from the top. A deeper hit → window in (leading "…") so the
+// match still lands inside the two visible lines.
+const AbstractBlock = ({
+  abstract,
   query,
 }: {
-  creator: CreatorItem
-  isLast: boolean
+  abstract: string
   query: string
 }) => {
-  const fullName = `${creator.firstName} ${creator.lastName}`.trim()
+  if (!query) return abstract
+  const idx = abstract.toLowerCase().indexOf(query)
+  if (idx <= 150) return <Highlighted text={abstract} query={query} />
+  const frag = abstract.slice(idx - 60).replace(/^\S*\s+/, '')
   return (
-    <span className="author-text">
-      <HighlightedName name={fullName} query={query} />
-      {isLast ? '' : ','}
-    </span>
+    <>
+      {'… '}
+      <Highlighted text={frag} query={query} />
+    </>
   )
 }
 
 /**
- * Presentational guts of a Zotero result row — title, authors (with collapse),
- * cite key, date, in-graph badge. Rendered as a fragment of `.result-card-left`
- * + `.result-card-right` so both the click-to-insert `ResultCard` and the
- * checkbox-driven `SelectableResultCard` can wrap it without duplicating layout.
+ * Presentational guts of a Zotero result row — a static four-zone stack:
+ * a title line, the author line, a two-line abstract, and a source/year
+ * footer, each with its own size/weight/spacing so the zones read as
+ * distinct. `inGraph` shows as a green left edge (on `.result-card`, set by
+ * the wrappers) + a dot. When `query` is set, every match explains itself:
+ * on-zone hits highlight in place, the abstract windows to a deep hit, the
+ * author line surfaces a matched co-author past its cut, and a hit on a
+ * field with no home here (cite key / short title / journal abbreviation)
+ * adds a `↳` line. Rendered as `.result-card-body` so both the
+ * click-to-insert `ResultCard` and the checkbox-driven `SelectableResultCard`
+ * can wrap it.
  */
 export const ResultCardBody = ({
   item,
@@ -59,93 +218,77 @@ export const ResultCardBody = ({
   item: ZotData
   query: string
 }) => {
-  const { title, authors, creators, itemType, citeKey, date } = item
+  const { title, authors, creators, itemType, abstractNote } = item
+  const q = query.trim().toLowerCase()
+
   const displayCreators = useMemo(
     () => (authors && authors.length > 0 ? authors : (creators ?? [])),
     [authors, creators],
   )
 
-  const [expanded, setExpanded] = useState(false)
+  const venue = useMemo(() => venueOf(item), [item])
+  const year = item.year ?? ''
 
-  const visibleCreators = useMemo(() => {
-    if (expanded) return displayCreators
-    if (displayCreators.length <= COLLAPSED_AUTHOR_COUNT) return displayCreators
-
-    const matched: CreatorItem[] = []
-    const rest: CreatorItem[] = []
-    for (const c of displayCreators) {
-      if (matchesQuery(c, query)) matched.push(c)
-      else rest.push(c)
-    }
-    const visible = [...matched]
-    while (
-      visible.length < COLLAPSED_AUTHOR_COUNT &&
-      rest.length > 0 &&
-      visible.length < displayCreators.length
-    ) {
-      visible.push(rest.shift()!)
-    }
-    return visible.slice(0, COLLAPSED_AUTHOR_COUNT)
-  }, [displayCreators, expanded, query])
-
-  const hiddenCount = displayCreators.length - visibleCreators.length
+  const match = useMemo(
+    () => (q ? analyzeMatch(item, q, displayCreators, venue, year) : null),
+    [item, q, displayCreators, venue, year],
+  )
 
   const TypeIcon = getItemTypeIcon(itemType)
 
   return (
-    <>
-      <div className="result-card-left">
-        <div className="result-title-row">
-          <TypeIcon className="item-type-icon" size={14} aria-hidden />
-          <span className="result-title">
-            <HighlightedName name={title} query={query} />
-          </span>
-          <span className="badge badge-type">{itemType}</span>
-        </div>
-        <div className="authors-list">
-          {visibleCreators.map((creator, index) => (
-            <CreatorEntry
-              key={`${creator.firstName}-${creator.lastName}-${index}`}
-              creator={creator}
-              isLast={index === visibleCreators.length - 1 && hiddenCount === 0}
-              query={query}
-            />
-          ))}
-          {hiddenCount > 0 && (
-            <button
-              type="button"
-              className="more-authors-toggle"
-              onClick={(e) => {
-                e.stopPropagation()
-                setExpanded(true)
-              }}
-            >
-              +{hiddenCount} more
-            </button>
-          )}
-          {expanded && displayCreators.length > COLLAPSED_AUTHOR_COUNT && (
-            <button
-              type="button"
-              className="more-authors-toggle"
-              onClick={(e) => {
-                e.stopPropagation()
-                setExpanded(false)
-              }}
-            >
-              show less
-            </button>
-          )}
-        </div>
-        {citeKey && <span className="cite-key-text">Cite Key: {citeKey}</span>}
-      </div>
-      <div className="result-card-right">
-        <span className="date-text">{date}</span>
-        <span
-          className={`badge ${item.inGraph ? 'badge-in-graph' : 'badge-not-in-graph'}`}
-        >
-          {item.inGraph ? 'in graph' : 'not in graph'}
+    <div className="result-card-body">
+      <div className="result-card-headline">
+        <TypeIcon className="result-card-icon" size={13} aria-hidden />
+        <span className="result-card-title" title={title}>
+          <Highlighted text={title} query={q} />
         </span>
+        {item.inGraph && (
+          <span
+            className="result-card-dot"
+            role="img"
+            aria-label="Already in graph"
+            title="Already in graph"
+          />
+        )}
       </div>
-    </>
+
+      {match?.hidden && (
+        <div className="result-card-match">
+          <span className="result-card-match-field">{match.hidden.label}</span>
+          <span className="result-card-match-text">
+            <Highlighted text={match.hidden.value} query={q} />
+          </span>
+        </div>
+      )}
+
+      {displayCreators.length > 0 && (
+        <div className="result-card-authors">
+          <AuthorsLine creators={displayCreators} query={q} />
+        </div>
+      )}
+
+      {abstractNote && (
+        <div className="result-card-abstract">
+          <AbstractBlock abstract={abstractNote} query={q} />
+        </div>
+      )}
+
+      {(venue || year) && (
+        <div className="result-card-source">
+          {venue && (
+            <span className="result-card-source-venue">
+              {match?.venueHit ? <Highlighted text={venue} query={q} /> : venue}
+            </span>
+          )}
+          {venue && year && <span className="result-card-sep">·</span>}
+          {year && (
+            <span className="result-card-source-year">
+              {match?.yearHit ? <Highlighted text={year} query={q} /> : year}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
   )
 }

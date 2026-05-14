@@ -22,8 +22,12 @@ const FUSE_OPTIONS: IFuseOptions<ZotData> = {
     {
       name: 'creators',
       weight: 0.9,
+      // Index every contributor — authors *and* others (editors, …). ZotData
+      // splits them into two fields, and `mapItems` leaves `creators` as an
+      // empty array for the common author-only item, so both must be walked
+      // or author search silently misses most papers.
       getFn: (item) =>
-        (item.creators ?? item.authors ?? [])
+        [...(item.authors ?? []), ...(item.creators ?? [])]
           .map((c) => `${c.firstName} ${c.lastName}`)
           .join(' '),
     },

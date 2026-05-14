@@ -22,6 +22,7 @@ export const SelectableResultCard = ({
   const className = [
     'result-card',
     'result-card-selectable',
+    item.inGraph && 'result-card-in-graph',
     disabled && 'result-card-disabled',
     selected && 'result-card-selected',
   ]
@@ -40,9 +41,7 @@ export const SelectableResultCard = ({
         disabled={disabled}
         readOnly
       />
-      <div className="result-card-body">
-        <ResultCardBody item={item} query={query} />
-      </div>
+      <ResultCardBody item={item} query={query} />
     </div>
   )
 }

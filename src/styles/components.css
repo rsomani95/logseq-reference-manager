@@ -120,134 +120,184 @@ html[data-theme="light"] .batch-container {
   z-index: 1;
 }
 
-/* Result card */
+/* Result card — a static four-zone stack: a title line, the author line, a
+   two-line abstract, and a source/year footer. Each zone gets its own size,
+   weight and spacing so the zones read as distinct without any movement.
+   Shared by the click-to-insert `ResultCard` and the checkbox-driven
+   `SelectableResultCard`; the wrappers own `.result-card`, `ResultCardBody`
+   renders `.result-card-body`. */
 .result-card {
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  padding: 0.6rem 0.85rem;
+  padding: 0.55rem 0.85rem;
   cursor: pointer;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid
+    color-mix(
+      in srgb,
+      var(--ls-border-color, #e9ecef) 55%,
+      var(--ls-primary-background-color, #fff)
+    );
   transition: background-color 0.1s ease;
+}
+
+.result-card:last-child {
+  border-bottom: none;
 }
 
 .result-card:hover {
   background-color: var(--ls-menu-hover-color, #f1f3f5);
 }
 
-.result-card-left {
-  display: flex;
-  flex-direction: column;
-  width: 70%;
-  gap: 0.2rem;
+/* in-graph — a quiet green left edge; set on the card so it sits flush */
+.result-card-in-graph {
+  border-left-color: var(--ls-active-primary-color, #2b8a3e);
 }
 
-.result-card-right {
+.result-card-body {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  width: 25%;
-  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
 }
 
-/* Title row */
-.result-title-row {
+/* Zone 1 — type icon + title, in-graph dot pinned right */
+.result-card-headline {
   display: flex;
-  flex-direction: row;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.4rem;
+  overflow: hidden;
 }
 
-.result-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--ls-primary-text-color, #212529);
-  line-height: 1.3;
-}
-
-.item-type-icon {
+.result-card-icon {
   color: var(--ls-icon-color, var(--ls-secondary-text-color, #868e96));
   flex-shrink: 0;
 }
 
-/* Badge */
-.badge {
-  display: inline-block;
-  font-size: 0.65rem;
+.result-card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
   font-weight: 600;
-  padding: 0.1rem 0.35rem;
-  border: 1px solid transparent;
-  border-radius: 3px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  vertical-align: middle;
+  line-height: 1.35;
+  color: var(--ls-primary-text-color, #212529);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-card-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ls-active-primary-color, #2b8a3e);
+  flex-shrink: 0;
+}
+
+/* Zone 2 — the author line: medium weight, sits tight under the title */
+.result-card-authors {
+  margin-top: 0.12rem;
+  padding-left: 1.3rem;
+  font-size: 0.78rem;
+  font-weight: 500;
   line-height: 1.4;
-}
-
-.badge-type {
-  background-color: var(--ls-tertiary-background-color, #e9ecef);
   color: var(--ls-secondary-text-color, #495057);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.badge-in-graph {
-  background-color: color-mix(
-    in srgb,
-    var(--ls-active-primary-color, #2b8a3e) 16%,
-    transparent
-  );
-  color: var(--ls-active-primary-color, #2b8a3e);
+.result-card-authors-count {
+  font-weight: 400;
+  opacity: 0.8;
 }
 
-.badge-not-in-graph {
-  background-color: transparent;
+/* Zone 3 — the abstract: regular weight, roomier leading, a clear gap above
+   so it reads as the description rather than more metadata */
+.result-card-abstract {
+  margin-top: 0.34rem;
+  padding-left: 1.3rem;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--ls-secondary-text-color, #868e96);
-  border-color: var(--ls-border-color, #e9ecef);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-/* Authors */
-.authors-list {
+/* Zone 4 — the source/year footer: smallest, dimmest, set off by a gap */
+.result-card-source {
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.25rem;
+  margin-top: 0.32rem;
+  padding-left: 1.3rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--ls-secondary-text-color, #868e96);
+  opacity: 0.85;
+  overflow: hidden;
 }
 
-.author-text {
-  font-size: 0.8rem;
+.result-card-source-venue {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result-card-source-year {
+  flex-shrink: 0;
+}
+
+/* Match-reason line — only when the hit lands on a field with no home on
+   the card (cite key / short title / journal abbreviation) */
+.result-card-match {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-top: 0.14rem;
+  padding-left: 1.3rem;
+  font-size: 0.73rem;
+  line-height: 1.4;
+  overflow: hidden;
+}
+
+.result-card-match-field {
+  flex-shrink: 0;
+  color: var(--ls-secondary-text-color, #868e96);
+}
+
+.result-card-match-field::before {
+  content: "↳ ";
+  opacity: 0.7;
+}
+
+.result-card-match-text {
+  min-width: 0;
   color: var(--ls-secondary-text-color, #495057);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.author-match {
+/* Shared inline bits */
+.result-card-sep {
+  margin: 0 0.32rem;
+  opacity: 0.5;
+}
+
+.result-card-ellipsis {
+  opacity: 0.55;
+}
+
+/* Search-term highlight — title, authors, abstract, source, match line */
+.result-card-mark {
   background-color: var(--ls-page-mark-bg-color, #fff3bf);
   color: var(--ls-page-mark-color, inherit);
   padding: 0 0.1rem;
   border-radius: 2px;
-}
-
-.more-authors-toggle {
-  font-size: 0.75rem;
-  color: var(--ls-link-text-color, #1c7ed6);
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.more-authors-toggle:hover {
-  color: var(--ls-link-text-hover-color, var(--ls-link-text-color, #1c7ed6));
-  text-decoration: underline;
-}
-
-.cite-key-text {
-  font-size: 0.75rem;
-  color: var(--ls-secondary-text-color, #868e96);
-}
-
-.date-text {
-  font-size: 0.8rem;
-  color: var(--ls-secondary-text-color, #495057);
 }
 
 /* Items table */
@@ -694,15 +744,6 @@ html[data-theme="light"] .batch-container {
   flex-shrink: 0;
   cursor: pointer;
   accent-color: var(--ls-active-primary-color, #1c7ed6);
-}
-
-.result-card-body {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  flex: 1;
-  min-width: 0;
-  gap: 0.5rem;
 }
 
 .result-card-selected {
