@@ -12,6 +12,7 @@ import {
 import { ImportBar } from './ImportBar'
 import { ImportSummary } from './ImportSummary'
 import { SelectableResultCard } from './SelectableResultCard'
+import { SourcePicker } from './SourcePicker'
 
 type Phase = 'select' | 'importing' | 'done'
 
@@ -232,40 +233,28 @@ export const BatchView = () => {
           />
         )}
         {source === 'collection' && (
-          <select
-            className="select-input"
-            value={collectionKey}
-            onChange={(e) => setCollectionKey(e.target.value)}
+          <SourcePicker
+            options={collections.map((c) => ({
+              key: c.key,
+              label: c.name,
+              count: c.numItems,
+            }))}
+            selectedKey={collectionKey}
+            onSelect={setCollectionKey}
+            loading={sourcesLoading}
             disabled={locked}
-          >
-            <option value="">
-              {sourcesLoading ? 'Loading collections…' : 'Select a collection…'}
-            </option>
-            {collections.map((c) => (
-              <option key={c.key} value={c.key}>
-                {c.name} ({c.numItems})
-              </option>
-            ))}
-          </select>
+            emptyLabel="No collections found in your Zotero library."
+          />
         )}
         {source === 'savedSearch' && (
-          <select
-            className="select-input"
-            value={savedSearchKey}
-            onChange={(e) => setSavedSearchKey(e.target.value)}
+          <SourcePicker
+            options={savedSearches.map((s) => ({ key: s.key, label: s.name }))}
+            selectedKey={savedSearchKey}
+            onSelect={setSavedSearchKey}
+            loading={sourcesLoading}
             disabled={locked}
-          >
-            <option value="">
-              {sourcesLoading
-                ? 'Loading saved searches…'
-                : 'Select a saved search…'}
-            </option>
-            {savedSearches.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+            emptyLabel="No saved searches found in your Zotero library."
+          />
         )}
       </div>
 

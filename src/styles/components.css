@@ -434,16 +434,6 @@ html[data-theme="light"] .batch-container {
   flex-wrap: wrap;
 }
 
-/* Select */
-.select-input {
-  padding: 0.35rem 0.5rem;
-  font-size: 0.8rem;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  background: #fff;
-  cursor: pointer;
-}
-
 /* Checkbox */
 .checkbox-label {
   display: inline-flex;
@@ -540,7 +530,7 @@ html[data-theme="light"] .batch-container {
   cursor: not-allowed;
 }
 
-/* Source input row — the search box, or a collection / saved-search select */
+/* Source input row — the search box, or a collection / saved-search picker */
 .batch-source-input {
   display: flex;
   flex-shrink: 0;
@@ -554,11 +544,62 @@ html[data-theme="light"] .batch-container {
   border-radius: 4px;
 }
 
-.batch-source-input .select-input {
+/* Inline container picker — chips instead of a dropdown, so the common
+   collections / saved searches are one click away */
+.batch-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
   width: 100%;
-  background: var(--ls-primary-background-color, #fff);
+  max-height: 8rem;
+  overflow-y: auto;
+}
+
+.batch-picker-status {
+  font-size: 0.8rem;
+  color: var(--ls-secondary-text-color, #868e96);
+}
+
+.batch-picker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  font-family: inherit;
   color: var(--ls-primary-text-color, #212529);
+  background: var(--ls-tertiary-background-color, #e9ecef);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background-color 0.1s ease,
+    border-color 0.1s ease;
+}
+
+.batch-picker-chip:hover:not(:disabled) {
   border-color: var(--ls-border-color, #ced4da);
+}
+
+.batch-picker-chip.is-selected {
+  background: var(--ls-active-primary-color, #1c7ed6);
+  color: #fff;
+}
+
+.batch-picker-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.batch-picker-count {
+  font-size: 0.7rem;
+  opacity: 0.65;
+}
+
+.batch-picker-more {
+  background: transparent;
+  color: var(--ls-secondary-text-color, #868e96);
+  border-color: var(--ls-border-color, #e9ecef);
 }
 
 /* List header — select-all + status */
