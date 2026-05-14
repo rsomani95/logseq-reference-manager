@@ -57,6 +57,7 @@ html[data-theme="light"] .search-container {
 
 .search-input::placeholder {
   color: var(--ls-secondary-text-color, #adb5bd);
+  opacity: 0.6;
 }
 
 .search-result-count {
