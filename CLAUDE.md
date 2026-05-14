@@ -40,13 +40,14 @@ Both UIs render into the `#app` div and toggle via `logseq.showMainUI()` / `hide
 1. `services/get-zot-items.ts` calls Zotero's local API (`/items/top` for parent items, `/items?itemType=note||attachment||annotation` for children) via `wretch`.
 2. `services/map-items.ts` transforms raw `ZotItem[]` into the plugin's `ZotData[]`:
    - Adds `attachments` (with their annotations attached), `notes`, `citeKey`, `inGraph`, `libraryLink` (a `zotero://select/library/items?itemKey=…` URI), and `zotero-code` (the Zotero item key).
-   - `inGraph` is computed by interpolating `pagenameTemplate` against title/citeKey and checking if a Logseq page with that name exists.
-3. User picks a result → `services/insert-zot-into-graph.ts` calls `handle-zot-db.ts`.
+   - `inGraph` is computed by `buildZoteroCodeIndex` (`services/zotero-code-index.ts`): a Logseq page is in-graph when it carries a `zotero-code` property matching the item's Zotero key. Matching the key — not a name rebuilt from `pagenameTemplate` — means renaming an imported page in Logseq doesn't flip its badge back to "not in graph". The search popup's cached snapshot can't see graph changes made after it was fetched, so `useSearchItems` re-runs the index (`refreshInGraphFlags`) over the cached items each time the popup reopens (keyed off an `openedAt` prop threaded from `index.tsx`).
+3. User picks a result → `services/insert-zot-into-graph.ts` calls `handle-zot-db.ts`. If the item is already in the graph (matched by `zotero-code`, so rename-proof), no page is created — the existing page is linked into the current block instead.
 4. `handle-zot-db.ts` creates the page, tags it with the configured `zotTag` (default `Zotero`), then iterates the resolved property list (`PROP_PRESETS[preset]` or the custom list from settings) and writes properties with `logseq.Editor.upsertBlockProperty`. Special-cased properties:
    - `creators`, `tags` — each value becomes its own Logseq page; the property gets the page id.
    - `accessDate`, `dateAdded`, `dateModified` — written as Logseq journal page references.
    - `inGraph`, `annotations`, `attachments`, `abstractNote`, `notes`, `version`, `collections`, `pages`, `parentItem`, empty values — skipped.
    - Anything else → string value via `upsertBlockProperty`.
+   `handleZotInDb` returns `{ status: 'created' | 'exists', pageName }` — `'exists'` (no page created) when the `zotero-code` index already has the item; `pageName` is then the existing page's current title.
 5. Always writes `zotero-code` and `zotero-last-sync` (current ISO timestamp) properties.
 6. Attachments + annotations get inserted as a `## Attachments and Annotations` block. Each attachment block gets a `zotero-attachment-key` property so the sync flow can match against it. Annotations are sorted by `annotationSortIndex`.
 
@@ -75,9 +76,9 @@ The "Sync all annotations" command uses a datascript query (`src/queries.ts:QUER
 
 `Batch import` (command palette) opens `BatchContainer` → `BatchView`, a centered modal for importing many items at once. A source switcher drives one selectable list:
 - **Search** — reuses `useSearchItems` (same recents + fuzzy search as the single-item popup).
-- **Collection** / **Saved search** — `hooks/use-batch.ts`: `useBatchSources` populates the pickers from `/collections` and `/searches`; `useContainerItems` fetches the chosen container via `getItemsForCollection` (2 calls — `/collections/{key}/items/top` plus its scoped note/attachment/annotation children) or `getItemsForSavedSearch` (1 call to `/searches/{key}/items`, partitioned into parents/children client-side). Both feed the same `mapItems` join used by the search flow — which resolves each item's `inGraph` badge (a per-item Logseq page lookup, the slow part of a big container) in parallel, growing chunks and streams them back via an `onChunk` callback, so the list paints before the whole container is mapped. `useContainerItems` surfaces this as `loading` (first chunk) and `loadingMore` (the rest).
+- **Collection** / **Saved search** — `hooks/use-batch.ts`: `useBatchSources` populates the pickers from `/collections` and `/searches`; `useContainerItems` fetches the chosen container via `getItemsForCollection` (2 calls — `/collections/{key}/items/top` plus its scoped note/attachment/annotation children) or `getItemsForSavedSearch` (1 call to `/searches/{key}/items`, partitioned into parents/children client-side). Both feed the same `mapItems` join used by the search flow — which resolves each item's `inGraph` badge (`buildZoteroCodeIndex` builds a Zotero-key → page index once, then each badge is an instant Map lookup), walks the list in growing chunks, and streams them back via an `onChunk` callback, so the list paints progressively rather than in one jump. `useContainerItems` surfaces this as `loading` (first chunk) and `loadingMore` (the rest).
 
-The list is `SelectableResultCard`s; selection is a `Map` keyed by Zotero item key that persists across source switches. `services/batch-insert-into-graph.ts` runs the import: sequential, skips `inGraph` items, isolates per-item errors, reports progress, is cancellable between items, and returns `{imported, skipped, failed, cancelled}`. It calls `handleZotInDb(item, pageName, { navigate: false })` — the `navigate` opt (default `true`) gates the page-navigation side effects that suit a single insert but not a batch. The view morphs select → importing (progress bar) → done (`ImportSummary`).
+The list is `SelectableResultCard`s; selection is a `Map` keyed by Zotero item key that persists across source switches. `services/batch-insert-into-graph.ts` runs the import: sequential, skips `inGraph` items, isolates per-item errors, reports progress, is cancellable between items, and returns `{imported, skipped, failed, cancelled}`. It builds the `zotero-code` index once and passes it to each `handleZotInDb(item, …, { navigate: false, zoteroCodeIndex })` call; the `navigate` opt (default `true`) gates the single-insert page-navigation side effects, and an `'exists'` return (item already in graph) counts as skipped. The view morphs select → importing (progress bar) → done (`ImportSummary`).
 
 ### Key constants
 
@@ -88,7 +89,7 @@ The list is `SelectableResultCard`s; selection is a `Map` keyed by Zotero item k
 
 ### Template placeholders
 
-`<% placeholder %>` strings are used in `pagenameTemplate` — only `<% citeKey %>` and `<% title %>` are supported. Substitution lives in `resolvePageName` (`services/handle-zot-db.ts`), shared by the single-item and batch paths (and is duplicated in `services/map-items.ts` for the `inGraph` badge).
+`<% placeholder %>` strings are used in `pagenameTemplate` — only `<% citeKey %>` and `<% title %>` are supported. Substitution lives in `resolvePageName` (`services/handle-zot-db.ts`), shared by the single-item and batch paths. The `inGraph` badge no longer needs it — detection matches the `zotero-code` property, not a templated page name.
 
 ## Style and tooling
 
