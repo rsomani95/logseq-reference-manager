@@ -2,14 +2,22 @@
 .search-container {
   position: absolute;
   width: 44rem;
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-radius: 6px;
+  background: var(--ls-primary-background-color, #fff);
+  color: var(--ls-primary-text-color, #212529);
+  border: 1px solid var(--ls-border-color, #e9ecef);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(
+    --ls-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif
+  );
 }
 
 /* Search input */
@@ -17,7 +25,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--ls-border-color, #e9ecef);
 }
 
 .search-input {
@@ -27,18 +35,20 @@
   border: none;
   outline: none;
   font-size: 0.9rem;
+  font-family: inherit;
   background: transparent;
+  color: var(--ls-primary-text-color, #212529);
 }
 
 .search-input::placeholder {
-  color: #adb5bd;
+  color: var(--ls-secondary-text-color, #adb5bd);
 }
 
 .search-result-count {
   position: absolute;
   right: 0.85rem;
   font-size: 0.75rem;
-  color: #868e96;
+  color: var(--ls-secondary-text-color, #868e96);
   white-space: nowrap;
 }
 
@@ -49,6 +59,7 @@
   max-height: 60vh;
   overflow-y: auto;
   flex: 0 1 auto;
+  scrollbar-color: var(--ls-scrollbar-foreground-color, #ccc) transparent;
 }
 
 /* Time-grouped recents */
@@ -60,14 +71,14 @@
 .time-group-header {
   position: sticky;
   top: 0;
-  background: #f8f9fa;
-  color: #868e96;
+  background: var(--ls-secondary-background-color, #f8f9fa);
+  color: var(--ls-secondary-text-color, #868e96);
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 0.35rem 0.85rem;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--ls-border-color, #e9ecef);
   z-index: 1;
 }
 
@@ -82,7 +93,7 @@
 }
 
 .result-card:hover {
-  background-color: #f1f3f5;
+  background-color: var(--ls-menu-hover-color, #f1f3f5);
 }
 
 .result-card-left {
@@ -112,12 +123,12 @@
 .result-title {
   font-size: 0.9rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--ls-primary-text-color, #212529);
   line-height: 1.3;
 }
 
 .item-type-icon {
-  color: #868e96;
+  color: var(--ls-icon-color, var(--ls-secondary-text-color, #868e96));
   flex-shrink: 0;
 }
 
@@ -127,6 +138,7 @@
   font-size: 0.65rem;
   font-weight: 600;
   padding: 0.1rem 0.35rem;
+  border: 1px solid transparent;
   border-radius: 3px;
   text-transform: uppercase;
   letter-spacing: 0.02em;
@@ -135,18 +147,23 @@
 }
 
 .badge-type {
-  background-color: #e9ecef;
-  color: #495057;
+  background-color: var(--ls-tertiary-background-color, #e9ecef);
+  color: var(--ls-secondary-text-color, #495057);
 }
 
 .badge-in-graph {
-  background-color: #d3f9d8;
-  color: #2b8a3e;
+  background-color: color-mix(
+    in srgb,
+    var(--ls-active-primary-color, #2b8a3e) 16%,
+    transparent
+  );
+  color: var(--ls-active-primary-color, #2b8a3e);
 }
 
 .badge-not-in-graph {
-  background-color: #ffe3e3;
-  color: #c92a2a;
+  background-color: transparent;
+  color: var(--ls-secondary-text-color, #868e96);
+  border-color: var(--ls-border-color, #e9ecef);
 }
 
 /* Authors */
@@ -160,19 +177,19 @@
 
 .author-text {
   font-size: 0.8rem;
-  color: #495057;
+  color: var(--ls-secondary-text-color, #495057);
 }
 
 .author-match {
-  background-color: #fff3bf;
-  color: inherit;
+  background-color: var(--ls-page-mark-bg-color, #fff3bf);
+  color: var(--ls-page-mark-color, inherit);
   padding: 0 0.1rem;
   border-radius: 2px;
 }
 
 .more-authors-toggle {
   font-size: 0.75rem;
-  color: #1c7ed6;
+  color: var(--ls-link-text-color, #1c7ed6);
   background: none;
   border: none;
   padding: 0;
@@ -181,17 +198,18 @@
 }
 
 .more-authors-toggle:hover {
+  color: var(--ls-link-text-hover-color, var(--ls-link-text-color, #1c7ed6));
   text-decoration: underline;
 }
 
 .cite-key-text {
   font-size: 0.75rem;
-  color: #868e96;
+  color: var(--ls-secondary-text-color, #868e96);
 }
 
 .date-text {
   font-size: 0.8rem;
-  color: #495057;
+  color: var(--ls-secondary-text-color, #495057);
 }
 
 /* Items table */

@@ -8,6 +8,7 @@ import { QUERY_ALL_ZOT_PAGES } from './queries'
 import { testZotConnection } from './services/get-zot-items'
 import { registerAdminCommands } from './services/register-admin-commands'
 import { syncAnnotations } from './services/sync-annotations'
+import { registerThemeSync } from './services/sync-theme'
 import { handleSettings } from './settings'
 import { ZotContainer } from './ZotContainer'
 
@@ -19,6 +20,7 @@ const main = async () => {
 
   registerAdminCommands()
   handlePopup()
+  registerThemeSync()
 
   const response = await testZotConnection()
   handleSettings({ msg: response.msg })
