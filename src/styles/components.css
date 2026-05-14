@@ -639,6 +639,25 @@ html[data-theme="light"] .batch-container {
   color: var(--ls-secondary-text-color, #868e96);
 }
 
+/* Streams in under the cards while the rest of a big container loads. */
+.batch-loading-more {
+  padding: 0.5rem 0.85rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--ls-secondary-text-color, #868e96);
+  animation: batch-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes batch-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
 /* Selectable result card — wraps the shared ResultCardBody with a checkbox */
 .result-card-selectable {
   align-items: flex-start;

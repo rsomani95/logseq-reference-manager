@@ -1,10 +1,29 @@
-import { ZOTERO_LIBRARY_ITEM } from '../constants'
+import {
+  MAP_CHUNK_INITIAL,
+  MAP_CHUNK_MAX,
+  ZOTERO_LIBRARY_ITEM,
+} from '../constants'
 import { AttachmentItem, NoteItem, ZotData, ZotItem } from '../interfaces'
 import { isRecycledPage } from './is-recycled-page'
+
+export interface MapItemsOptions {
+  /**
+   * Called after each chunk of in-graph lookups resolves, with every item
+   * mapped so far. Lets the batch view paint its first items immediately
+   * instead of waiting on the whole container.
+   */
+  onChunk?: (itemsSoFar: ZotData[]) => void
+  /**
+   * Checked between chunks; when it returns true the in-graph pass stops
+   * early (the partial result is still returned).
+   */
+  isCancelled?: () => boolean
+}
 
 export const mapItems = async (
   zotParentItems: ZotItem[],
   noteAndAttachmentItems: ZotItem[],
+  options: MapItemsOptions = {},
 ): Promise<ZotData[]> => {
   /*
    New props required:
@@ -50,21 +69,13 @@ export const mapItems = async (
     }
   })
 
+  // Synchronous join pass: citeKey, libraryLink, and the attachment / note /
+  // annotation children. The `inGraph` badge is resolved separately below —
+  // it's the only async (and slow) part.
   for (const item of parentZotData) {
     // Map citeKey
-    const title = item.title
     const citeKey = item.citationKey
     item.citeKey = citeKey ?? 'N/A'
-
-    // Map "if in graph"
-    const pageToCheck = (logseq.settings!.pagenameTemplate as string)
-      .replace('<% citeKey %>', citeKey ?? '$&')
-      .replace('<% title %>', title)
-    const page = await logseq.Editor.getPage(pageToCheck)
-    // Treat recycled pages as not-in-graph. Logseq DB keeps deleted pages
-    // around for 30 days, and `getPage` still finds them — but for the user
-    // they're gone, so the badge would be misleading.
-    item.inGraph = !!page && !(await isRecycledPage(page))
 
     // Map libraryLink
     item.libraryLink = `${ZOTERO_LIBRARY_ITEM}${item.key}`
@@ -121,6 +132,40 @@ export const mapItems = async (
         }
       }
     }
+  }
+
+  // In-graph pass: each item's badge is a Logseq page lookup — the slow part
+  // of loading a big container. Run them in parallel, in growing chunks: the
+  // small first chunk lets the list paint almost immediately, and `onChunk`
+  // streams the rest in as they resolve.
+  const pagenameTemplate = logseq.settings!.pagenameTemplate as string
+  const { onChunk, isCancelled } = options
+  let cursor = 0
+  let chunkSize = MAP_CHUNK_INITIAL
+  while (cursor < parentZotData.length) {
+    if (isCancelled?.()) break
+    const chunk = parentZotData.slice(cursor, cursor + chunkSize)
+    await Promise.all(
+      chunk.map(async (item) => {
+        const pageToCheck = pagenameTemplate
+          .replace('<% citeKey %>', item.citationKey ?? '$&')
+          .replace('<% title %>', item.title)
+        const page = await logseq.Editor.getPage(pageToCheck)
+        // Treat recycled pages as not-in-graph. Logseq DB keeps deleted pages
+        // around for 30 days, and `getPage` still finds them — but for the
+        // user they're gone, so the badge would be misleading.
+        item.inGraph = !!page && !(await isRecycledPage(page))
+      }),
+    )
+    cursor += chunk.length
+    onChunk?.(parentZotData.slice(0, cursor))
+    // Hand the frame back to the browser so React actually paints this chunk
+    // before the next one starts — otherwise fast page lookups drain the whole
+    // loop in a single task and the list still appears all at once.
+    if (onChunk && cursor < parentZotData.length) {
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+    chunkSize = Math.min(chunkSize * 2, MAP_CHUNK_MAX)
   }
 
   return parentZotData

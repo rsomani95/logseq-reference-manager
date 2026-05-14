@@ -10,7 +10,7 @@ import {
   ZotItem,
   ZotSavedSearch,
 } from '../interfaces'
-import { mapItems } from './map-items'
+import { MapItemsOptions, mapItems } from './map-items'
 
 const api = wretch().url(ZOT_URL).headers({
   'Content-Type': 'application/json',
@@ -243,6 +243,7 @@ export const getZotSavedSearches = async (): Promise<ZotSavedSearch[]> => {
  */
 export const getItemsForCollection = async (
   collectionKey: string,
+  options?: MapItemsOptions,
 ): Promise<ZotData[]> => {
   try {
     const [parents, children] = await Promise.all([
@@ -262,7 +263,7 @@ export const getItemsForCollection = async (
         .get()
         .json<ZotItem[]>(),
     ])
-    return await mapItems(parents, children)
+    return await mapItems(parents, children, options)
   } catch (error) {
     logseq.UI.showMsg(
       `❌ Could not load collection items: ${(error as Error).message}`,
@@ -279,6 +280,7 @@ export const getItemsForCollection = async (
  */
 export const getItemsForSavedSearch = async (
   searchKey: string,
+  options?: MapItemsOptions,
 ): Promise<ZotData[]> => {
   try {
     const all = await api
@@ -289,7 +291,7 @@ export const getItemsForSavedSearch = async (
       .json<ZotItem[]>()
     const parents = all.filter((i) => !CHILD_ITEM_TYPES.has(i.data.itemType))
     const children = all.filter((i) => CHILD_ITEM_TYPES.has(i.data.itemType))
-    return await mapItems(parents, children)
+    return await mapItems(parents, children, options)
   } catch (error) {
     logseq.UI.showMsg(
       `❌ Could not load saved search items: ${(error as Error).message}`,

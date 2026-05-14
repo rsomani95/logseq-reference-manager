@@ -55,6 +55,8 @@ export const BatchView = () => {
     source === 'search'
       ? search.isLoadingInitial || search.isLoadingFallback
       : container.loading
+  // Streamed sources keep loading after the first chunk; search doesn't stream.
+  const loadingMore = source === 'search' ? false : container.loadingMore
   const error = source === 'search' ? search.error : container.error
   const cardQuery = source === 'search' ? query : ''
 
@@ -178,16 +180,21 @@ export const BatchView = () => {
     if (items.length === 0)
       return <div className="batch-empty">No items here.</div>
 
-    return items.map((item, index) => (
-      <SelectableResultCard
-        key={item.key}
-        item={item}
-        query={cardQuery}
-        index={index}
-        selected={selected.has(item.key)}
-        onToggle={handleToggle}
-      />
-    ))
+    return (
+      <>
+        {items.map((item, index) => (
+          <SelectableResultCard
+            key={item.key}
+            item={item}
+            query={cardQuery}
+            index={index}
+            selected={selected.has(item.key)}
+            onToggle={handleToggle}
+          />
+        ))}
+        {loadingMore && <div className="batch-loading-more">Loading more…</div>}
+      </>
+    )
   }
 
   const listStatus = () => {

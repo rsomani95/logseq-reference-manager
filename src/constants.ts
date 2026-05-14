@@ -23,6 +23,15 @@ export const DEBOUNCE_DELAY = 400
 // avoids pagination. A container larger than this would be truncated.
 export const BATCH_FETCH_LIMIT = 1000
 
+// Loading a big collection / saved search is dominated by the per-item
+// "is this already in the graph?" Logseq lookup. `mapItems` runs those in
+// parallel chunks and streams each chunk back (via `onChunk`), so the list
+// paints almost immediately. The first chunk is deliberately small for an
+// instant first paint; later chunks double — up to `MAP_CHUNK_MAX` — so a
+// large container settles in a handful of renders, not dozens.
+export const MAP_CHUNK_INITIAL = 10
+export const MAP_CHUNK_MAX = 80
+
 // Properties displayed first on the Zotero tag. Logseq orders tag properties
 // by the sequence in which `addTagProperty` is called, so these are added to
 // the tag before anything else. Kept in camelCase to match the preset lists;
