@@ -3,6 +3,7 @@ import '@logseq/libs'
 import { BlockCursorPosition, BlockEntity } from '@logseq/libs/dist/LSPlugin'
 import { createRoot } from 'react-dom/client'
 
+import { BatchContainer } from './BatchContainer'
 import { handlePopup } from './handle-popup'
 import { QUERY_ALL_ZOT_PAGES } from './queries'
 import { testZotConnection } from './services/get-zot-items'
@@ -80,6 +81,22 @@ const main = async () => {
       }
     })
   })
+
+  ///////////////////////////////////
+  ///////////  BATCH IMPORT  ////////
+  ///////////////////////////////////
+  logseq.App.registerCommandPalette(
+    {
+      key: 'zoterolocal-plugin-batch-import',
+      label: 'logseq-zoterolocal-plugin: Batch import',
+    },
+    () => {
+      // A fresh `key` forces a clean remount, so every invocation starts at the
+      // select phase with no carried-over selection or summary.
+      root.render(<BatchContainer key={`batch-${Date.now()}`} />)
+      logseq.showMainUI()
+    },
+  )
 }
 
 logseq.ready(main).catch(console.error)

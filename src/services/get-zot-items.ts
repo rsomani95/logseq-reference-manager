@@ -2,8 +2,14 @@ import wretch from 'wretch'
 import QueryAddon from 'wretch/addons/queryString'
 import { WretchError } from 'wretch/resolver'
 
-import { BASE_QUERY, ZOT_URL } from '../constants'
-import { AnnotationItem, ZotItem } from '../interfaces'
+import { BASE_QUERY, BATCH_FETCH_LIMIT, ZOT_URL } from '../constants'
+import {
+  AnnotationItem,
+  ZotCollection,
+  ZotData,
+  ZotItem,
+  ZotSavedSearch,
+} from '../interfaces'
 import { mapItems } from './map-items'
 
 const api = wretch().url(ZOT_URL).headers({
@@ -164,4 +170,131 @@ export const getAnnotationsByItemKey = async (
   }
 
   return annotationMap
+}
+
+// ─── Batch import sources ───────────────────────────────────────────────────
+
+// Note/attachment/annotation are Zotero's child item types. Container routes
+// (`/collections/{key}/items`, `/searches/{key}/items`) return parents and
+// children mixed, so this set is used to partition the response for `mapItems`.
+const CHILD_ITEM_TYPES = new Set(['note', 'attachment', 'annotation'])
+
+interface RawZotCollection {
+  key: string
+  meta: { numCollections: number; numItems: number }
+  data: { key: string; name: string; parentCollection: string | false }
+}
+
+interface RawZotSavedSearch {
+  key: string
+  data: { key: string; name: string }
+}
+
+/**
+ * Lists every collection in the Zotero library. Returned flat — nested
+ * collections sit alongside their parents and carry a `parentCollection` key.
+ */
+export const getZotCollections = async (): Promise<ZotCollection[]> => {
+  try {
+    const raw = await api
+      .url('/collections')
+      .addon(QueryAddon)
+      .query({ limit: BATCH_FETCH_LIMIT })
+      .get()
+      .json<RawZotCollection[]>()
+    return raw
+      .map((c) => ({
+        key: c.key,
+        name: c.data.name,
+        numItems: c.meta.numItems,
+        parentCollection: c.data.parentCollection,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  } catch (error) {
+    logseq.UI.showMsg(
+      `❌ Could not load Zotero collections: ${(error as Error).message}`,
+      'error',
+    )
+    return []
+  }
+}
+
+/** Lists every saved search in the Zotero library. */
+export const getZotSavedSearches = async (): Promise<ZotSavedSearch[]> => {
+  try {
+    const raw = await api.url('/searches').get().json<RawZotSavedSearch[]>()
+    return raw
+      .map((s) => ({ key: s.key, name: s.data.name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  } catch (error) {
+    logseq.UI.showMsg(
+      `❌ Could not load Zotero saved searches: ${(error as Error).message}`,
+      'error',
+    )
+    return []
+  }
+}
+
+/**
+ * Fetches every importable item in a collection. Two calls: the collection's
+ * top-level items (the parents) and its note/attachment/annotation children,
+ * both scoped to the collection — no whole-library children slurp. The result
+ * runs through the same `mapItems` join used by the search flow.
+ */
+export const getItemsForCollection = async (
+  collectionKey: string,
+): Promise<ZotData[]> => {
+  try {
+    const [parents, children] = await Promise.all([
+      api
+        .url(`/collections/${collectionKey}/items/top`)
+        .addon(QueryAddon)
+        .query({ ...BASE_QUERY, limit: BATCH_FETCH_LIMIT })
+        .get()
+        .json<ZotItem[]>(),
+      api
+        .url(`/collections/${collectionKey}/items`)
+        .addon(QueryAddon)
+        .query({
+          itemType: 'note||attachment||annotation',
+          limit: BATCH_FETCH_LIMIT,
+        })
+        .get()
+        .json<ZotItem[]>(),
+    ])
+    return await mapItems(parents, children)
+  } catch (error) {
+    logseq.UI.showMsg(
+      `❌ Could not load collection items: ${(error as Error).message}`,
+      'error',
+    )
+    return []
+  }
+}
+
+/**
+ * Fetches every importable item matching a saved search. The local API has no
+ * `/searches/{key}/items/top` route, so the single `/items` response (parents
+ * and children mixed) is partitioned by item type before the `mapItems` join.
+ */
+export const getItemsForSavedSearch = async (
+  searchKey: string,
+): Promise<ZotData[]> => {
+  try {
+    const all = await api
+      .url(`/searches/${searchKey}/items`)
+      .addon(QueryAddon)
+      .query({ limit: BATCH_FETCH_LIMIT })
+      .get()
+      .json<ZotItem[]>()
+    const parents = all.filter((i) => !CHILD_ITEM_TYPES.has(i.data.itemType))
+    const children = all.filter((i) => CHILD_ITEM_TYPES.has(i.data.itemType))
+    return await mapItems(parents, children)
+  } catch (error) {
+    logseq.UI.showMsg(
+      `❌ Could not load saved search items: ${(error as Error).message}`,
+      'error',
+    )
+    return []
+  }
 }

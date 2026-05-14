@@ -1,7 +1,9 @@
 /* Search container */
-.search-container {
+/* Modal shell — shared by the single-item search popup and the batch import
+   view; each then sets its own width and position below. */
+.search-container,
+.batch-container {
   position: absolute;
-  width: 44rem;
   background: var(--ls-primary-background-color, #fff);
   color: var(--ls-primary-text-color, #212529);
   border: 1px solid
@@ -28,8 +30,22 @@
   );
 }
 
+.search-container {
+  width: 44rem;
+}
+
+/* The batch view has no cursor anchor, so it sits centered near the top. */
+.batch-container {
+  width: 46rem;
+  max-height: 86vh;
+  top: 7vh;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
 /* a dark-tuned shadow is far too heavy on a light background */
-html[data-theme="light"] .search-container {
+html[data-theme="light"] .search-container,
+html[data-theme="light"] .batch-container {
   box-shadow:
     0 40px 80px -20px rgba(0, 0, 0, 0.26),
     0 16px 36px -16px rgba(0, 0, 0, 0.18);
@@ -476,4 +492,294 @@ html[data-theme="light"] .search-container {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ─── Batch import ─────────────────────────────────────────────────────────── */
+
+/* Source tabs */
+.batch-source-tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--ls-border-color, #e9ecef);
+}
+
+.batch-source-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  color: var(--ls-secondary-text-color, #868e96);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    color 0.1s ease,
+    border-color 0.1s ease;
+}
+
+.batch-source-tab:hover:not(:disabled) {
+  color: var(--ls-primary-text-color, #212529);
+}
+
+.batch-source-tab.is-active {
+  color: var(--ls-primary-text-color, #212529);
+  border-bottom-color: var(--ls-active-primary-color, #1c7ed6);
+}
+
+.batch-source-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Source input row — the search box, or a collection / saved-search select */
+.batch-source-input {
+  display: flex;
+  flex-shrink: 0;
+  padding: 0.5rem 0.85rem;
+  border-bottom: 1px solid var(--ls-border-color, #e9ecef);
+}
+
+.batch-source-input .search-input {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--ls-border-color, #ced4da);
+  border-radius: 4px;
+}
+
+.batch-source-input .select-input {
+  width: 100%;
+  background: var(--ls-primary-background-color, #fff);
+  color: var(--ls-primary-text-color, #212529);
+  border-color: var(--ls-border-color, #ced4da);
+}
+
+/* List header — select-all + status */
+.batch-list-header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.85rem;
+  border-bottom: 1px solid var(--ls-border-color, #e9ecef);
+}
+
+.batch-list-header-status {
+  font-size: 0.75rem;
+  color: var(--ls-secondary-text-color, #868e96);
+}
+
+/* Results list */
+.batch-results {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 6rem;
+  overflow-y: auto;
+  scrollbar-color: var(--ls-scrollbar-foreground-color, #ccc) transparent;
+}
+
+.batch-results.is-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.batch-empty {
+  padding: 1.5rem 0.85rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ls-secondary-text-color, #868e96);
+}
+
+/* Selectable result card — wraps the shared ResultCardBody with a checkbox */
+.result-card-selectable {
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.6rem;
+}
+
+.result-card-checkbox {
+  width: 0.95rem;
+  height: 0.95rem;
+  margin: 0.15rem 0 0 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--ls-active-primary-color, #1c7ed6);
+}
+
+.result-card-body {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.result-card-selected {
+  background-color: color-mix(
+    in srgb,
+    var(--ls-active-primary-color, #1c7ed6) 10%,
+    transparent
+  );
+}
+
+.result-card-selected:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--ls-active-primary-color, #1c7ed6) 14%,
+    transparent
+  );
+}
+
+.result-card-disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.result-card-disabled:hover {
+  background-color: transparent;
+}
+
+.result-card-disabled .result-card-checkbox {
+  cursor: not-allowed;
+}
+
+/* Footer — phase-aware: count + import, progress + cancel, or import-more + close */
+.batch-footer {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  border-top: 1px solid var(--ls-border-color, #e9ecef);
+}
+
+.batch-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.batch-footer-row.is-end {
+  justify-content: flex-end;
+}
+
+.batch-footer-status {
+  font-size: 0.8rem;
+  color: var(--ls-secondary-text-color, #868e96);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Progress bar */
+.batch-progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ls-tertiary-background-color, #e9ecef);
+  overflow: hidden;
+}
+
+.batch-progress-fill {
+  height: 100%;
+  background: var(--ls-active-primary-color, #1c7ed6);
+  transition: width 0.2s ease;
+}
+
+/* Summary panel — replaces the list once a run finishes */
+.batch-summary {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: 0.85rem;
+  padding: 1rem 0.85rem;
+  overflow-y: auto;
+}
+
+.batch-summary-note {
+  font-size: 0.78rem;
+  color: var(--ls-secondary-text-color, #868e96);
+  background: var(--ls-secondary-background-color, #f8f9fa);
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+}
+
+.batch-summary-stats {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.batch-summary-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--ls-secondary-text-color, #495057);
+}
+
+.batch-stat-count {
+  font-weight: 700;
+  color: var(--ls-primary-text-color, #212529);
+}
+
+.batch-stat-icon {
+  flex-shrink: 0;
+}
+
+.batch-stat-ok {
+  color: var(--ls-active-primary-color, #2b8a3e);
+}
+
+.batch-stat-skip {
+  color: var(--ls-secondary-text-color, #868e96);
+}
+
+.batch-stat-fail {
+  color: #e03131;
+}
+
+.batch-summary-failed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.batch-summary-failed-header {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ls-secondary-text-color, #868e96);
+}
+
+.batch-summary-failed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.batch-summary-failed-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
+  background: var(--ls-secondary-background-color, #f8f9fa);
+}
+
+.batch-summary-failed-title {
+  font-weight: 600;
+  color: var(--ls-primary-text-color, #212529);
+}
+
+.batch-summary-failed-reason {
+  font-size: 0.75rem;
+  color: #e03131;
 }

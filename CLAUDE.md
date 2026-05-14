@@ -16,8 +16,7 @@ Package manager is **bun**. Husky pre-commit runs `npm run lint:precommit` (Biom
 - `bun run lint:precommit` — `biome check . --write && tsc --noEmit`
 - `bunx biome check <path>` — lint a single file/dir
 - `bunx tsc --noEmit` — typecheck only (no emit; project is `noEmit: true` always)
-
-There are no tests in this repo.
+- `bun test` — run the test suite (`*.test.ts` files; pure-function coverage only)
 
 The `.bruno/` directory contains Bruno HTTP request collections for ad-hoc exploration of the Zotero local API (items, collections, query, notes/attachments by parent). Useful when debugging what Zotero is returning.
 
@@ -30,10 +29,11 @@ The `.bruno/` directory contains Bruno HTTP request collections for ad-hoc explo
 2. Registers settings via `settings.ts` (`handleSettings`).
 3. Registers admin commands via `services/register-admin-commands.ts` (schema setup, schema removal, settings reset).
 4. Registers the user-facing commands:
-   - Slash `Zotero: Insert full item` → opens the search popup, on pick creates a new Logseq page for the item.
+   - Slash `Zotero: Insert full item` → opens the search popup, on pick creates a new Logseq page for the item and links it into the current block.
+   - Command palette `Batch import` → opens the batch import view to import many items at once (see **Batch import** below).
    - Page menu `Zotero: Sync annotations` + command palette `Sync all annotations` → fetches new annotations from Zotero and appends them under the matching attachment block.
 
-The search popup renders into the `#app` div as a React tree: `ZotContainer` → `SearchItem` → `ResultCard`. `logseq.showMainUI()` / `hideMainUI()` toggle the popup overlay.
+Both UIs render into the `#app` div and toggle via `logseq.showMainUI()` / `hideMainUI()`: the search popup is `ZotContainer` → `SearchItem` → `ResultCard`, the batch view is `BatchContainer` → `BatchView`. `ResultCard` and the batch view's `SelectableResultCard` share their visual body via `components/ResultCardBody.tsx`.
 
 ### Data flow for "Insert full item"
 
@@ -71,6 +71,14 @@ Property names are kebab-cased everywhere they touch Logseq (`convert-prop-to-ke
 
 The "Sync all annotations" command uses a datascript query (`src/queries.ts:QUERY_ALL_ZOT_PAGES`) to find every page tagged `Zotero`.
 
+### Batch import
+
+`Batch import` (command palette) opens `BatchContainer` → `BatchView`, a centered modal for importing many items at once. A source switcher drives one selectable list:
+- **Search** — reuses `useSearchItems` (same recents + fuzzy search as the single-item popup).
+- **Collection** / **Saved search** — `hooks/use-batch.ts`: `useBatchSources` populates the pickers from `/collections` and `/searches`; `useContainerItems` fetches the chosen container via `getItemsForCollection` (2 calls — `/collections/{key}/items/top` plus its scoped note/attachment/annotation children) or `getItemsForSavedSearch` (1 call to `/searches/{key}/items`, partitioned into parents/children client-side). Both feed the same `mapItems` join used by the search flow.
+
+The list is `SelectableResultCard`s; selection is a `Map` keyed by Zotero item key that persists across source switches. `services/batch-insert-into-graph.ts` runs the import: sequential, skips `inGraph` items, isolates per-item errors, reports progress, is cancellable between items, and returns `{imported, skipped, failed, cancelled}`. It calls `handleZotInDb(item, pageName, { navigate: false })` — the `navigate` opt (default `true`) gates the page-navigation side effects that suit a single insert but not a batch. The view morphs select → importing (progress bar) → done (`ImportSummary`).
+
 ### Key constants
 
 `src/constants.ts`:
@@ -80,11 +88,11 @@ The "Sync all annotations" command uses a datascript query (`src/queries.ts:QUER
 
 ### Template placeholders
 
-`<% placeholder %>` strings are used in `pagenameTemplate` — only `<% citeKey %>`, `<% title %>`, `<% shortTitle %>` are supported. Substitution is inlined in `services/insert-zot-into-graph.ts` (and in `services/map-items.ts` for the `inGraph` badge).
+`<% placeholder %>` strings are used in `pagenameTemplate` — only `<% citeKey %>` and `<% title %>` are supported. Substitution lives in `resolvePageName` (`services/handle-zot-db.ts`), shared by the single-item and batch paths (and is duplicated in `services/map-items.ts` for the `inGraph` badge).
 
 ## Style and tooling
 
 - TypeScript strict mode with `noUncheckedIndexedAccess`. Path alias `../*` → `src/*` (see `tsconfig.json`).
 - Biome handles both lint and format. Single quotes, no semicolons, spaces. Import groups: node → packages → aliases → relative paths.
-- React 19, react-hook-form for forms, @tanstack/react-table for the table view, fuse.js for fuzzy search (though the actual search currently hits Zotero with `q=` rather than filtering locally — `use-fuse.ts` is unused by the active path), date-fns for dates, wretch for HTTP, lucide-react for icons.
+- React 19, react-hook-form for the search form, fuse.js for fuzzy search (`hooks/use-items.ts` filters a locally-cached library snapshot, with a debounced `q=` server fallback), date-fns for dates, wretch for HTTP, lucide-react for icons.
 - Release is automated via semantic-release on push to `main` (`.github/workflows/publish.yml`); the workflow builds, zips `dist + README + package.json + icon.svg` as `logseq-zoterolocal-plugin.zip`, and uploads it as a GitHub release asset.

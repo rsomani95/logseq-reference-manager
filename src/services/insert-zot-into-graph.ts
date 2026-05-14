@@ -1,5 +1,5 @@
 import { ZotData } from '../interfaces'
-import { handleZotInDb } from './handle-zot-db'
+import { handleZotInDb, resolvePageName } from './handle-zot-db'
 
 export const insertZotIntoGraph = async (zotItem: ZotData) => {
   logseq.hideMainUI()
@@ -9,10 +9,7 @@ export const insertZotIntoGraph = async (zotItem: ZotData) => {
     {},
   )
 
-  const pageName = (logseq.settings!.pagenameTemplate as string)
-    .replace('<% title %>', zotItem.title)
-    .replace('<% citeKey %>', zotItem.citeKey)
-    .trim()
+  const pageName = resolvePageName(zotItem)
 
   try {
     await handleZotInDb(zotItem, pageName)

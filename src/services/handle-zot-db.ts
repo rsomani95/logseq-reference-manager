@@ -9,7 +9,25 @@ import { isRecycledPage } from './is-recycled-page'
 import { isSchemaAdded } from './is-schema-added'
 import { parseHtml } from './parse-html'
 
-export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
+/**
+ * Resolves the Logseq page name for a Zotero item by filling the configured
+ * `pagenameTemplate`. Shared by the single-item and batch import paths.
+ */
+export const resolvePageName = (zotItem: ZotData): string =>
+  (logseq.settings!.pagenameTemplate as string)
+    .replace('<% title %>', zotItem.title)
+    .replace('<% citeKey %>', zotItem.citeKey)
+    .trim()
+
+export const handleZotInDb = async (
+  zotItem: ZotData,
+  pageName: string,
+  opts: { navigate?: boolean } = {},
+) => {
+  // When false (batch import), suppress the page navigation that's helpful for
+  // a single insert but would yank the user around mid-batch.
+  const navigate = opts.navigate ?? true
+
   // Check if citekey has been configured correctly
   if (
     (logseq.settings!.pagenameTemplate as string).includes('<% citeKey %>') &&
@@ -47,14 +65,14 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
         `"${pageName}" exists in Logseq's Recycle bin. Open the Recycle page, permanently delete this entry, then re-import.`,
       )
     }
-    logseq.App.pushState('page', { name: existingPage.name })
+    if (navigate) logseq.App.pushState('page', { name: existingPage.name })
     throw new Error('Page already exists')
   }
   existingPage = await logseq.Editor.createPage(
     pageName,
     {},
     {
-      redirect: true,
+      redirect: navigate,
       createFirstBlock: false,
       journal: false,
     },

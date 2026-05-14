@@ -17,6 +17,12 @@ export const BASE_QUERY = {
 
 export const DEBOUNCE_DELAY = 400
 
+// Upper bound for items fetched per collection / saved search in a single
+// request. The local Zotero API has no hard `limit` cap; batch import targets
+// curated collections rather than whole libraries, so a generous flat limit
+// avoids pagination. A container larger than this would be truncated.
+export const BATCH_FETCH_LIMIT = 1000
+
 // Properties displayed first on the Zotero tag. Logseq orders tag properties
 // by the sequence in which `addTagProperty` is called, so these are added to
 // the tag before anything else. Kept in camelCase to match the preset lists;

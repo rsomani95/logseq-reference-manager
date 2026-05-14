@@ -251,3 +251,23 @@ export interface PluginSettings {
   pagenameTemplate: string
   zotTag: string
 }
+
+// ─── Batch import ───────────────────────────────────────────────────────────
+
+/** A Zotero collection, flattened from the local API's `/collections` response. */
+export interface ZotCollection {
+  key: string
+  name: string
+  numItems: number
+  // `false` for a top-level collection, otherwise the parent collection's key.
+  parentCollection: string | false
+}
+
+/** A Zotero saved search, from the local API's `/searches` response. */
+export interface ZotSavedSearch {
+  key: string
+  name: string
+}
+
+/** Which source populates the batch-import list. */
+export type BatchSource = 'search' | 'collection' | 'savedSearch'
