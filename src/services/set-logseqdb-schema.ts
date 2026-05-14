@@ -1,6 +1,7 @@
 import { PropertySchema } from '@logseq/libs/dist/LSPlugin'
 
 import {
+  PROP_DESCRIPTIONS,
   PROP_DISPLAY_NAMES,
   PROP_PRESETS,
   PROP_PRIORITY_ORDER,
@@ -54,6 +55,25 @@ const createTagProperties = async (props: string[]) => {
         'logseq.property/hide?',
         true,
       )
+
+      // Same story for the description shown under each property in the tag
+      // schema UI — it's the built-in `:logseq.property/description`, set
+      // directly on the property block. An empty or missing entry clears it:
+      // `upsertBlockProperty` ignores `''`, so removal is the only way to
+      // actually unset a description that was set on a previous run.
+      const description = PROP_DESCRIPTIONS[originalProp]
+      if (description) {
+        await logseq.Editor.upsertBlockProperty(
+          property.uuid,
+          'logseq.property/description',
+          description,
+        )
+      } else {
+        await logseq.Editor.removeBlockProperty(
+          property.uuid,
+          'logseq.property/description',
+        )
+      }
     }
   }
 }
