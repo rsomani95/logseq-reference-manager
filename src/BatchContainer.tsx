@@ -5,7 +5,7 @@ import { BatchView } from './features/batch-import'
 
 export const BatchContainer = () => {
   return (
-    <div style={{ background: 'none' }}>
+    <div className="zot-backdrop">
       <BatchView />
     </div>
   )

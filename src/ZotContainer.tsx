@@ -11,7 +11,7 @@ export const ZotContainer = ({
   rect?: { x: number; y: number }
 }) => {
   return (
-    <div style={{ background: 'none' }}>
+    <div className="zot-backdrop">
       {rect && uuid && <SearchItem rect={rect} uuid={uuid} />}
     </div>
   )

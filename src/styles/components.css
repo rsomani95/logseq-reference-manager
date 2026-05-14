@@ -1,4 +1,10 @@
-/* Search container */
+/* Dims the rest of the app behind an active plugin modal. */
+.zot-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+
 /* Modal shell — shared by the single-item search popup and the batch import
    view; each then sets its own width and position below. */
 .search-container,
