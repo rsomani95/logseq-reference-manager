@@ -1,6 +1,7 @@
 import { PropertySchema } from '@logseq/libs/dist/LSPlugin'
 
 import {
+  PROP_DISPLAY_NAMES,
   PROP_PRESETS,
   PROP_PRIORITY_ORDER,
   ZOT_DATA_KEY_MAP,
@@ -10,7 +11,9 @@ import { PropertyPreset } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
 
 const createTagProperties = async (props: string[]) => {
-  for (const prop of props) {
+  for (const originalProp of props) {
+    const prop = convertPropToKebabCase(originalProp)
+    const displayName = PROP_DISPLAY_NAMES[originalProp] ?? prop
     console.log('Adding property schema', prop, 'to Logseq')
 
     let schema: Partial<PropertySchema>
@@ -30,15 +33,22 @@ const createTagProperties = async (props: string[]) => {
       schema = { type: 'default' }
     }
 
-    await logseq.Editor.upsertProperty(prop, schema, { name: prop })
+    await logseq.Editor.upsertProperty(prop, schema, { name: displayName })
 
-    // The plugin SDK rewrites `schema.hide` to the unqualified attribute
-    // `:hide?` on the property, but the UI's "Hide by default" toggle reads
-    // the qualified `:logseq.property/hide?` — so the schema flag is a no-op.
-    // Qualified keywords pass through `upsertBlockProperty` unchanged, so
-    // setting it directly on the property block is the working path.
     const property = await logseq.Editor.getProperty(`${ZOTERO_PROP}/${prop}`)
     if (property?.uuid) {
+      // `upsertProperty`'s `name` opt is a no-op in current Logseq-DB — the
+      // property's display name falls back to its kebab ident. The display
+      // name is the property block's title, so set it directly.
+      if (property.title !== displayName) {
+        await logseq.Editor.updateBlock(property.uuid, displayName)
+      }
+
+      // The plugin SDK rewrites `schema.hide` to the unqualified attribute
+      // `:hide?` on the property, but the UI's "Hide by default" toggle reads
+      // the qualified `:logseq.property/hide?` — so the schema flag is a no-op.
+      // Qualified keywords pass through `upsertBlockProperty` unchanged, so
+      // setting it directly on the property block is the working path.
       await logseq.Editor.upsertBlockProperty(
         property.uuid,
         'logseq.property/hide?',
@@ -97,6 +107,10 @@ export const setLogseqDbSchema = async () => {
       !priorityProps.includes(prop as (typeof PROP_PRIORITY_ORDER)[number]),
   )
 
+  // Mix of camelCase Zotero API names and kebab-case plugin-internal names —
+  // `createTagProperties` and the tag association below kebab each entry.
+  // upsertProperty is idempotent, and the qualified-hide step needs to run
+  // every time anyway to fix properties created before this fix landed.
   const allZoteroPropsToBeSetup = [
     ...priorityProps,
     'zotero-code',
@@ -104,27 +118,23 @@ export const setLogseqDbSchema = async () => {
     'zotero-attachment-key',
     ...remainingProps,
   ]
-  // upsertProperty is idempotent, and the qualified-hide step needs to run
-  // every time anyway to fix properties created before this fix landed.
-  const zoteroPropsToBeSetup = allZoteroPropsToBeSetup.map((prop) =>
-    convertPropToKebabCase(prop),
-  )
 
   await logseq.UI.showMsg(
-    `No. of Zotero props to be setup: ${zoteroPropsToBeSetup.length}`,
+    `No. of Zotero props to be setup: ${allZoteroPropsToBeSetup.length}`,
     'warning',
   )
 
-  if (zoteroPropsToBeSetup.length > 0) {
-    await createTagProperties(zoteroPropsToBeSetup)
+  if (allZoteroPropsToBeSetup.length > 0) {
+    await createTagProperties(allZoteroPropsToBeSetup)
   }
 
   // Associate all Zotero properties with the tag
   const zotTag = logseq.settings?.zotTag as string
-  for (const prop of allZoteroPropsToBeSetup.map((p) =>
-    convertPropToKebabCase(p),
-  )) {
-    await logseq.Editor.addTagProperty(zotTag, prop)
+  for (const originalProp of allZoteroPropsToBeSetup) {
+    await logseq.Editor.addTagProperty(
+      zotTag,
+      convertPropToKebabCase(originalProp),
+    )
   }
 
   logseq.UI.closeMsg(addingTagMsg)

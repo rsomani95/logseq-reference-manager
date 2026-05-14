@@ -4,6 +4,7 @@ import { format, parse, parseISO } from 'date-fns'
 import { PROP_PRESETS, ZOT_DATA_KEY_MAP } from '../constants'
 import { matchTagRules } from '../extended-tags'
 import { PropertyPreset, ZotData } from '../interfaces'
+import { convertPropToKebabCase } from './convert-prop-to-kebab'
 import { isRecycledPage } from './is-recycled-page'
 import { isSchemaAdded } from './is-schema-added'
 import { parseHtml } from './parse-html'
@@ -97,12 +98,7 @@ export const handleZotInDb = async (zotItem: ZotData, pageName: string) => {
   for (const prop of userSelectedPageProps) {
     console.log('Inserting prop into page', prop)
 
-    let fixedProp = ''
-    if (prop !== 'ISSN' && prop !== 'ISBN' && prop !== 'DOI') {
-      fixedProp = prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)
-    } else {
-      fixedProp = prop
-    }
+    const fixedProp = convertPropToKebabCase(prop)
 
     // @ts-expect-error need to type later
     const value = zotItem[prop]
