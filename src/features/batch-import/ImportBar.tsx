@@ -41,7 +41,7 @@ export const ImportBar = ({
             Importing {done} / {total}
             {progress?.currentTitle ? ` — ${progress.currentTitle}` : '…'}
           </span>
-          <button type="button" className="btn btn-gray" onClick={onCancel}>
+          <button type="button" className="btn btn-white" onClick={onCancel}>
             Cancel
           </button>
         </div>

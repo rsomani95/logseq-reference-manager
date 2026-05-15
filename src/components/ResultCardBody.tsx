@@ -58,8 +58,8 @@ interface MatchInfo {
   yearHit: boolean
   abstractHit: boolean
   // A hit on a field with no home on the card (cite key / short title /
-  // journal abbreviation), surfaced as the `↳` match line so the result
-  // never looks like a phantom.
+  // journal abbreviation / non-author creator like an editor), surfaced as
+  // the `↳` match line so the result never looks like a phantom.
   hidden: { label: string; value: string } | null
 }
 
@@ -86,15 +86,35 @@ const analyzeMatch = (
 
   let hidden: MatchInfo['hidden'] = null
   if (!titleHit && !authorHit && !venueHit && !yearHit && !abstractHit) {
-    const offRow: [string, string | undefined][] = [
-      ['short title', item.shortTitle],
-      ['cite key', item.citationKey],
-      ['journal', item.journalAbbreviation],
-    ]
-    for (const [label, value] of offRow) {
-      if (has(value)) {
-        hidden = { label, value: value as string }
-        break
+    // A creator that isn't in the displayed author line (e.g. the editor on
+    // a chapter where chapter authors show but the book's editor doesn't).
+    // Without this the row would render with no highlight anywhere, even
+    // though Fuse indexes editors via the combined creators key.
+    const displayedNames = new Set(
+      displayCreators.map((c) => fullNameOf(c).toLowerCase()),
+    )
+    const matchedOther = (item.creators ?? []).find((c) => {
+      const name = fullNameOf(c).toLowerCase()
+      return !displayedNames.has(name) && name.includes(query)
+    })
+    if (matchedOther) {
+      hidden = {
+        label: matchedOther.creatorType || 'creator',
+        value: fullNameOf(matchedOther),
+      }
+    }
+
+    if (!hidden) {
+      const offRow: [string, string | undefined][] = [
+        ['short title', item.shortTitle],
+        ['cite key', item.citationKey],
+        ['journal', item.journalAbbreviation],
+      ]
+      for (const [label, value] of offRow) {
+        if (has(value)) {
+          hidden = { label, value: value as string }
+          break
+        }
       }
     }
   }
@@ -203,13 +223,14 @@ const AbstractBlock = ({
  * a title line, the author line, a two-line abstract, and a source/year
  * footer, each with its own size/weight/spacing so the zones read as
  * distinct. `inGraph` shows as a green left edge (on `.result-card`, set by
- * the wrappers) + a dot. When `query` is set, every match explains itself:
+ * the wrappers) + an sr-only label for assistive tech; no second visible
+ * mark in the title row. When `query` is set, every match explains itself:
  * on-zone hits highlight in place, the abstract windows to a deep hit, the
  * author line surfaces a matched co-author past its cut, and a hit on a
- * field with no home here (cite key / short title / journal abbreviation)
- * adds a `↳` line. Rendered as `.result-card-body` so both the
- * click-to-insert `ResultCard` and the checkbox-driven `SelectableResultCard`
- * can wrap it.
+ * field with no home here (cite key / short title / journal abbreviation /
+ * editor or other non-author creator) adds a `↳` line at the bottom of the
+ * card. Rendered as `.result-card-body` so both the click-to-insert
+ * `ResultCard` and the checkbox-driven `SelectableResultCard` can wrap it.
  */
 export const ResultCardBody = ({
   item,
@@ -243,24 +264,8 @@ export const ResultCardBody = ({
         <span className="result-card-title" title={title}>
           <Highlighted text={title} query={q} />
         </span>
-        {item.inGraph && (
-          <span
-            className="result-card-dot"
-            role="img"
-            aria-label="Already in graph"
-            title="Already in graph"
-          />
-        )}
+        {item.inGraph && <span className="sr-only"> — already in graph</span>}
       </div>
-
-      {match?.hidden && (
-        <div className="result-card-match">
-          <span className="result-card-match-field">{match.hidden.label}</span>
-          <span className="result-card-match-text">
-            <Highlighted text={match.hidden.value} query={q} />
-          </span>
-        </div>
-      )}
 
       {displayCreators.length > 0 && (
         <div className="result-card-authors">
@@ -287,6 +292,15 @@ export const ResultCardBody = ({
               {match?.yearHit ? <Highlighted text={year} query={q} /> : year}
             </span>
           )}
+        </div>
+      )}
+
+      {match?.hidden && (
+        <div className="result-card-match">
+          <span className="result-card-match-field">{match.hidden.label}</span>
+          <span className="result-card-match-text">
+            <Highlighted text={match.hidden.value} query={q} />
+          </span>
         </div>
       )}
     </div>

@@ -48,6 +48,16 @@
   --zot-tracking-caps: 0.04em; /* uppercase eyebrows / labels */
   --zot-tracking-tight: -0.01em; /* Inter at title / heading sizes */
 
+  /* ─── Card geometry ────────────────────────────────────────────────────────
+     Result-card icon size, headline gap, and the left indent the four zones
+     below the icon use to align under the title. Indent derives from icon +
+     gap via calc, so changing either propagates. The container query at the
+     bottom of this file tightens the gap for narrow shells; the indent
+     re-resolves automatically via inheritance into the calc. */
+  --zot-card-icon-size: 0.8125rem;
+  --zot-card-icon-gap: 0.4rem;
+  --zot-card-indent: calc(var(--zot-card-icon-size) + var(--zot-card-icon-gap));
+
   /* ─── Motion ───────────────────────────────────────────────────────────────
      Easing + duration, tokenised like the type and color scales. Entries
      decelerate (ease-out-expo); toggles use ease-in-out. There is no exit
@@ -70,10 +80,18 @@
   --zot-color-bg-tertiary: var(--ls-tertiary-background-color, #f1f3f5);
   --zot-color-text: var(--ls-primary-text-color, #212529);
   --zot-color-text-secondary: var(--ls-secondary-text-color, #495057);
-  /* muted reuses the same host var as secondary — Logseq exposes only two text
-     tiers; the dimmer fallback plus per-use opacity carry the third. Fallback
-     is gray-7 (not gray-6) so it clears WCAG AA, ~5.3:1 on white. */
+  /* muted reuses the same host var as secondary — Logseq exposes only two
+     text tiers. Fallback is gray-7 (not gray-6) so it clears WCAG AA, ~5.3:1
+     on white. The dimmer third tier is built from muted via tertiary below. */
   --zot-color-text-muted: var(--ls-secondary-text-color, #6c757d);
+  /* tertiary — for the lowest-attention tier (source / year footer). Derived
+     by mixing muted toward the surface, so the dim comes from the color
+     itself, not from a per-rule opacity multiplier the bg can't see. */
+  --zot-color-text-tertiary: color-mix(
+    in srgb,
+    var(--zot-color-text-muted) 80%,
+    var(--zot-color-bg)
+  );
   --zot-color-border: var(--ls-border-color, #e9ecef);
   --zot-color-divider: color-mix(
     in srgb,
@@ -189,6 +207,21 @@ html[data-theme="dark"] {
   }
 }
 
+/* Screen-reader-only text — visible to assistive tech, hidden visually.
+   Used on the result row when the in-graph signal is the row's left edge
+   (the edge itself doesn't carry an accessible name). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Dims the rest of the app behind an active plugin modal. */
 .zot-backdrop {
   position: fixed;
@@ -252,10 +285,14 @@ html[data-theme="dark"] {
   outline-offset: -2px;
 }
 
+/* Input fills the wrapper; the status badge to its right is part of the same
+   flex row, so a long status can grow without the typing area running under
+   it. The wrapper is the focus container — its :focus-within ring covers
+   both, with min-width:0 letting the input shrink past content size. */
 .search-input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 0.65rem 0.85rem;
-  padding-right: 6.5rem;
   border: none;
   outline: none;
   font-size: var(--zot-text-title);
@@ -264,14 +301,15 @@ html[data-theme="dark"] {
   color: var(--zot-color-text);
 }
 
+/* Trust the muted token to carry the dim — extra opacity on top of an
+   already-low-contrast color pushes placeholders past WCAG AA. */
 .search-input::placeholder {
   color: var(--zot-color-text-muted);
-  opacity: 0.6;
 }
 
 .search-result-count {
-  position: absolute;
-  right: 0.85rem;
+  flex-shrink: 0;
+  padding: 0 0.85rem 0 0.5rem;
   font-size: var(--zot-text-sm);
   font-variant-numeric: tabular-nums;
   color: var(--zot-color-text-muted);
@@ -296,13 +334,15 @@ html[data-theme="dark"] {
   flex-direction: column;
 }
 
+/* Header already carries three signals — bg-secondary surface, uppercase
+   case, caps tracking. Weight stays default so the row reads as a soft
+   section marker rather than a heading. */
 .time-group-header {
   position: sticky;
   top: 0;
   background: var(--zot-color-bg-secondary);
   color: var(--zot-color-text-muted);
   font-size: var(--zot-text-sm);
-  font-weight: var(--zot-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--zot-tracking-caps);
   padding: 0.35rem 0.85rem;
@@ -372,17 +412,22 @@ html[data-theme="dark"] {
   min-width: 0;
 }
 
-/* Zone 1 — type icon + title, in-graph dot pinned right */
+/* Zone 1 — type icon + title. In-graph state shows as the row's left edge
+   (.result-card-in-graph below); no second mark inside the title row. */
 .result-card-headline {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: var(--zot-card-icon-gap);
   overflow: hidden;
 }
 
+/* Width/height drive the rendered icon size; the lucide `size` prop in JSX
+   is the fallback when this stylesheet hasn't loaded yet. */
 .result-card-icon {
   color: var(--zot-color-icon);
   flex-shrink: 0;
+  width: var(--zot-card-icon-size);
+  height: var(--zot-card-icon-size);
 }
 
 .result-card-title {
@@ -398,18 +443,10 @@ html[data-theme="dark"] {
   text-overflow: ellipsis;
 }
 
-.result-card-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--zot-color-success);
-  flex-shrink: 0;
-}
-
 /* Zone 2 — the author line: medium weight, sits tight under the title */
 .result-card-authors {
   margin-top: 0.12rem;
-  padding-left: 1.3rem;
+  padding-left: var(--zot-card-indent);
   font-size: var(--zot-text-base);
   font-weight: var(--zot-weight-medium);
   line-height: var(--zot-leading-normal);
@@ -428,7 +465,7 @@ html[data-theme="dark"] {
    so it reads as the description rather than more metadata */
 .result-card-abstract {
   margin-top: 0.34rem;
-  padding-left: 1.3rem;
+  padding-left: var(--zot-card-indent);
   font-size: var(--zot-text-base);
   font-weight: var(--zot-weight-normal);
   line-height: var(--zot-leading-normal);
@@ -439,16 +476,17 @@ html[data-theme="dark"] {
   overflow: hidden;
 }
 
-/* Zone 4 — the source/year footer: smallest, dimmest, set off by a gap */
+/* Zone 4 — the source/year footer: smallest, dimmest, set off by a gap.
+   Uses the tertiary tier (one step softer than the abstract's muted) so
+   the dim comes from the color, not a per-rule opacity multiplier. */
 .result-card-source {
   display: flex;
   align-items: baseline;
   margin-top: 0.32rem;
-  padding-left: 1.3rem;
+  padding-left: var(--zot-card-indent);
   font-size: var(--zot-text-sm);
   line-height: var(--zot-leading-normal);
-  color: var(--zot-color-text-muted);
-  opacity: 0.85;
+  color: var(--zot-color-text-tertiary);
   overflow: hidden;
 }
 
@@ -466,13 +504,15 @@ html[data-theme="dark"] {
 }
 
 /* Match-reason line — only when the hit lands on a field with no home on
-   the card (cite key / short title / journal abbreviation) */
+   the card (cite key / short title / journal abbreviation / editor). Sits
+   at the bottom of the card as the explainer for an otherwise-phantom row;
+   the deeper margin-top separates it from the source/year line above. */
 .result-card-match {
   display: flex;
   align-items: baseline;
-  gap: 0.4rem;
-  margin-top: 0.14rem;
-  padding-left: 1.3rem;
+  gap: var(--zot-card-icon-gap);
+  margin-top: 0.32rem;
+  padding-left: var(--zot-card-indent);
   font-size: var(--zot-text-sm);
   line-height: var(--zot-leading-normal);
   overflow: hidden;
@@ -1218,19 +1258,14 @@ html[data-theme="dark"] {
    container and the controls to a coarse pointer. */
 
 /* When the list itself is narrow — a cramped Logseq window forcing the
-   shell down — pull the row's horizontal padding and zone indents in so
-   the title keeps as much width as possible. */
+   shell down — pull the row's horizontal padding in, and tighten the
+   icon → title gap so the zone indent below (derived via calc from the
+   gap) shrinks in lockstep with the visible icon → title spacing. */
 @container (max-width: 26rem) {
   .result-card {
+    --zot-card-icon-gap: 0.3rem;
     padding-left: 0.6rem;
     padding-right: 0.6rem;
-  }
-
-  .result-card-authors,
-  .result-card-abstract,
-  .result-card-source,
-  .result-card-match {
-    padding-left: 1.1rem;
   }
 }
 
