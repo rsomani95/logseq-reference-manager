@@ -10,6 +10,7 @@ import {
 } from '../constants'
 import { PropertyPreset } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
+import { parsePagePropChoice } from './page-props-choice'
 
 const createTagProperties = async (props: string[]) => {
   for (const originalProp of props) {
@@ -102,7 +103,12 @@ export const setLogseqDbSchema = async () => {
     (logseq.settings?.propertyPreset as PropertyPreset) ?? 'Essentials'
   let selectedProps: string[]
   if (preset === 'Custom') {
-    selectedProps = logseq.settings?.pageProps as string[]
+    // pageProps is stored as user-facing labels — see handle-zot-db.ts for
+    // the same mapping.
+    const raw = (logseq.settings?.pageProps as string[] | undefined) ?? []
+    selectedProps = raw
+      .map(parsePagePropChoice)
+      .filter((k): k is string => k !== null)
   } else if (preset === 'Full') {
     selectedProps = Object.keys(ZOT_DATA_KEY_MAP).filter(
       (prop) =>

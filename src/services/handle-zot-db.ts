@@ -7,6 +7,7 @@ import { CreatorItem, PropertyPreset, ZotData } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
 import { isRecycledPage } from './is-recycled-page'
 import { isSchemaAdded } from './is-schema-added'
+import { parsePagePropChoice } from './page-props-choice'
 import { parseHtml } from './parse-html'
 import { buildZoteroCodeIndex, ZoteroCodedPage } from './zotero-code-index'
 
@@ -145,7 +146,14 @@ export const handleZotInDb = async (
     (logseq.settings?.propertyPreset as PropertyPreset) ?? 'Essentials'
   let userSelectedPageProps: string[]
   if (preset === 'Custom') {
-    userSelectedPageProps = logseq.settings?.pageProps as string[]
+    // Custom Page Properties are stored as user-facing labels
+    // ("Title — The item's title") — map back to the camelCase keys this
+    // function and the schema setup work with. `parsePagePropChoice` also
+    // accepts the bare key for back-compat with pre-format values.
+    const raw = (logseq.settings?.pageProps as string[] | undefined) ?? []
+    userSelectedPageProps = raw
+      .map(parsePagePropChoice)
+      .filter((k): k is string => k !== null)
   } else if (preset === 'Full') {
     userSelectedPageProps = Object.keys(ZOT_DATA_KEY_MAP).filter(
       (prop) =>

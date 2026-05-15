@@ -11,7 +11,11 @@ import { registerAdminCommands } from './services/register-admin-commands'
 import { syncAnnotations } from './services/sync-annotations'
 import { registerThemeSync } from './services/sync-theme'
 import { registerSchemaSettingsWatcher } from './services/watch-schema-settings'
-import { handleSettings } from './settings'
+import {
+  handleSettings,
+  migratePagePropsIfNeeded,
+  registerPresetVisibilityWatcher,
+} from './settings'
 import { ZotContainer } from './ZotContainer'
 
 const main = async () => {
@@ -24,6 +28,8 @@ const main = async () => {
   handlePopup()
   registerThemeSync()
   registerSchemaSettingsWatcher()
+  registerPresetVisibilityWatcher()
+  migratePagePropsIfNeeded()
 
   // Re-register with the live connection status. Defaults for new keys were
   // already populated by the pre-ready call below; this just refreshes the
