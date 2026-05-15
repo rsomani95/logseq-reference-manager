@@ -1,8 +1,10 @@
 /* ─── Design tokens ───────────────────────────────────────────────────────────
-   Typography system. Font families are inherited from Logseq's active theme
+   Typography + color. Font families are inherited from Logseq's active theme
    (sync-theme.ts mirrors the --ls-* vars onto :root) — the plugin ships no face
-   of its own. The scale, weights, leading and tracking below are the plugin's
-   own, and apply on top of whatever face the theme provides. */
+   of its own. The type scale, weights, leading and tracking are the plugin's
+   own. Color follows the same split: surfaces / text / borders are inherited
+   from Logseq (Layer 1); the plugin owns only its functional palette (Layer 2)
+   and its elevation (Layer 3). Use the tokens — don't hardcode hex/rgba. */
 :root {
   /* Families — inherited; the fallbacks name Inter, the face Logseq ships.
      Logseq doesn't sync a mono family var, so the fallback stack carries mono. */
@@ -45,13 +47,93 @@
   /* Tracking */
   --zot-tracking-caps: 0.04em; /* uppercase eyebrows / labels */
   --zot-tracking-tight: -0.01em; /* Inter at title / heading sizes */
+
+  /* ─── Color · Layer 1 — inherited ──────────────────────────────────────────
+     Mirrored from Logseq's theme by sync-theme.ts; the value after the comma
+     is a fallback that only shows pre-sync — and the UI is hidden then, so the
+     light-only fallbacks never actually reach the screen. These flip with the
+     theme through the --ls-* vars, no dark override needed. */
+  --zot-color-bg: var(--ls-primary-background-color, #fff);
+  --zot-color-bg-secondary: var(--ls-secondary-background-color, #f8f9fa);
+  --zot-color-bg-tertiary: var(--ls-tertiary-background-color, #f1f3f5);
+  --zot-color-text: var(--ls-primary-text-color, #212529);
+  --zot-color-text-secondary: var(--ls-secondary-text-color, #495057);
+  /* muted reuses the same host var as secondary — Logseq exposes only two text
+     tiers; the dimmer fallback plus per-use opacity carry the third. Fallback
+     is gray-7 (not gray-6) so it clears WCAG AA, ~5.3:1 on white. */
+  --zot-color-text-muted: var(--ls-secondary-text-color, #6c757d);
+  --zot-color-border: var(--ls-border-color, #e9ecef);
+  --zot-color-divider: color-mix(
+    in srgb,
+    var(--zot-color-border) 55%,
+    var(--zot-color-bg)
+  );
+  --zot-color-hover: var(--ls-menu-hover-color, #f1f3f5);
+  --zot-color-icon: var(--ls-icon-color, var(--zot-color-text-muted));
+  --zot-color-scrollbar: var(--ls-scrollbar-foreground-color, #ccc);
+  /* Logseq's own accent — for host-matching UI states (active tab, selection,
+     progress, checkbox); kept distinct from the plugin's semantic colors. */
+  --zot-color-accent-host: var(--ls-active-primary-color, #1c7ed6);
+
+  /* ─── Color · Layer 2 — functional (plugin-owned) ──────────────────────────
+     Four hues, all Open Color, all conventional: green = success / in-graph,
+     red = error, blue = link & primary action, warm yellow = highlight. `:root`
+     holds light values; html[data-theme="dark"] overrides the base hues below.
+     `*` = text/icon/border on a neutral surface; `*-fill` = a solid background
+     that carries --zot-color-on-accent text. */
+  --zot-color-success: #2b8a3e; /* green-8 — ~4.6:1 on white */
+  --zot-color-danger: #c92a2a; /* red-9 — danger text/icons, ~5.3:1 on white */
+  --zot-color-danger-fill: #e03131; /* red-8 — danger button fill */
+  --zot-color-danger-fill-hover: #c92a2a;
+  --zot-color-info: #1971c2; /* blue-7 — links & accent text, ~5.1:1 on white */
+  --zot-color-info-fill: #1971c2; /* blue-7 — primary button fill */
+  --zot-color-info-fill-hover: #1864ab; /* blue-8 */
+  --zot-color-neutral-fill: #6c757d; /* gray-7 — neutral button fill */
+  --zot-color-on-accent: #fff; /* text on any saturated *-fill, both themes */
+  --zot-color-mark-bg: var(--ls-page-mark-bg-color, #ffe9a8); /* warm */
+  --zot-color-mark-text: var(--ls-page-mark-color, var(--zot-color-text));
+  /* derived tints — flip automatically with their base hue */
+  --zot-color-success-bg: color-mix(
+    in srgb,
+    var(--zot-color-success) 12%,
+    transparent
+  );
+  --zot-color-danger-bg: color-mix(
+    in srgb,
+    var(--zot-color-danger) 10%,
+    transparent
+  );
+
+  /* ─── Color · Layer 3 — elevation ──────────────────────────────────────────
+     Cool-shifted near-black, not pure black (Design for Hackers, Ch 9): a
+     shadow recedes, so it leans cool. Subtle by intent — elevation, not
+     decoration. Dark theme keeps near-black; a cool shift is invisible there. */
+  --zot-shadow-modal:
+    0 40px 80px -20px rgba(15, 23, 42, 0.26),
+    0 16px 36px -16px rgba(15, 23, 42, 0.18);
+  --zot-color-backdrop: rgba(15, 23, 42, 0.3);
+}
+
+/* Dark theme — overrides only the Layer 2 base hues + Layer 3 elevation;
+   Layer 1 and the derived tints flip on their own. */
+html[data-theme="dark"] {
+  --zot-color-success: #69db7c; /* green-4 */
+  --zot-color-danger: #ff8787; /* red-4 — light enough for a dark surface */
+  --zot-color-danger-fill-hover: #f03e3e; /* red-7 — hover lifts toward light */
+  --zot-color-info: #4dabf7; /* blue-4 */
+  --zot-color-neutral-fill: #495057; /* gray-7 */
+  --zot-color-mark-bg: var(--ls-page-mark-bg-color, #5c4e1f);
+  --zot-color-mark-text: var(--ls-page-mark-color, #f3ead0);
+  --zot-shadow-modal:
+    0 40px 80px -20px rgba(0, 0, 0, 0.72), 0 16px 36px -16px rgba(0, 0, 0, 0.6);
+  --zot-color-backdrop: rgba(0, 0, 0, 0.3);
 }
 
 /* Dims the rest of the app behind an active plugin modal. */
 .zot-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--zot-color-backdrop);
 }
 
 /* Modal shell — shared by the single-item search popup and the batch import
@@ -59,18 +141,11 @@
 .search-container,
 .batch-container {
   position: absolute;
-  background: var(--ls-primary-background-color, #fff);
-  color: var(--ls-primary-text-color, #212529);
-  border: 1px solid
-    color-mix(
-      in srgb,
-      var(--ls-border-color, #e9ecef) 45%,
-      var(--ls-primary-background-color, #fff)
-    );
-  /* deep, soft shadow does the lifting — see the light-theme override below */
-  box-shadow:
-    0 40px 80px -20px rgba(0, 0, 0, 0.72),
-    0 16px 36px -16px rgba(0, 0, 0, 0.6);
+  background: var(--zot-color-bg);
+  color: var(--zot-color-text);
+  border: 1px solid var(--zot-color-divider);
+  /* deep, soft shadow does the lifting — theme-split via the token */
+  box-shadow: var(--zot-shadow-modal);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -91,20 +166,12 @@
   transform: translateX(-50%);
 }
 
-/* a dark-tuned shadow is far too heavy on a light background */
-html[data-theme="light"] .search-container,
-html[data-theme="light"] .batch-container {
-  box-shadow:
-    0 40px 80px -20px rgba(0, 0, 0, 0.26),
-    0 16px 36px -16px rgba(0, 0, 0, 0.18);
-}
-
 /* Search input */
 .search-input-wrapper {
   position: relative;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid var(--ls-border-color, #e9ecef);
+  border-bottom: 1px solid var(--zot-color-border);
 }
 
 .search-input {
@@ -116,11 +183,11 @@ html[data-theme="light"] .batch-container {
   font-size: var(--zot-text-title);
   font-family: inherit;
   background: transparent;
-  color: var(--ls-primary-text-color, #212529);
+  color: var(--zot-color-text);
 }
 
 .search-input::placeholder {
-  color: var(--ls-secondary-text-color, #adb5bd);
+  color: var(--zot-color-text-muted);
   opacity: 0.6;
 }
 
@@ -129,7 +196,7 @@ html[data-theme="light"] .batch-container {
   right: 0.85rem;
   font-size: var(--zot-text-sm);
   font-variant-numeric: tabular-nums;
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
   white-space: nowrap;
 }
 
@@ -140,7 +207,7 @@ html[data-theme="light"] .batch-container {
   max-height: 60vh;
   overflow-y: auto;
   flex: 0 1 auto;
-  scrollbar-color: var(--ls-scrollbar-foreground-color, #ccc) transparent;
+  scrollbar-color: var(--zot-color-scrollbar) transparent;
 }
 
 /* Time-grouped recents */
@@ -152,14 +219,14 @@ html[data-theme="light"] .batch-container {
 .time-group-header {
   position: sticky;
   top: 0;
-  background: var(--ls-secondary-background-color, #f8f9fa);
-  color: var(--ls-secondary-text-color, #868e96);
+  background: var(--zot-color-bg-secondary);
+  color: var(--zot-color-text-muted);
   font-size: var(--zot-text-sm);
   font-weight: var(--zot-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--zot-tracking-caps);
   padding: 0.35rem 0.85rem;
-  border-bottom: 1px solid var(--ls-border-color, #e9ecef);
+  border-bottom: 1px solid var(--zot-color-border);
   z-index: 1;
 }
 
@@ -174,12 +241,7 @@ html[data-theme="light"] .batch-container {
   padding: 0.55rem 0.85rem;
   cursor: pointer;
   border-left: 2px solid transparent;
-  border-bottom: 1px solid
-    color-mix(
-      in srgb,
-      var(--ls-border-color, #e9ecef) 55%,
-      var(--ls-primary-background-color, #fff)
-    );
+  border-bottom: 1px solid var(--zot-color-divider);
   transition: background-color 0.1s ease;
 }
 
@@ -188,12 +250,12 @@ html[data-theme="light"] .batch-container {
 }
 
 .result-card:hover {
-  background-color: var(--ls-menu-hover-color, #f1f3f5);
+  background-color: var(--zot-color-hover);
 }
 
 /* in-graph — a quiet green left edge; set on the card so it sits flush */
 .result-card-in-graph {
-  border-left-color: var(--ls-active-primary-color, #2b8a3e);
+  border-left-color: var(--zot-color-success);
 }
 
 .result-card-body {
@@ -212,7 +274,7 @@ html[data-theme="light"] .batch-container {
 }
 
 .result-card-icon {
-  color: var(--ls-icon-color, var(--ls-secondary-text-color, #868e96));
+  color: var(--zot-color-icon);
   flex-shrink: 0;
 }
 
@@ -223,7 +285,7 @@ html[data-theme="light"] .batch-container {
   font-weight: var(--zot-weight-semibold);
   line-height: var(--zot-leading-tight);
   letter-spacing: var(--zot-tracking-tight);
-  color: var(--ls-primary-text-color, #212529);
+  color: var(--zot-color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -233,7 +295,7 @@ html[data-theme="light"] .batch-container {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--ls-active-primary-color, #2b8a3e);
+  background: var(--zot-color-success);
   flex-shrink: 0;
 }
 
@@ -244,7 +306,7 @@ html[data-theme="light"] .batch-container {
   font-size: var(--zot-text-base);
   font-weight: var(--zot-weight-medium);
   line-height: var(--zot-leading-normal);
-  color: var(--ls-secondary-text-color, #495057);
+  color: var(--zot-color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -263,7 +325,7 @@ html[data-theme="light"] .batch-container {
   font-size: var(--zot-text-base);
   font-weight: var(--zot-weight-normal);
   line-height: var(--zot-leading-normal);
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -278,7 +340,7 @@ html[data-theme="light"] .batch-container {
   padding-left: 1.3rem;
   font-size: var(--zot-text-sm);
   line-height: var(--zot-leading-normal);
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
   opacity: 0.85;
   overflow: hidden;
 }
@@ -311,7 +373,7 @@ html[data-theme="light"] .batch-container {
 
 .result-card-match-field {
   flex-shrink: 0;
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
 }
 
 .result-card-match-field::before {
@@ -321,7 +383,7 @@ html[data-theme="light"] .batch-container {
 
 .result-card-match-text {
   min-width: 0;
-  color: var(--ls-secondary-text-color, #495057);
+  color: var(--zot-color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -339,8 +401,8 @@ html[data-theme="light"] .batch-container {
 
 /* Search-term highlight — title, authors, abstract, source, match line */
 .result-card-mark {
-  background-color: var(--ls-page-mark-bg-color, #fff3bf);
-  color: var(--ls-page-mark-color, inherit);
+  background-color: var(--zot-color-mark-bg);
+  color: var(--zot-color-mark-text);
   padding: 0 0.1rem;
   border-radius: 2px;
 }
@@ -349,8 +411,8 @@ html[data-theme="light"] .batch-container {
 .items-table-container {
   padding: 1rem;
   margin-top: 1.5rem;
-  background: #fff;
-  border: 0.1rem solid #ccc;
+  background: var(--zot-color-bg);
+  border: 0.1rem solid var(--zot-color-border);
 }
 
 .items-table-header {
@@ -363,7 +425,7 @@ html[data-theme="light"] .batch-container {
   font-size: var(--zot-text-heading);
   font-weight: var(--zot-weight-semibold);
   letter-spacing: var(--zot-tracking-tight);
-  color: #212529;
+  color: var(--zot-color-text);
 }
 
 .items-table-loading {
@@ -376,7 +438,7 @@ html[data-theme="light"] .batch-container {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #c92a2a;
+  color: var(--zot-color-danger);
 }
 
 /* Data table */
@@ -395,14 +457,14 @@ html[data-theme="light"] .batch-container {
   cursor: pointer;
   padding: 0.5rem;
   text-align: left;
-  border-bottom: 2px solid #dee2e6;
+  border-bottom: 2px solid var(--zot-color-border);
   white-space: nowrap;
   user-select: none;
 }
 
 .data-table td {
   padding: 0.5rem;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--zot-color-border);
   max-width: 12rem;
   white-space: nowrap;
   overflow: hidden;
@@ -418,8 +480,9 @@ html[data-theme="light"] .batch-container {
 }
 
 .alert-box {
-  background-color: #e6fcf5;
-  border: 1px solid #96f2d7;
+  background-color: var(--zot-color-success-bg);
+  border: 1px solid
+    color-mix(in srgb, var(--zot-color-success) 35%, transparent);
   border-radius: 6px;
   padding: 0.75rem 1rem;
 }
@@ -427,7 +490,7 @@ html[data-theme="light"] .batch-container {
 .alert-title {
   font-weight: var(--zot-weight-semibold);
   font-size: var(--zot-text-base);
-  color: #087f5b;
+  color: var(--zot-color-success);
   margin-bottom: 0.4rem;
 }
 
@@ -440,16 +503,16 @@ html[data-theme="light"] .batch-container {
 
 .alert-text {
   font-size: var(--zot-text-base);
-  color: #343a40;
+  color: var(--zot-color-text-secondary);
 }
 
 .inline-code {
   font-family: var(--zot-font-mono);
   font-size: var(--zot-text-base);
-  background-color: #f1f3f5;
+  background-color: var(--zot-color-bg-tertiary);
   padding: 0.1rem 0.3rem;
   border-radius: 3px;
-  color: #e03131;
+  color: var(--zot-color-text);
 }
 
 /* Buttons */
@@ -476,45 +539,51 @@ html[data-theme="light"] .batch-container {
 }
 
 .btn-primary {
-  background-color: #1c7ed6;
-  color: #fff;
+  background-color: var(--zot-color-info-fill);
+  color: var(--zot-color-on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #1971c2;
+  background-color: var(--zot-color-info-fill-hover);
 }
 
 .btn-danger {
-  background-color: #e03131;
-  color: #fff;
+  background-color: var(--zot-color-danger-fill);
+  color: var(--zot-color-on-accent);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #c92a2a;
+  background-color: var(--zot-color-danger-fill-hover);
 }
 
 .btn-danger-outline {
   background-color: transparent;
-  color: #e03131;
-  border-color: #e03131;
+  color: var(--zot-color-danger);
+  border-color: var(--zot-color-danger);
 }
 
 .btn-danger-outline:hover:not(:disabled) {
-  background-color: #fff5f5;
+  background-color: var(--zot-color-danger-bg);
 }
 
 .btn-gray {
-  background-color: #868e96;
-  color: #fff;
+  background-color: var(--zot-color-neutral-fill);
+  color: var(--zot-color-on-accent);
 }
 
+/* hover stays theme-correct: mixes toward text, so it darkens in light
+   themes and lightens in dark ones */
 .btn-gray:hover:not(:disabled) {
-  background-color: #6c757d;
+  background-color: color-mix(
+    in srgb,
+    var(--zot-color-neutral-fill) 82%,
+    var(--zot-color-text)
+  );
 }
 
 .btn-white {
   background-color: transparent;
-  color: #212529;
+  color: var(--zot-color-text);
   border: none;
   padding: 0;
 }
@@ -549,14 +618,16 @@ html[data-theme="light"] .batch-container {
   display: inline-flex;
 }
 
+/* inverts against the surface — dark chip in a light theme, light in a dark
+   one — by riding the text/bg tokens */
 .tooltip-wrapper .tooltip-text {
   visibility: hidden;
   position: absolute;
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background-color: #212529;
-  color: #fff;
+  background-color: var(--zot-color-text);
+  color: var(--zot-color-bg);
   font-size: var(--zot-text-sm);
   padding: 0.3rem 0.5rem;
   border-radius: 4px;
@@ -574,8 +645,8 @@ html[data-theme="light"] .batch-container {
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid #e9ecef;
-  border-top-color: #1c7ed6;
+  border: 2px solid var(--zot-color-border);
+  border-top-color: var(--zot-color-info);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -600,12 +671,12 @@ html[data-theme="light"] .batch-container {
   flex-direction: column;
   gap: 0.2rem;
   font-size: var(--zot-text-title);
-  color: var(--ls-primary-text-color, #212529);
+  color: var(--zot-color-text);
 }
 
 .search-importing-sub {
   font-size: var(--zot-text-base);
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
 }
 
 /* ─── Batch import ─────────────────────────────────────────────────────────── */
@@ -614,7 +685,7 @@ html[data-theme="light"] .batch-container {
 .batch-source-tabs {
   display: flex;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--ls-border-color, #e9ecef);
+  border-bottom: 1px solid var(--zot-color-border);
 }
 
 .batch-source-tab {
@@ -624,7 +695,7 @@ html[data-theme="light"] .batch-container {
   padding: 0.55rem 0.85rem;
   font-size: var(--zot-text-base);
   font-family: inherit;
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
@@ -635,12 +706,12 @@ html[data-theme="light"] .batch-container {
 }
 
 .batch-source-tab:hover:not(:disabled) {
-  color: var(--ls-primary-text-color, #212529);
+  color: var(--zot-color-text);
 }
 
 .batch-source-tab.is-active {
-  color: var(--ls-primary-text-color, #212529);
-  border-bottom-color: var(--ls-active-primary-color, #1c7ed6);
+  color: var(--zot-color-text);
+  border-bottom-color: var(--zot-color-accent-host);
 }
 
 .batch-source-tab:disabled {
@@ -653,12 +724,12 @@ html[data-theme="light"] .batch-container {
   display: flex;
   flex-shrink: 0;
   padding: 0.5rem 0.85rem;
-  border-bottom: 1px solid var(--ls-border-color, #e9ecef);
+  border-bottom: 1px solid var(--zot-color-border);
 }
 
 .batch-source-input .search-input {
   padding: 0.35rem 0.5rem;
-  border: 1px solid var(--ls-border-color, #ced4da);
+  border: 1px solid var(--zot-color-border);
   border-radius: 4px;
 }
 
@@ -675,7 +746,7 @@ html[data-theme="light"] .batch-container {
 
 .batch-picker-status {
   font-size: var(--zot-text-base);
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
 }
 
 .batch-picker-chip {
@@ -685,8 +756,8 @@ html[data-theme="light"] .batch-container {
   padding: 0.3rem 0.6rem;
   font-size: var(--zot-text-base);
   font-family: inherit;
-  color: var(--ls-primary-text-color, #212529);
-  background: var(--ls-tertiary-background-color, #e9ecef);
+  color: var(--zot-color-text);
+  background: var(--zot-color-bg-tertiary);
   border: 1px solid transparent;
   border-radius: 999px;
   cursor: pointer;
@@ -696,12 +767,12 @@ html[data-theme="light"] .batch-container {
 }
 
 .batch-picker-chip:hover:not(:disabled) {
-  border-color: var(--ls-border-color, #ced4da);
+  border-color: var(--zot-color-border);
 }
 
 .batch-picker-chip.is-selected {
-  background: var(--ls-active-primary-color, #1c7ed6);
-  color: #fff;
+  background: var(--zot-color-accent-host);
+  color: var(--zot-color-on-accent);
 }
 
 .batch-picker-chip:disabled {
@@ -717,8 +788,8 @@ html[data-theme="light"] .batch-container {
 
 .batch-picker-more {
   background: transparent;
-  color: var(--ls-secondary-text-color, #868e96);
-  border-color: var(--ls-border-color, #e9ecef);
+  color: var(--zot-color-text-muted);
+  border-color: var(--zot-color-border);
 }
 
 /* List header — select-all + status */
@@ -728,13 +799,13 @@ html[data-theme="light"] .batch-container {
   align-items: center;
   justify-content: space-between;
   padding: 0.4rem 0.85rem;
-  border-bottom: 1px solid var(--ls-border-color, #e9ecef);
+  border-bottom: 1px solid var(--zot-color-border);
 }
 
 .batch-list-header-status {
   font-size: var(--zot-text-sm);
   font-variant-numeric: tabular-nums;
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
 }
 
 /* Results list */
@@ -744,7 +815,7 @@ html[data-theme="light"] .batch-container {
   flex: 1 1 auto;
   min-height: 6rem;
   overflow-y: auto;
-  scrollbar-color: var(--ls-scrollbar-foreground-color, #ccc) transparent;
+  scrollbar-color: var(--zot-color-scrollbar) transparent;
 }
 
 .batch-results.is-disabled {
@@ -756,7 +827,7 @@ html[data-theme="light"] .batch-container {
   padding: 1.5rem 0.85rem;
   text-align: center;
   font-size: var(--zot-text-base);
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
 }
 
 /* Streams in under the cards while the rest of a big container loads. */
@@ -764,7 +835,7 @@ html[data-theme="light"] .batch-container {
   padding: 0.5rem 0.85rem;
   text-align: center;
   font-size: var(--zot-text-sm);
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
   animation: batch-pulse 1.2s ease-in-out infinite;
 }
 
@@ -791,13 +862,13 @@ html[data-theme="light"] .batch-container {
   margin: 0.15rem 0 0 0;
   flex-shrink: 0;
   cursor: pointer;
-  accent-color: var(--ls-active-primary-color, #1c7ed6);
+  accent-color: var(--zot-color-accent-host);
 }
 
 .result-card-selected {
   background-color: color-mix(
     in srgb,
-    var(--ls-active-primary-color, #1c7ed6) 10%,
+    var(--zot-color-accent-host) 10%,
     transparent
   );
 }
@@ -805,7 +876,7 @@ html[data-theme="light"] .batch-container {
 .result-card-selected:hover {
   background-color: color-mix(
     in srgb,
-    var(--ls-active-primary-color, #1c7ed6) 14%,
+    var(--zot-color-accent-host) 14%,
     transparent
   );
 }
@@ -830,7 +901,7 @@ html[data-theme="light"] .batch-container {
   flex-shrink: 0;
   gap: 0.5rem;
   padding: 0.6rem 0.85rem;
-  border-top: 1px solid var(--ls-border-color, #e9ecef);
+  border-top: 1px solid var(--zot-color-border);
 }
 
 .batch-footer-row {
@@ -847,7 +918,7 @@ html[data-theme="light"] .batch-container {
 .batch-footer-status {
   font-size: var(--zot-text-base);
   font-variant-numeric: tabular-nums;
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -857,13 +928,13 @@ html[data-theme="light"] .batch-container {
 .batch-progress-bar {
   height: 4px;
   border-radius: 2px;
-  background: var(--ls-tertiary-background-color, #e9ecef);
+  background: var(--zot-color-bg-tertiary);
   overflow: hidden;
 }
 
 .batch-progress-fill {
   height: 100%;
-  background: var(--ls-active-primary-color, #1c7ed6);
+  background: var(--zot-color-accent-host);
   transition: width 0.2s ease;
 }
 
@@ -879,8 +950,8 @@ html[data-theme="light"] .batch-container {
 
 .batch-summary-note {
   font-size: var(--zot-text-base);
-  color: var(--ls-secondary-text-color, #868e96);
-  background: var(--ls-secondary-background-color, #f8f9fa);
+  color: var(--zot-color-text-muted);
+  background: var(--zot-color-bg-secondary);
   padding: 0.5rem 0.65rem;
   border-radius: 6px;
 }
@@ -895,13 +966,13 @@ html[data-theme="light"] .batch-container {
   align-items: center;
   gap: 0.35rem;
   font-size: var(--zot-text-base);
-  color: var(--ls-secondary-text-color, #495057);
+  color: var(--zot-color-text-secondary);
 }
 
 .batch-stat-count {
   font-weight: var(--zot-weight-semibold);
   font-variant-numeric: tabular-nums;
-  color: var(--ls-primary-text-color, #212529);
+  color: var(--zot-color-text);
 }
 
 .batch-stat-icon {
@@ -909,15 +980,15 @@ html[data-theme="light"] .batch-container {
 }
 
 .batch-stat-ok {
-  color: var(--ls-active-primary-color, #2b8a3e);
+  color: var(--zot-color-success);
 }
 
 .batch-stat-skip {
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
 }
 
 .batch-stat-fail {
-  color: #e03131;
+  color: var(--zot-color-danger);
 }
 
 .batch-summary-failed {
@@ -931,7 +1002,7 @@ html[data-theme="light"] .batch-container {
   font-weight: var(--zot-weight-semibold);
   text-transform: uppercase;
   letter-spacing: var(--zot-tracking-caps);
-  color: var(--ls-secondary-text-color, #868e96);
+  color: var(--zot-color-text-muted);
 }
 
 .batch-summary-failed-list {
@@ -950,15 +1021,15 @@ html[data-theme="light"] .batch-container {
   font-size: var(--zot-text-base);
   padding: 0.4rem 0.5rem;
   border-radius: 4px;
-  background: var(--ls-secondary-background-color, #f8f9fa);
+  background: var(--zot-color-bg-secondary);
 }
 
 .batch-summary-failed-title {
   font-weight: var(--zot-weight-semibold);
-  color: var(--ls-primary-text-color, #212529);
+  color: var(--zot-color-text);
 }
 
 .batch-summary-failed-reason {
   font-size: var(--zot-text-sm);
-  color: #e03131;
+  color: var(--zot-color-danger);
 }
