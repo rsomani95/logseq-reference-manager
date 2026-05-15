@@ -1,5 +1,5 @@
 import { Bookmark, FolderOpen, LucideIcon, Search } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useBatchSources, useContainerItems } from '../../hooks/use-batch'
 import { useSearchItems } from '../../hooks/use-items'
@@ -37,6 +37,8 @@ export const BatchView = () => {
   const [phase, setPhase] = useState<Phase>('select')
   const [progress, setProgress] = useState<BatchProgress | null>(null)
   const [summary, setSummary] = useState<BatchResult | null>(null)
+  // Roving-tabindex cursor for the listbox — the one card that's a tab stop.
+  const [activeIndex, setActiveIndex] = useState(0)
 
   const cancelledRef = useRef(false)
   const lastIndexRef = useRef<number | null>(null)
@@ -76,10 +78,11 @@ export const BatchView = () => {
   const locked = phase !== 'select'
 
   // Selection can outlive the list it came from (sources switch mid-selection),
-  // but shift-click ranges are indices into the *current* list — so a fresh
-  // list invalidates the range anchor.
+  // but shift-click ranges and the roving-focus cursor are positions in the
+  // *current* list — so a fresh list resets both.
   useEffect(() => {
     lastIndexRef.current = null
+    setActiveIndex(0)
   }, [items])
 
   // `indeterminate` is a DOM property, not a React prop.
@@ -97,6 +100,8 @@ export const BatchView = () => {
   }
 
   const handleToggle = (index: number, shiftKey: boolean) => {
+    // Keep roving focus on whatever was last acted on, mouse or keyboard.
+    setActiveIndex(index)
     const item = items[index]
     if (!item || item.inGraph) return
 
@@ -125,6 +130,34 @@ export const BatchView = () => {
       }
       return next
     })
+  }
+
+  const focusCard = (index: number) => {
+    const item = items[index]
+    if (!item) return
+    // .focus() on the option also scrolls it into view — no extra call.
+    document.getElementById(`batch-opt-${item.key}`)?.focus()
+  }
+
+  // Roving-tabindex keyboard nav for the listbox: arrows move focus, Space
+  // (or Enter) toggles the focused row, Shift+Space extends a range the same
+  // way shift-click does. Inert while an import is running.
+  const handleListKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (locked || items.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      const next = Math.min(activeIndex + 1, items.length - 1)
+      setActiveIndex(next)
+      focusCard(next)
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      const next = Math.max(activeIndex - 1, 0)
+      setActiveIndex(next)
+      focusCard(next)
+    } else if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault()
+      handleToggle(activeIndex, e.shiftKey)
+    }
   }
 
   const runImport = async () => {
@@ -189,6 +222,8 @@ export const BatchView = () => {
             query={cardQuery}
             index={index}
             selected={selected.has(item.key)}
+            isActive={index === activeIndex}
+            locked={locked}
             onToggle={handleToggle}
           />
         ))}
@@ -233,6 +268,7 @@ export const BatchView = () => {
             type="text"
             className="search-input"
             placeholder="Search your library, or browse recently added"
+            aria-label="Search your Zotero library"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={locked}
@@ -286,6 +322,10 @@ export const BatchView = () => {
             className={`batch-results${
               phase === 'importing' ? ' is-disabled' : ''
             }`}
+            role="listbox"
+            aria-multiselectable="true"
+            aria-label="Zotero items to import"
+            onKeyDown={handleListKeyDown}
           >
             {renderList()}
           </div>

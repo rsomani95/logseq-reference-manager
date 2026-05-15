@@ -74,12 +74,8 @@ const main = async () => {
       <ZotContainer uuid={e.uuid} rect={rect} openedAt={Date.now()} />,
     )
     logseq.showMainUI()
-
-    document.addEventListener('keydown', (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') {
-        document.querySelector<HTMLInputElement>('#search-field')?.focus()
-      }
-    })
+    // Focus is owned by SearchItem now (autoFocus on mount + setFocus on each
+    // openedAt change) — no global keydown listener to re-add and leak here.
   })
 
   ///////////////////////////////////

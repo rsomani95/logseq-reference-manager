@@ -48,6 +48,18 @@
   --zot-tracking-caps: 0.04em; /* uppercase eyebrows / labels */
   --zot-tracking-tight: -0.01em; /* Inter at title / heading sizes */
 
+  /* ─── Motion ───────────────────────────────────────────────────────────────
+     Easing + duration, tokenised like the type and color scales. Entries
+     decelerate (ease-out-expo); toggles use ease-in-out. There is no exit
+     curve by design — dismissal is an instant logseq.hideMainUI() cut, so
+     arrivals are the only motion the plugin owns. Durations follow the
+     100 / 300 rule: micro for press + hover feedback and the whisper-fast
+     popup, standard for the modal entry and phase morphs. */
+  --zot-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --zot-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --zot-duration-micro: 100ms;
+  --zot-duration-standard: 280ms;
+
   /* ─── Color · Layer 1 — inherited ──────────────────────────────────────────
      Mirrored from Logseq's theme by sync-theme.ts; the value after the comma
      is a fallback that only shows pre-sync — and the UI is hidden then, so the
@@ -129,11 +141,60 @@ html[data-theme="dark"] {
   --zot-color-backdrop: rgba(0, 0, 0, 0.3);
 }
 
+/* ─── Motion · keyframes + reduced-motion ──────────────────────────────────
+   Every animation here moves only transform / opacity — GPU-composited, no
+   layout. Reduced-motion collapses them to a near-instant cut: the state
+   change still lands, the movement doesn't. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* The dim behind a plugin modal arriving. */
+@keyframes zot-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Whisper-fast: the cursor-anchored search popup rising a hair into place.
+   Deliberately subliminal — the single-item path is "near-instant, minimal
+   ceremony", so the motion reads as instant, not as an animation. */
+@keyframes zot-popup-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* The batch modal has no cursor anchor and can carry a fuller entry — it
+   scales up from 98% as it fades in. */
+@keyframes zot-modal-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.98);
+  }
+}
+
+/* A plain content cross-fade — phase morphs (search → importing, list →
+   summary) and streamed content settling in. */
+@keyframes zot-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Dims the rest of the app behind an active plugin modal. */
 .zot-backdrop {
   position: fixed;
   inset: 0;
   background: var(--zot-color-backdrop);
+  animation: zot-backdrop-in var(--zot-duration-standard) var(--zot-ease-out);
 }
 
 /* Modal shell — shared by the single-item search popup and the batch import
@@ -153,17 +214,27 @@ html[data-theme="dark"] {
   font-family: var(--zot-font);
 }
 
+/* Fluid width: never wider than the viewport less a small gutter, so the
+   shell holds up in a narrow Logseq window. SearchItem additionally clamps
+   the cursor-anchored left/top in JS so the popup can't run off-screen. */
 .search-container {
-  width: 44rem;
+  width: min(44rem, calc(100vw - 1.5rem));
+  /* whisper-fast entry — SearchItem restarts it per open (the component
+     persists across slash invocations, so the CSS animation alone would
+     only fire once). */
+  animation: zot-popup-in var(--zot-duration-micro) var(--zot-ease-out);
 }
 
 /* The batch view has no cursor anchor, so it sits centered near the top. */
 .batch-container {
-  width: 46rem;
+  width: min(46rem, calc(100vw - 1.5rem));
   max-height: 86vh;
   top: 7vh;
   left: 50%;
   transform: translateX(-50%);
+  /* remounts fresh per invocation (keyed in index.tsx), so the entry plays
+     every time with no JS restart needed. */
+  animation: zot-modal-in var(--zot-duration-standard) var(--zot-ease-out);
 }
 
 /* Search input */
@@ -172,6 +243,13 @@ html[data-theme="dark"] {
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--zot-color-border);
+}
+
+/* The input itself runs outline: none; the wrapper carries the focus ring,
+   inset so it hugs the popup's top edge instead of spilling over the radius. */
+.search-input-wrapper:focus-within {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: -2px;
 }
 
 .search-input {
@@ -208,6 +286,8 @@ html[data-theme="dark"] {
   overflow-y: auto;
   flex: 0 1 auto;
   scrollbar-color: var(--zot-color-scrollbar) transparent;
+  /* component-level responsiveness for the shared ResultCardBody */
+  container-type: inline-size;
 }
 
 /* Time-grouped recents */
@@ -242,15 +322,42 @@ html[data-theme="dark"] {
   cursor: pointer;
   border-left: 2px solid transparent;
   border-bottom: 1px solid var(--zot-color-divider);
-  transition: background-color 0.1s ease;
+  transition: background-color var(--zot-duration-micro) var(--zot-ease-out);
 }
 
 .result-card:last-child {
   border-bottom: none;
 }
 
-.result-card:hover {
+/* Hover is guarded for hover-capable pointers — on touch it would otherwise
+   stick after a tap. The row stays operable without it (keyboard + tap). */
+@media (hover: hover) {
+  .result-card:hover {
+    background-color: var(--zot-color-hover);
+  }
+}
+
+/* Keyboard highlight. Two distinct cases share the fill:
+   .result-card-active — the search popup's active descendant; the input
+   keeps real focus (and its wrapper ring), the row is only highlighted.
+   :focus-visible — a genuinely focused option in the batch list, which
+   also gets a 2px inset ring since it owns DOM focus. */
+.result-card-active,
+.result-card:focus-visible {
   background-color: var(--zot-color-hover);
+}
+
+.result-card:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: -2px;
+}
+
+.result-card:active {
+  background-color: color-mix(
+    in srgb,
+    var(--zot-color-hover) 82%,
+    var(--zot-color-text)
+  );
 }
 
 /* in-graph — a quiet green left edge; set on the card so it sits flush */
@@ -527,8 +634,9 @@ html[data-theme="dark"] {
   border-radius: 4px;
   cursor: pointer;
   transition:
-    background-color 0.15s ease,
-    opacity 0.15s ease;
+    background-color var(--zot-duration-micro) var(--zot-ease-out),
+    opacity var(--zot-duration-micro) var(--zot-ease-out),
+    transform var(--zot-duration-micro) var(--zot-ease-out);
   line-height: var(--zot-leading-none);
   white-space: nowrap;
 }
@@ -536,6 +644,16 @@ html[data-theme="dark"] {
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 2px;
+}
+
+/* micro-interaction: the press registers with a slight scale-down */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn-primary {
@@ -610,6 +728,13 @@ html[data-theme="dark"] {
 
 .checkbox-label input[type="checkbox"] {
   margin: 0;
+  accent-color: var(--zot-color-accent-host);
+}
+
+.checkbox-label input[type="checkbox"]:focus-visible,
+.result-card-checkbox:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 2px;
 }
 
 /* Tooltip */
@@ -622,6 +747,7 @@ html[data-theme="dark"] {
    one — by riding the text/bg tokens */
 .tooltip-wrapper .tooltip-text {
   visibility: hidden;
+  opacity: 0;
   position: absolute;
   bottom: 100%;
   left: 50%;
@@ -634,10 +760,18 @@ html[data-theme="dark"] {
   white-space: nowrap;
   z-index: 10;
   margin-bottom: 4px;
+  /* visibility rides the same timing so the chip stays interactive-free
+     until fully faded; opacity carries the actual motion */
+  transition:
+    opacity var(--zot-duration-micro) var(--zot-ease-out),
+    visibility var(--zot-duration-micro);
 }
 
-.tooltip-wrapper:hover .tooltip-text {
+/* :focus-within so keyboard users reach the hint too, not just on hover */
+.tooltip-wrapper:hover .tooltip-text,
+.tooltip-wrapper:focus-within .tooltip-text {
   visibility: visible;
+  opacity: 1;
 }
 
 /* Spinner */
@@ -664,6 +798,8 @@ html[data-theme="dark"] {
   align-items: center;
   gap: 0.85rem;
   padding: 1.1rem 0.95rem;
+  /* phase morph: the search body gives way to the import status */
+  animation: zot-fade-in var(--zot-duration-micro) var(--zot-ease-out);
 }
 
 .search-importing-text {
@@ -701,12 +837,17 @@ html[data-theme="dark"] {
   border-bottom: 2px solid transparent;
   cursor: pointer;
   transition:
-    color 0.1s ease,
-    border-color 0.1s ease;
+    color var(--zot-duration-micro) var(--zot-ease-out),
+    border-color var(--zot-duration-micro) var(--zot-ease-out);
 }
 
 .batch-source-tab:hover:not(:disabled) {
   color: var(--zot-color-text);
+}
+
+.batch-source-tab:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: -2px;
 }
 
 .batch-source-tab.is-active {
@@ -731,6 +872,22 @@ html[data-theme="dark"] {
   padding: 0.35rem 0.5rem;
   border: 1px solid var(--zot-color-border);
   border-radius: 4px;
+}
+
+/* This input isn't wrapped in .search-input-wrapper, so it carries its own
+   ring (the shared .search-input rule zeroes the default outline). */
+.batch-source-input .search-input:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 1px;
+}
+
+/* The source row swaps controls when the tab changes — fade the incoming
+   one in so the switch reads as a change, not a flicker. Each of these
+   remounts on switch, so the CSS animation alone fires at the right time. */
+.batch-source-input .search-input,
+.batch-picker,
+.batch-picker-status {
+  animation: zot-fade-in var(--zot-duration-micro) var(--zot-ease-out);
 }
 
 /* Inline container picker — chips instead of a dropdown, so the common
@@ -762,12 +919,22 @@ html[data-theme="dark"] {
   border-radius: 999px;
   cursor: pointer;
   transition:
-    background-color 0.1s ease,
-    border-color 0.1s ease;
+    background-color var(--zot-duration-micro) var(--zot-ease-out),
+    border-color var(--zot-duration-micro) var(--zot-ease-out),
+    transform var(--zot-duration-micro) var(--zot-ease-out);
 }
 
 .batch-picker-chip:hover:not(:disabled) {
   border-color: var(--zot-color-border);
+}
+
+.batch-picker-chip:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 2px;
+}
+
+.batch-picker-chip:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .batch-picker-chip.is-selected {
@@ -816,6 +983,10 @@ html[data-theme="dark"] {
   min-height: 6rem;
   overflow-y: auto;
   scrollbar-color: var(--zot-color-scrollbar) transparent;
+  /* component-level responsiveness for the shared ResultCardBody */
+  container-type: inline-size;
+  /* eases the dim when the list locks for the importing phase */
+  transition: opacity var(--zot-duration-standard) var(--zot-ease-out);
 }
 
 .batch-results.is-disabled {
@@ -932,10 +1103,15 @@ html[data-theme="dark"] {
   overflow: hidden;
 }
 
+/* Filled via transform: scaleX (0–1), not width — GPU-composited, so the
+   bar advances without triggering layout each frame. ImportBar sets the
+   scale inline; transform-origin pins growth to the left edge. */
 .batch-progress-fill {
   height: 100%;
+  width: 100%;
   background: var(--zot-color-accent-host);
-  transition: width 0.2s ease;
+  transform-origin: left;
+  transition: transform var(--zot-duration-standard) var(--zot-ease-out);
 }
 
 /* Summary panel — replaces the list once a run finishes */
@@ -946,6 +1122,8 @@ html[data-theme="dark"] {
   gap: 0.85rem;
   padding: 1rem 0.85rem;
   overflow-y: auto;
+  /* phase morph: the list gives way to the post-run breakdown */
+  animation: zot-fade-in var(--zot-duration-standard) var(--zot-ease-out);
 }
 
 .batch-summary-note {
@@ -1032,4 +1210,49 @@ html[data-theme="dark"] {
 .batch-summary-failed-reason {
   font-size: var(--zot-text-sm);
   color: var(--zot-color-danger);
+}
+
+/* ─── Responsive · component + input adaptation ────────────────────────────
+   The shells are fluid (min() widths) and the lists are query containers
+   (container-type set above). These two blocks adapt the row to a narrow
+   container and the controls to a coarse pointer. */
+
+/* When the list itself is narrow — a cramped Logseq window forcing the
+   shell down — pull the row's horizontal padding and zone indents in so
+   the title keeps as much width as possible. */
+@container (max-width: 26rem) {
+  .result-card {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+
+  .result-card-authors,
+  .result-card-abstract,
+  .result-card-source,
+  .result-card-match {
+    padding-left: 1.1rem;
+  }
+}
+
+/* Touch input: grow every hit area to the 44px minimum. Pointer-fine users
+   keep the compact, deliberately dense layout. */
+@media (pointer: coarse) {
+  .btn,
+  .batch-source-tab,
+  .batch-picker-chip {
+    min-height: 44px;
+  }
+
+  .result-card {
+    min-height: 44px;
+  }
+
+  .checkbox-label {
+    min-height: 44px;
+  }
+
+  .result-card-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
 }

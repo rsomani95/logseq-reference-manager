@@ -27,11 +27,14 @@ export const ImportBar = ({
   if (phase === 'importing') {
     const done = progress?.done ?? 0
     const total = progress?.total ?? 0
-    const pct = total > 0 ? Math.round((done / total) * 100) : 0
+    const ratio = total > 0 ? done / total : 0
     return (
       <div className="batch-footer">
         <div className="batch-progress-bar">
-          <div className="batch-progress-fill" style={{ width: `${pct}%` }} />
+          <div
+            className="batch-progress-fill"
+            style={{ transform: `scaleX(${ratio})` }}
+          />
         </div>
         <div className="batch-footer-row">
           <span className="batch-footer-status">
