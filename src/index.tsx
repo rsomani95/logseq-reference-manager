@@ -23,6 +23,10 @@ const main = async () => {
   handlePopup()
   registerThemeSync()
 
+  // Re-register with the live connection status. Defaults for new keys were
+  // already populated by the pre-ready call below; this just refreshes the
+  // schema (and the testConnection heading's description) without touching
+  // user-set values.
   const response = await testZotConnection()
   handleSettings({ msg: response.msg })
 
@@ -92,5 +96,15 @@ const main = async () => {
     },
   )
 }
+
+// Register the schema BEFORE `logseq.ready` runs. Logseq's libs only fold
+// new defaults into `_baseInfo.settings` during the ready-init pass, and
+// only if `_settingsSchema` is already set. Registering inside `main` (the
+// ready callback) is too late: any setting added in a later release stays
+// `undefined` in `_baseInfo.settings`, and the host's `settings:changed`
+// handler crashes inside `Object.assign` on the first toggle of a new key.
+// Empty msg here is fine — `main` re-registers with the real connection
+// status once the test completes.
+handleSettings({ msg: '' })
 
 logseq.ready(main).catch(console.error)

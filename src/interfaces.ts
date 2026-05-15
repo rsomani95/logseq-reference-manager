@@ -248,6 +248,8 @@ export interface PluginSettings {
   pageProps: ZotItem['data']
   agreementClause: boolean
   openAttachmentInline: boolean
+  creatorsAsNodes: boolean
+  creatorNameTemplate: string
   pagenameTemplate: string
   zotTag: string
 }

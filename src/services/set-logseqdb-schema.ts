@@ -19,7 +19,10 @@ const createTagProperties = async (props: string[]) => {
 
     let schema: Partial<PropertySchema>
     if (prop === 'authors' || prop === 'creators') {
-      schema = { type: 'node', cardinality: 'many' }
+      const asNodes = (logseq.settings?.creatorsAsNodes as boolean) ?? true
+      schema = asNodes
+        ? { type: 'node', cardinality: 'many' }
+        : { type: 'default' }
     } else if (
       prop === 'access-date' ||
       prop === 'date-added' ||

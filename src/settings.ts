@@ -53,6 +53,21 @@ export const handleSettings = ({ msg }: { msg: string }) => {
       default: true,
     },
     {
+      key: 'creatorsAsNodes',
+      type: 'boolean',
+      title: 'Store Creators as Page References',
+      description:
+        'If enabled, each author/creator becomes its own Logseq page and the property holds a page reference (lets you navigate from a creator page to all their works). If disabled, creators are stored as plain text. After changing, re-run "Add Zotero schema to Logseq".',
+      default: true,
+    },
+    {
+      key: 'creatorNameTemplate',
+      type: 'string',
+      title: 'Creator Name Format',
+      description: `Specify how each author/creator name is rendered (used for the creator page title when stored as a reference, or for each entry when stored as text). Available placeholders: <% firstName %>, <% lastName %>. Multiple creators are always comma-separated when stored as text.`,
+      default: `<% firstName %> <% lastName %>`,
+    },
+    {
       key: 'pagenameTemplate',
       type: 'string',
       title: 'Page Name Template',

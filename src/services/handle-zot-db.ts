@@ -3,7 +3,7 @@ import { format, parse, parseISO } from 'date-fns'
 
 import { PROP_PRESETS, ZOT_DATA_KEY_MAP } from '../constants'
 import { matchTagRules } from '../extended-tags'
-import { PropertyPreset, ZotData } from '../interfaces'
+import { CreatorItem, PropertyPreset, ZotData } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
 import { isRecycledPage } from './is-recycled-page'
 import { isSchemaAdded } from './is-schema-added'
@@ -19,6 +19,22 @@ export const resolvePageName = (zotItem: ZotData): string =>
     .replace('<% title %>', zotItem.title)
     .replace('<% citeKey %>', zotItem.citeKey)
     .trim()
+
+const DEFAULT_CREATOR_TEMPLATE = '<% firstName %> <% lastName %>'
+
+/**
+ * Renders a single creator's name via `creatorNameTemplate`. Used for both the
+ * Logseq page title when creators are stored as page references, and for each
+ * entry when they're stored as comma-separated text.
+ */
+export const resolveCreatorName = (creator: CreatorItem): string => {
+  const template =
+    (logseq.settings?.creatorNameTemplate as string) || DEFAULT_CREATOR_TEMPLATE
+  return template
+    .replace('<% firstName %>', creator.firstName ?? '')
+    .replace('<% lastName %>', creator.lastName ?? '')
+    .trim()
+}
 
 export const handleZotInDb = async (
   zotItem: ZotData,
@@ -196,22 +212,33 @@ export const handleZotInDb = async (
         page.id,
       )
     } else if (prop === 'authors' || prop === 'creators') {
-      const pageIds: number[] = []
+      const asNodes = (logseq.settings?.creatorsAsNodes as boolean) ?? true
+      const creators = value as CreatorItem[]
 
-      for (const c of value) {
-        const page = await logseq.Editor.createPage(
-          `${c.firstName} ${c.lastName}`,
-          {},
-          { redirect: false },
-        )
-        if (page) pageIds.push(page.id)
-      }
+      if (asNodes) {
+        const pageIds: number[] = []
+        for (const c of creators) {
+          const page = await logseq.Editor.createPage(
+            resolveCreatorName(c),
+            {},
+            { redirect: false },
+          )
+          if (page) pageIds.push(page.id)
+        }
 
-      for (const id of pageIds) {
+        for (const id of pageIds) {
+          await logseq.Editor.upsertBlockProperty(
+            existingPage.uuid,
+            fixedProp,
+            id,
+          )
+        }
+      } else {
+        const text = creators.map(resolveCreatorName).join(', ')
         await logseq.Editor.upsertBlockProperty(
           existingPage.uuid,
           fixedProp,
-          id,
+          text,
         )
       }
     } else if (prop === 'tags') {
