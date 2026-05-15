@@ -278,11 +278,14 @@ html[data-theme="dark"] {
   border-bottom: 1px solid var(--zot-color-border);
 }
 
-/* The input itself runs outline: none; the wrapper carries the focus ring,
-   inset so it hugs the popup's top edge instead of spilling over the radius. */
+/* Focus signal lives on the existing 1px divider beneath the input, not as a
+   ring around the wrapper: the wrapper spans the full popup width, so an
+   inset outline reads as a rectangle of color filling the search row rather
+   than as a focus indicator on a control. Color change from --zot-color-border
+   (near-invisible) to --zot-color-accent-host is a strong-enough signal at
+   1px without thickening the border (which would shift layout). */
 .search-input-wrapper:focus-within {
-  outline: 2px solid var(--zot-color-accent-host);
-  outline-offset: -2px;
+  border-bottom-color: var(--zot-color-accent-host);
 }
 
 /* Input fills the wrapper; the status badge to its right is part of the same
