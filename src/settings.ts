@@ -17,6 +17,13 @@ export const handleSettings = ({ msg }: { msg: string }) => {
       prop !== 'inGraph',
   )
 
+  // Settings are clustered into two groups by an asymmetry the user can't
+  // otherwise see: settings under `Schema` mutate the Logseq tag / property
+  // graph (and only take effect after re-running the schema command), while
+  // settings under `Import behavior` only affect what gets written at import
+  // time. One heading per group says the rerun requirement *once*, where it
+  // applies, instead of repeating it in every description. A debounced toast
+  // in index.tsx catches the user at the moment of change for the acute case.
   const settings: SettingSchemaDesc[] = [
     {
       key: 'testConnection',
@@ -24,6 +31,20 @@ export const handleSettings = ({ msg }: { msg: string }) => {
       title: 'Connection Test',
       description: msg,
       default: '',
+    },
+    {
+      key: 'schemaSectionHeading',
+      type: 'heading',
+      title: 'Schema',
+      description: `Changes to settings below require running "Zotero: Add Zotero schema to Logseq" from the command palette to take effect.`,
+      default: '',
+    },
+    {
+      key: 'zotTag',
+      type: 'string',
+      title: 'Zotero Tag Name',
+      description: `Specify the tag name used for Zotero imports`,
+      default: 'Zotero',
     },
     {
       key: 'propertyPreset',
@@ -39,26 +60,25 @@ export const handleSettings = ({ msg }: { msg: string }) => {
       key: 'pageProps',
       type: 'enum',
       title: 'Custom Page Properties',
-      description: `Only used when Property Preset is set to "Custom". Select the properties to include for each Zotero item. After changing, invoke the command palette and use 'Add Zotero schema to Logseq'.`,
+      description: `Only used when Property Preset is set to "Custom". Select the properties to include for each Zotero item.`,
       default: filteredPropsArray,
       enumPicker: 'checkbox',
       enumChoices: filteredPropsArray,
-    },
-    {
-      key: 'openAttachmentInline',
-      type: 'boolean',
-      title: 'Open Attachment in Logseq',
-      description:
-        'If disabled, attachments will open in the default system app. If enabled, attachments will open in Logseq.',
-      default: true,
     },
     {
       key: 'creatorsAsNodes',
       type: 'boolean',
       title: 'Store Creators as Page References',
       description:
-        'If enabled, each author/creator becomes its own Logseq page and the property holds a page reference (lets you navigate from a creator page to all their works). If disabled, creators are stored as plain text. After changing, re-run "Add Zotero schema to Logseq".',
+        'If enabled, each author/creator becomes its own Logseq page and the property holds a page reference (lets you navigate from a creator page to all their works). If disabled, creators are stored as plain text.',
       default: true,
+    },
+    {
+      key: 'importBehaviorSectionHeading',
+      type: 'heading',
+      title: 'Import behavior',
+      description: '',
+      default: '',
     },
     {
       key: 'creatorNameTemplate',
@@ -75,11 +95,12 @@ export const handleSettings = ({ msg }: { msg: string }) => {
       default: `@<% citeKey %>`,
     },
     {
-      key: 'zotTag',
-      type: 'string',
-      title: 'Zotero Tag Name',
-      description: `Specify the tag name used for Zotero imports`,
-      default: 'Zotero',
+      key: 'openAttachmentInline',
+      type: 'boolean',
+      title: 'Open Attachment in Logseq',
+      description:
+        'If disabled, attachments will open in the default system app. If enabled, attachments will open in Logseq.',
+      default: true,
     },
   ]
 
