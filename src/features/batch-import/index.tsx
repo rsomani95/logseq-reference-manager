@@ -14,7 +14,7 @@ import { ImportSummary } from './ImportSummary'
 import { SelectableResultCard } from './SelectableResultCard'
 import { SourcePicker } from './SourcePicker'
 
-type Phase = 'select' | 'importing' | 'done'
+export type Phase = 'select' | 'importing' | 'done'
 
 const TABS: { id: BatchSource; label: string; icon: LucideIcon }[] = [
   { id: 'search', label: 'Search', icon: Search },
@@ -22,12 +22,8 @@ const TABS: { id: BatchSource; label: string; icon: LucideIcon }[] = [
   { id: 'savedSearch', label: 'Saved search', icon: Bookmark },
 ]
 
-/**
- * Batch-import view. A source switcher (search / collection / saved search)
- * populates one selectable list; the selection persists across source switches
- * so a batch can be assembled from several places. Selecting and importing
- * happen in the same view, which morphs select → importing → done.
- */
+const batchOptionId = (key: string): string => `batch-opt-${key}`
+
 export const BatchView = () => {
   const [source, setSource] = useState<BatchSource>('search')
   const [query, setQuery] = useState('')
@@ -37,7 +33,6 @@ export const BatchView = () => {
   const [phase, setPhase] = useState<Phase>('select')
   const [progress, setProgress] = useState<BatchProgress | null>(null)
   const [summary, setSummary] = useState<BatchResult | null>(null)
-  // Roving-tabindex cursor for the listbox — the one card that's a tab stop.
   const [activeIndex, setActiveIndex] = useState(0)
 
   const cancelledRef = useRef(false)
@@ -77,13 +72,13 @@ export const BatchView = () => {
   const someSelected = selectedVisibleCount > 0 && !allSelected
   const locked = phase !== 'select'
 
-  // Selection can outlive the list it came from (sources switch mid-selection),
-  // but shift-click ranges and the roving-focus cursor are positions in the
-  // *current* list — so a fresh list resets both.
+  // Source switches reset shift-anchor and roving cursor (their positions are
+  // tied to the current list). Streaming chunks within a source must NOT —
+  // they'd yank the cursor back to 0 every time a container chunk arrives.
   useEffect(() => {
     lastIndexRef.current = null
     setActiveIndex(0)
-  }, [items])
+  }, [source, collectionKey, savedSearchKey])
 
   // `indeterminate` is a DOM property, not a React prop.
   useEffect(() => {
@@ -100,7 +95,6 @@ export const BatchView = () => {
   }
 
   const handleToggle = (index: number, shiftKey: boolean) => {
-    // Keep roving focus on whatever was last acted on, mouse or keyboard.
     setActiveIndex(index)
     const item = items[index]
     if (!item || item.inGraph) return
@@ -135,13 +129,10 @@ export const BatchView = () => {
   const focusCard = (index: number) => {
     const item = items[index]
     if (!item) return
-    // .focus() on the option also scrolls it into view — no extra call.
-    document.getElementById(`batch-opt-${item.key}`)?.focus()
+    // .focus() on the option scrolls it into view — no separate call needed.
+    document.getElementById(batchOptionId(item.key))?.focus()
   }
 
-  // Roving-tabindex keyboard nav for the listbox: arrows move focus, Space
-  // (or Enter) toggles the focused row, Shift+Space extends a range the same
-  // way shift-click does. Inert while an import is running.
   const handleListKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (locked || items.length === 0) return
     if (e.key === 'ArrowDown') {
@@ -220,6 +211,7 @@ export const BatchView = () => {
             key={item.key}
             item={item}
             query={cardQuery}
+            id={batchOptionId(item.key)}
             index={index}
             selected={selected.has(item.key)}
             isActive={index === activeIndex}

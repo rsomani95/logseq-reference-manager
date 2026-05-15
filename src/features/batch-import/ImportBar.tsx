@@ -1,7 +1,8 @@
 import { BatchProgress } from '../../services/batch-insert-into-graph'
+import { Phase } from './index'
 
 interface ImportBarProps {
-  phase: 'select' | 'importing' | 'done'
+  phase: Phase
   selectedCount: number
   progress: BatchProgress | null
   onImport: () => void
@@ -10,11 +11,6 @@ interface ImportBarProps {
   onClose: () => void
 }
 
-/**
- * The batch-import footer. Morphs across the three phases: a count + Import
- * button while selecting, a progress bar + Cancel while importing, and
- * Import-more / Close once done.
- */
 export const ImportBar = ({
   phase,
   selectedCount,

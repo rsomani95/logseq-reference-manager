@@ -48,8 +48,6 @@ const groupByBucket = (items: ZotData[]): Map<Bucket, ZotData[]> => {
   return map
 }
 
-// Stable per-row id, shared by the option element and the input's
-// aria-activedescendant so the combobox keyboard wiring lines up.
 const optionId = (key: string): string => `zot-opt-${key}`
 
 // The popup is anchored to the editing cursor, which can sit anywhere —
@@ -102,8 +100,6 @@ export const SearchItem = ({
     [mode, results],
   )
 
-  // The list in render order — recents flatten their buckets, search is
-  // already flat. Drives keyboard nav and the row → index lookup.
   const flatResults = useMemo<ZotData[]>(
     () =>
       mode === 'recents' && grouped
@@ -111,25 +107,17 @@ export const SearchItem = ({
         : results,
     [mode, grouped, results],
   )
-  const indexOfKey = useMemo(
-    () => new Map(flatResults.map((it, i) => [it.key, i])),
-    [flatResults],
-  )
 
   const [importing, setImporting] = useState<ZotData | null>(null)
-  // The keyboard-highlighted row. Defaults to the top hit so "type, Enter"
-  // lands on the first result without an extra arrow press.
+  // Default to top hit so 'type, Enter' picks the first result.
   const [activeIndex, setActiveIndex] = useState(0)
-  const [pos, setPos] = useState({ left: x, top: y })
 
   const containerRef = useRef<HTMLDivElement>(null)
   const firstRenderRef = useRef(true)
 
-  // This UI reconciles across slash invocations (it isn't keyed — see the
-  // openedAt refresh in use-items.ts). First mount needs nothing (autoFocus
-  // and the CSS animation handle it); every *reopen* clears a leftover
-  // import spinner, restarts the whisper-fast entry animation (the CSS
-  // animation alone would only fire once), and refocuses the input.
+  // First mount needs nothing — autoFocus and the CSS keyframe handle entry.
+  // Each *reopen* clears a leftover spinner, restarts the entry animation
+  // (CSS alone fires it only once), and refocuses the input.
   useEffect(() => {
     if (firstRenderRef.current) {
       firstRenderRef.current = false
@@ -139,40 +127,32 @@ export const SearchItem = ({
     const el = containerRef.current
     if (el) {
       el.style.animation = 'none'
-      void el.offsetHeight // reflow so the animation can replay
+      void el.offsetHeight
       el.style.animation = ''
     }
     setFocus('search')
   }, [openedAt, setFocus])
 
-  // Keep the highlight in range as the result set changes (new query, cache
-  // update) or the popup reopens — always re-pin to the top row.
   useEffect(() => {
     setActiveIndex(0)
   }, [flatResults, openedAt])
 
-  // Clamp the cursor-anchored position once the popup has a measured size;
-  // re-run whenever the height could have changed (results arrive, the
-  // import morph swaps the body, a reopen at a new cursor point).
   useLayoutEffect(() => {
     const el = containerRef.current
     if (!el) return
     const { width, height } = el.getBoundingClientRect()
-    const next = clampToViewport(x, y, width, height)
-    setPos((prev) =>
-      prev.left === next.left && prev.top === next.top ? prev : next,
-    )
+    const { left, top } = clampToViewport(x, y, width, height)
+    el.style.left = `${left}px`
+    el.style.top = `${top}px`
   }, [x, y, flatResults.length, importing, openedAt])
 
   const handlePick = useCallback(
     async (item: ZotData) => {
-      // Show the inline spinner, build the page off-screen, write the link
-      // back into the source block while the journal page is still the
-      // active route (so Logseq re-renders it reactively), THEN navigate to
-      // the finished page and drop the overlay. Doing updateBlock after
-      // pushState would write to an offscreen page — the DB update lands but
-      // Logseq's frontend keeps a stale render of the journal block until a
-      // manual reload.
+      // Build the page off-screen, write the back-link into the source block
+      // *while* the journal page is still the active route (so Logseq
+      // re-renders it reactively), THEN navigate. Doing updateBlock after
+      // pushState writes to an offscreen page — DB updates, but the frontend
+      // keeps a stale render of the journal block until manual reload.
       setImporting(item)
       const pageName = await insertZotIntoGraph(item, { navigate: false })
       if (pageName) {
@@ -194,9 +174,7 @@ export const SearchItem = ({
       ?.scrollIntoView({ block: 'nearest' })
   }
 
-  // Arrow keys move the highlight, Enter picks it. Focus never leaves the
-  // input, so typing always works mid-navigation (aria-activedescendant
-  // combobox pattern).
+  // aria-activedescendant combobox: input keeps focus, highlight moves.
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (flatResults.length === 0) return
     if (e.key === 'ArrowDown') {
@@ -227,14 +205,14 @@ export const SearchItem = ({
       : `${results.length} results`
   }
 
-  const activeItem = flatResults[activeIndex]
-  const activeId = activeItem ? optionId(activeItem.key) : undefined
+  const activeKey = flatResults[activeIndex]?.key
+  const activeId = activeKey ? optionId(activeKey) : undefined
 
   return (
     <div
       className="search-container"
       ref={containerRef}
-      style={{ left: pos.left, top: pos.top }}
+      style={{ left: x, top: y }}
     >
       {importing ? (
         <div className="search-importing">
@@ -286,7 +264,8 @@ export const SearchItem = ({
                           key={item.key}
                           item={item}
                           query=""
-                          isActive={indexOfKey.get(item.key) === activeIndex}
+                          id={optionId(item.key)}
+                          isActive={item.key === activeKey}
                           onPick={handlePick}
                         />
                       ))}
@@ -298,7 +277,8 @@ export const SearchItem = ({
                     key={item.key}
                     item={item}
                     query={queryString}
-                    isActive={indexOfKey.get(item.key) === activeIndex}
+                    id={optionId(item.key)}
+                    isActive={item.key === activeKey}
                     onPick={handlePick}
                   />
                 ))}

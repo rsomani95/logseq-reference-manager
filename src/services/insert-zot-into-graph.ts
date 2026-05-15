@@ -5,10 +5,8 @@ export const insertZotIntoGraph = async (
   zotItem: ZotData,
   opts: { navigate?: boolean } = {},
 ) => {
-  // No hideMainUI / "please wait" toast here: the inline search UI owns the
-  // loading state (it morphs to a spinner on pick) and hides itself once the
-  // page is built. handleZotInDb builds the page off-screen; the caller
-  // chooses whether (and when) to navigate via `opts.navigate`.
+  // No hideMainUI / "please wait" toast here — the inline search UI owns
+  // loading and hides itself once the page is built.
   try {
     const { status, pageName } = await handleZotInDb(
       zotItem,

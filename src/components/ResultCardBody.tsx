@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo } from 'react'
+import { memo, type ReactNode, useMemo } from 'react'
 
 import { CreatorItem, ZotData } from '../interfaces'
 import { getItemTypeIcon } from '../services/item-type-icon'
@@ -218,27 +218,12 @@ const AbstractBlock = ({
   )
 }
 
-/**
- * Presentational guts of a Zotero result row — a static four-zone stack:
- * a title line, the author line, a two-line abstract, and a source/year
- * footer, each with its own size/weight/spacing so the zones read as
- * distinct. `inGraph` shows as a green left edge (on `.result-card`, set by
- * the wrappers) + an sr-only label for assistive tech; no second visible
- * mark in the title row. When `query` is set, every match explains itself:
- * on-zone hits highlight in place, the abstract windows to a deep hit, the
- * author line surfaces a matched co-author past its cut, and a hit on a
- * field with no home here (cite key / short title / journal abbreviation /
- * editor or other non-author creator) adds a `↳` line at the bottom of the
- * card. Rendered as `.result-card-body` so both the click-to-insert
- * `ResultCard` and the checkbox-driven `SelectableResultCard` can wrap it.
- */
-export const ResultCardBody = ({
-  item,
-  query,
-}: {
+interface ResultCardBodyProps {
   item: ZotData
   query: string
-}) => {
+}
+
+export const ResultCardBody = memo(({ item, query }: ResultCardBodyProps) => {
   const { title, authors, creators, itemType, abstractNote } = item
   const q = query.trim().toLowerCase()
 
@@ -305,4 +290,4 @@ export const ResultCardBody = ({
       )}
     </div>
   )
-}
+})
