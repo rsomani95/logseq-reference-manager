@@ -166,12 +166,20 @@ export const SearchItem = ({
 
   const handlePick = useCallback(
     async (item: ZotData) => {
-      // Show the inline spinner, build the page off-screen, then drop the
-      // overlay to reveal the finished page (handleZotInDb already navigated).
+      // Show the inline spinner, build the page off-screen, write the link
+      // back into the source block while the journal page is still the
+      // active route (so Logseq re-renders it reactively), THEN navigate to
+      // the finished page and drop the overlay. Doing updateBlock after
+      // pushState would write to an offscreen page — the DB update lands but
+      // Logseq's frontend keeps a stale render of the journal block until a
+      // manual reload.
       setImporting(item)
-      const pageName = await insertZotIntoGraph(item)
+      const pageName = await insertZotIntoGraph(item, { navigate: false })
+      if (pageName) {
+        await logseq.Editor.updateBlock(uuid, `[[${pageName}]]`)
+        logseq.App.pushState('page', { name: pageName.toLowerCase() })
+      }
       logseq.hideMainUI()
-      if (pageName) await logseq.Editor.updateBlock(uuid, `[[${pageName}]]`)
       reset()
       setImporting(null)
     },

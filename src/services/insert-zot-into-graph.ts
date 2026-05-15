@@ -1,15 +1,19 @@
 import { ZotData } from '../interfaces'
 import { handleZotInDb, resolvePageName } from './handle-zot-db'
 
-export const insertZotIntoGraph = async (zotItem: ZotData) => {
+export const insertZotIntoGraph = async (
+  zotItem: ZotData,
+  opts: { navigate?: boolean } = {},
+) => {
   // No hideMainUI / "please wait" toast here: the inline search UI owns the
   // loading state (it morphs to a spinner on pick) and hides itself once the
-  // page is built. handleZotInDb builds the page off-screen and navigates to
-  // it when done.
+  // page is built. handleZotInDb builds the page off-screen; the caller
+  // chooses whether (and when) to navigate via `opts.navigate`.
   try {
     const { status, pageName } = await handleZotInDb(
       zotItem,
       resolvePageName(zotItem),
+      { navigate: opts.navigate },
     )
     await logseq.UI.showMsg(
       status === 'exists'
