@@ -29,6 +29,9 @@ const DEFAULT_CREATOR_TEMPLATE = '<% firstName %> <% lastName %>'
  * entry when they're stored as comma-separated text.
  */
 export const resolveCreatorName = (creator: CreatorItem): string => {
+  // Single-field creator (institutional, "Various", etc.) — there's nothing
+  // to plug into the firstName/lastName template, so use `name` verbatim.
+  if (creator.name) return creator.name.trim()
   const template =
     (logseq.settings?.creatorNameTemplate as string) || DEFAULT_CREATOR_TEMPLATE
   return template

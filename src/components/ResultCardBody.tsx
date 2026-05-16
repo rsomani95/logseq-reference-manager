@@ -26,9 +26,13 @@ const isSuffix = (s: string): boolean =>
   NAME_SUFFIXES.has(s.toLowerCase().replace(/\./g, ''))
 
 const fullNameOf = (c: CreatorItem): string => {
-  const last = c.lastName.trim()
-  const first = c.firstName.trim()
-  return isSuffix(last) ? first : `${first} ${last}`.trim()
+  // Single-field creator (institutional authors, "Various", working groups) —
+  // Zotero sends `{ name, creatorType }` instead of the two-field shape.
+  if (c.name) return c.name.trim()
+  const first = c.firstName?.trim() ?? ''
+  const last = c.lastName?.trim() ?? ''
+  if (isSuffix(last)) return first
+  return `${first} ${last}`.trim()
 }
 
 // The source shown on the footer line: a named publication when there is one,
@@ -149,7 +153,7 @@ const Highlighted = ({ text, query }: { text: string; query: string }) => {
 // A comma-joined run of highlighted full names.
 const nameRun = (creators: CreatorItem[], query: string): ReactNode[] =>
   creators.map((c, i) => (
-    <span key={`${c.lastName}-${i}`}>
+    <span key={`${c.lastName ?? c.name ?? 'creator'}-${i}`}>
       {i > 0 ? ', ' : ''}
       <Highlighted text={fullNameOf(c)} query={query} />
     </span>

@@ -221,8 +221,15 @@ export type AttachmentItem =
       AttachmentBase)
 
 export interface CreatorItem {
-  firstName: string
-  lastName: string
+  // Personal-author shape — Zotero sends `firstName` + `lastName` for items
+  // where each part was filled.
+  firstName?: string
+  lastName?: string
+  // Single-field shape — used by Zotero for institutional / corporate authors
+  // ("OpenAI", "Various", working groups), and occasionally for imports where
+  // only one name field landed. Consumers that format a creator's name must
+  // fall back to this when `firstName` / `lastName` aren't present.
+  name?: string
   creatorType: string
 }
 
