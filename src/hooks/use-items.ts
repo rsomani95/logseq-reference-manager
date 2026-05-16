@@ -1,59 +1,43 @@
-import Fuse, { IFuseOptions } from 'fuse.js'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { DEBOUNCE_DELAY } from '../constants'
 import { ZotData } from '../interfaces'
-import {
-  getZotItemsFromQueryString,
-  getZotItemsWithoutQueryString,
-} from '../services/get-zot-items'
+import { getZotParents } from '../services/get-zot-items'
 import { refreshInGraphFlags } from '../services/zotero-code-index'
 
 export type SearchMode = 'recents' | 'search'
 
-const MIN_SERVER_QUERY_LENGTH = 3
-
-const FUSE_OPTIONS: IFuseOptions<ZotData> = {
-  threshold: 0.35,
-  ignoreLocation: true,
-  keys: [
-    { name: 'title', weight: 1 },
-    { name: 'shortTitle', weight: 0.6 },
-    {
-      name: 'creators',
-      weight: 0.9,
-      // Index every contributor — authors *and* others (editors, …). ZotData
-      // splits them into two fields, and `mapItems` leaves `creators` as an
-      // empty array for the common author-only item, so both must be walked
-      // or author search silently misses most papers.
-      getFn: (item) =>
-        [...(item.authors ?? []), ...(item.creators ?? [])]
-          .map((c) => `${c.firstName} ${c.lastName}`)
-          .join(' '),
-    },
-    { name: 'citeKey', weight: 0.5 },
-    { name: 'publicationTitle', weight: 0.4 },
-    { name: 'journalAbbreviation', weight: 0.3 },
-    { name: 'abstractNote', weight: 0.2 },
-    { name: 'date', weight: 0.3 },
-  ],
-}
-
+/**
+ * Backs the search popup and the batch view's "Search" source.
+ *
+ * - `query === ''` → "recents": fetch the top-N parents by dateAdded once on
+ *   mount, cache them. Re-resolve the `inGraph` flags every time the popup
+ *   reopens (`openedAt` changes) — the plugin gets no signal when the user
+ *   renames / imports / removes pages, so a cached snapshot drifts.
+ * - `query !== ''` → "search": after a tight debounce, hit Zotero's
+ *   `/items/top?q=...&qmode=everything` directly. Their SQLite index covers
+ *   title, creator, year *and* abstract, and runs in single-digit ms on
+ *   localhost — no client-side fuzzy pass needed. Stale responses are dropped.
+ *
+ * Callers should pass the *deferred* query (`useDeferredValue`) so the network
+ * round-trip never blocks the typed character from painting.
+ */
 export const useSearchItems = (query: string, openedAt?: number) => {
-  const cacheRef = useRef<ZotData[]>([])
-  const [cache, setCache] = useState<ZotData[]>([])
+  const recentsRef = useRef<ZotData[]>([])
+  const [recents, setRecents] = useState<ZotData[]>([])
+  const [searchResults, setSearchResults] = useState<ZotData[]>([])
   const [isLoadingInitial, setIsLoadingInitial] = useState(true)
-  const [isLoadingFallback, setIsLoadingFallback] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
     let cancelled = false
     setIsLoadingInitial(true)
-    getZotItemsWithoutQueryString()
+    getZotParents()
       .then((result) => {
         if (cancelled) return
-        cacheRef.current = result
-        setCache(result)
+        recentsRef.current = result
+        setRecents(result)
         setIsLoadingInitial(false)
       })
       .catch((err) => {
@@ -66,22 +50,15 @@ export const useSearchItems = (query: string, openedAt?: number) => {
     }
   }, [])
 
-  // Refresh `inGraph` on the cached snapshot every time the popup reopens
-  // (`openedAt` changes). The plugin gets no signal when the user renames,
-  // imports, or removes pages, so flags baked in at fetch time go stale —
-  // only the cheap local zotero-code index is rebuilt here, the Zotero items
-  // stay cached.
   useEffect(() => {
-    const snapshot = cacheRef.current
+    const snapshot = recentsRef.current
     if (snapshot.length === 0) return
     let cancelled = false
     refreshInGraphFlags(snapshot).then((refreshed) => {
-      // Bail if unmounted, nothing changed, or another effect swapped the
-      // cache out from under us while the index was building.
       if (cancelled || refreshed === snapshot) return
-      if (cacheRef.current !== snapshot) return
-      cacheRef.current = refreshed
-      setCache(refreshed)
+      if (recentsRef.current !== snapshot) return
+      recentsRef.current = refreshed
+      setRecents(refreshed)
     })
     return () => {
       cancelled = true
@@ -89,27 +66,22 @@ export const useSearchItems = (query: string, openedAt?: number) => {
   }, [openedAt])
 
   useEffect(() => {
-    if (query.length < MIN_SERVER_QUERY_LENGTH) {
-      setIsLoadingFallback(false)
+    if (!query) {
+      setSearchResults([])
+      setIsSearching(false)
       return
     }
     let cancelled = false
-    setIsLoadingFallback(true)
+    setIsSearching(true)
     const handle = setTimeout(() => {
-      getZotItemsFromQueryString(query)
-        .then((serverResults) => {
+      getZotParents(query)
+        .then((results) => {
           if (cancelled) return
-          const seen = new Set(cacheRef.current.map((i) => i.key))
-          const additions = serverResults.filter((i) => !seen.has(i.key))
-          if (additions.length > 0) {
-            const merged = [...cacheRef.current, ...additions]
-            cacheRef.current = merged
-            setCache(merged)
-          }
-          setIsLoadingFallback(false)
+          setSearchResults(results)
+          setIsSearching(false)
         })
         .catch(() => {
-          if (!cancelled) setIsLoadingFallback(false)
+          if (!cancelled) setIsSearching(false)
         })
     }, DEBOUNCE_DELAY)
     return () => {
@@ -118,14 +90,14 @@ export const useSearchItems = (query: string, openedAt?: number) => {
     }
   }, [query])
 
-  const fuse = useMemo(() => new Fuse<ZotData>(cache, FUSE_OPTIONS), [cache])
-
-  const results: ZotData[] = useMemo(() => {
-    if (!query) return cache
-    return fuse.search(query).map((r) => r.item)
-  }, [query, cache, fuse])
-
   const mode: SearchMode = query ? 'search' : 'recents'
+  const results = mode === 'recents' ? recents : searchResults
 
-  return { results, mode, isLoadingInitial, isLoadingFallback, error }
+  return {
+    results,
+    mode,
+    isLoadingInitial,
+    isLoadingFallback: isSearching,
+    error,
+  }
 }

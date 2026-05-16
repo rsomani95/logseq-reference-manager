@@ -63,9 +63,10 @@ interface MatchInfo {
   hidden: { label: string; value: string } | null
 }
 
-// The popup searches more fields than the card shows (see the fuse keys in
-// `use-items.ts`). This works out where a query landed so every match can
-// explain itself — substring matching, consistent with `Highlighted` below.
+// Zotero's `qmode=everything` search matches more fields than the card shows
+// (abstract, cite key, short title, journal abbreviation, non-author creators).
+// This works out where the query landed so every match can explain itself —
+// substring matching, consistent with `Highlighted` below.
 const analyzeMatch = (
   item: ZotData,
   query: string,

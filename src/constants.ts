@@ -15,7 +15,10 @@ export const BASE_QUERY = {
   limit: 100,
 }
 
-export const DEBOUNCE_DELAY = 400
+// Coalesces in-flight typing into one server query. Tight because Zotero's
+// local API is fast (single-digit ms on localhost) — this is just enough to
+// skip the noise of fast-typed intermediate keystrokes, not to mask latency.
+export const DEBOUNCE_DELAY = 80
 
 // Upper bound for items fetched per collection / saved search in a single
 // request. The local Zotero API has no hard `limit` cap; batch import targets

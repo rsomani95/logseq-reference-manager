@@ -5,6 +5,8 @@ import { WretchError } from 'wretch/resolver'
 import { BASE_QUERY, BATCH_FETCH_LIMIT, ZOT_URL } from '../constants'
 import {
   AnnotationItem,
+  AttachmentItem,
+  NoteItem,
   ZotCollection,
   ZotData,
   ZotItem,
@@ -44,47 +46,47 @@ Response: ${wretchError.message}`,
   }
 }
 
-const getZotItems = async (queryString?: string) => {
+/**
+ * Fetches parent items only — no notes / attachments / annotations.
+ *
+ * The search-results list never displays children, so pulling them eagerly was
+ * pure waste; the old "fetch every child in the library on every keystroke"
+ * pattern dominated query latency. Children are now fetched per item at insert
+ * time via `getChildrenForItem`.
+ *
+ * `qmode: 'everything'` delegates ranking to Zotero's own SQLite full-text
+ * index — which already covers title, creator, year *and* abstract text, and
+ * runs in single-digit ms on localhost. Replaces the previous local Fuse pass.
+ *
+ * Errors that aren't a hard connection failure (HTTP errors) are swallowed
+ * with a toast and an empty list returned — the caller is a hot input path
+ * and shouldn't have to handle exceptions on every keystroke.
+ *
+ * On success, `mapItems(parents, [])` resolves `inGraph`, `citeKey` and
+ * `libraryLink`; `attachments` / `notes` come back as empty arrays.
+ */
+export const getZotParents = async (
+  queryString?: string,
+): Promise<ZotData[]> => {
   const startTime = performance.now()
 
   try {
     const searchQuery = queryString
-      ? {
-          ...BASE_QUERY,
-          q: queryString,
-          qmode: 'titleCreatorYear',
-        }
+      ? { ...BASE_QUERY, q: queryString, qmode: 'everything' }
       : BASE_QUERY
 
-    const [zotParentResultsFromSearch, notesAndAttachments] = await Promise.all(
-      [
-        api
-          .url('/items/top')
-          .addon(QueryAddon)
-          .query(searchQuery)
-          .get()
-          .json<ZotItem[]>(),
-        api
-          .url('/items')
-          .addon(QueryAddon)
-          .query({
-            itemType: 'note||attachment||annotation',
-          })
-          .get()
-          .json<ZotItem[]>(),
-      ],
-    )
+    const parents = await api
+      .url('/items/top')
+      .addon(QueryAddon)
+      .query(searchQuery)
+      .get()
+      .json<ZotItem[]>()
 
-    const zotDataArr = await mapItems(
-      zotParentResultsFromSearch,
-      notesAndAttachments,
-    )
+    const zotDataArr = await mapItems(parents, [])
 
     const endTime = performance.now()
     console.log(
-      'logseq-zoterolocal-plugin: Time taken for query: ',
-      (endTime - startTime).toFixed(2),
-      'ms',
+      `logseq-zoterolocal-plugin: getZotParents(${queryString ? `q=${queryString}` : 'recents'}) ${(endTime - startTime).toFixed(2)}ms · ${zotDataArr.length} results`,
     )
 
     return zotDataArr
@@ -106,10 +108,71 @@ Response: ${await error.response.text()}`,
   }
 }
 
-export const getZotItemsFromQueryString = (queryString: string) =>
-  getZotItems(queryString)
+/**
+ * Fetches notes + attachments (with their annotation grandchildren) for a
+ * single Zotero parent item. Called by the insert paths right before
+ * `handleZotInDb`, so the list paths can stay parents-only.
+ *
+ * `/items/{key}/children` returns direct children only — annotations are
+ * grandchildren of the parent (parent → attachment → annotation) and need
+ * their own fetch per attachment. The attachment fan-out is parallelized.
+ */
+export const getChildrenForItem = async (
+  itemKey: string,
+): Promise<{ attachments: AttachmentItem[]; notes: NoteItem[] }> => {
+  const directChildren = await api
+    .url(`/items/${itemKey}/children`)
+    .addon(QueryAddon)
+    .query({ itemType: 'note||attachment' })
+    .get()
+    .json<ZotItem[]>()
 
-export const getZotItemsWithoutQueryString = () => getZotItems()
+  const notes: NoteItem[] = []
+  const attachments: AttachmentItem[] = []
+
+  for (const child of directChildren) {
+    if (child.data.itemType === 'note' && child.data.note) {
+      notes.push({ note: child.data.note })
+    } else if (child.data.itemType === 'attachment') {
+      if (child.data.linkMode === 'imported_file' && child.links.enclosure) {
+        attachments.push({
+          linkMode: 'imported_file',
+          key: child.data.key,
+          annotations: [],
+          ...child.links.enclosure,
+        })
+      } else if (child.data.linkMode === 'linked_url' && child.data.url) {
+        attachments.push({
+          linkMode: 'linked_url',
+          key: child.data.key,
+          annotations: [],
+          title: child.data.title,
+          url: child.data.url,
+        })
+      }
+    }
+  }
+
+  await Promise.all(
+    attachments.map(async (att) => {
+      const annots = await api
+        .url(`/items/${att.key}/children`)
+        .addon(QueryAddon)
+        .query({ itemType: 'annotation' })
+        .get()
+        .json<ZotItem[]>()
+      att.annotations = annots
+        .filter((a) => a.data.annotationText)
+        .map((a) => ({
+          annotationText: a.data.annotationText ?? '',
+          annotationComment: a.data.annotationComment ?? '',
+          annotationSortIndex: a.data.annotationSortIndex ?? '',
+        }))
+    }),
+  )
+
+  return { attachments, notes }
+}
 
 /**
  * Pure filter: keep annotations strictly added after `since`, drop empties.
@@ -236,34 +299,22 @@ export const getZotSavedSearches = async (): Promise<ZotSavedSearch[]> => {
 }
 
 /**
- * Fetches every importable item in a collection. Two calls: the collection's
- * top-level items (the parents) and its note/attachment/annotation children,
- * both scoped to the collection — no whole-library children slurp. The result
- * runs through the same `mapItems` join used by the search flow.
+ * Fetches the parents of every importable item in a collection. Children
+ * (notes / attachments / annotations) are fetched per item at insert time —
+ * the batch list never displays them.
  */
 export const getItemsForCollection = async (
   collectionKey: string,
   options?: MapItemsOptions,
 ): Promise<ZotData[]> => {
   try {
-    const [parents, children] = await Promise.all([
-      api
-        .url(`/collections/${collectionKey}/items/top`)
-        .addon(QueryAddon)
-        .query({ ...BASE_QUERY, limit: BATCH_FETCH_LIMIT })
-        .get()
-        .json<ZotItem[]>(),
-      api
-        .url(`/collections/${collectionKey}/items`)
-        .addon(QueryAddon)
-        .query({
-          itemType: 'note||attachment||annotation',
-          limit: BATCH_FETCH_LIMIT,
-        })
-        .get()
-        .json<ZotItem[]>(),
-    ])
-    return await mapItems(parents, children, options)
+    const parents = await api
+      .url(`/collections/${collectionKey}/items/top`)
+      .addon(QueryAddon)
+      .query({ ...BASE_QUERY, limit: BATCH_FETCH_LIMIT })
+      .get()
+      .json<ZotItem[]>()
+    return await mapItems(parents, [], options)
   } catch (error) {
     logseq.UI.showMsg(
       `❌ Could not load collection items: ${(error as Error).message}`,
@@ -274,9 +325,10 @@ export const getItemsForCollection = async (
 }
 
 /**
- * Fetches every importable item matching a saved search. The local API has no
- * `/searches/{key}/items/top` route, so the single `/items` response (parents
- * and children mixed) is partitioned by item type before the `mapItems` join.
+ * Fetches the parents of every importable item matching a saved search. The
+ * local API has no `/searches/{key}/items/top` route, so the single `/items`
+ * response is partitioned by item type and children dropped. Children are
+ * fetched per item at insert time.
  */
 export const getItemsForSavedSearch = async (
   searchKey: string,
@@ -290,8 +342,7 @@ export const getItemsForSavedSearch = async (
       .get()
       .json<ZotItem[]>()
     const parents = all.filter((i) => !CHILD_ITEM_TYPES.has(i.data.itemType))
-    const children = all.filter((i) => CHILD_ITEM_TYPES.has(i.data.itemType))
-    return await mapItems(parents, children, options)
+    return await mapItems(parents, [], options)
   } catch (error) {
     logseq.UI.showMsg(
       `❌ Could not load saved search items: ${(error as Error).message}`,

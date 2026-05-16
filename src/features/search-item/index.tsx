@@ -2,22 +2,18 @@ import { differenceInDays, isToday } from 'date-fns'
 import {
   type KeyboardEvent,
   useCallback,
+  useDeferredValue,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react'
-import { useForm } from 'react-hook-form'
 
 import { ResultCard } from '../../components/ResultCard'
 import { useSearchItems } from '../../hooks/use-items'
 import { ZotData } from '../../interfaces'
 import { insertZotIntoGraph } from '../../services/insert-zot-into-graph'
-
-export interface FormValues {
-  search: string
-}
 
 type Bucket = 'Today' | 'Last 7 days' | 'Last 30 days' | 'Earlier'
 
@@ -85,15 +81,16 @@ export const SearchItem = ({
   uuid: string
   openedAt?: number
 }) => {
-  const { register, watch, reset, setFocus } = useForm<FormValues>({
-    defaultValues: {
-      search: '',
-    },
-  })
-  const queryString = watch('search')
+  const [query, setQuery] = useState('')
+  // Input commits the new character at urgent priority; everything downstream
+  // (the server fetch, fuse-free re-render of the result list, card highlight
+  // re-render) reads the deferred value and runs at low priority. So a fast
+  // typist never sees the typed character held back by render work.
+  const deferredQuery = useDeferredValue(query)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const { results, mode, isLoadingInitial, isLoadingFallback, error } =
-    useSearchItems(queryString, openedAt)
+    useSearchItems(deferredQuery, openedAt)
 
   const grouped = useMemo(
     () => (mode === 'recents' ? groupByBucket(results) : null),
@@ -130,8 +127,8 @@ export const SearchItem = ({
       void el.offsetHeight
       el.style.animation = ''
     }
-    setFocus('search')
-  }, [openedAt, setFocus])
+    inputRef.current?.focus()
+  }, [openedAt])
 
   useEffect(() => {
     setActiveIndex(0)
@@ -160,10 +157,10 @@ export const SearchItem = ({
         logseq.App.pushState('page', { name: pageName.toLowerCase() })
       }
       logseq.hideMainUI()
-      reset()
+      setQuery('')
       setImporting(null)
     },
-    [uuid, reset],
+    [uuid],
   )
 
   const scrollOptionIntoView = (index: number) => {
@@ -231,8 +228,10 @@ export const SearchItem = ({
           <div className="search-input-wrapper">
             <input
               id="search-field"
-              {...register('search')}
+              ref={inputRef}
               type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Search your library, or browse recently added"
               className="search-input"
               autoFocus
@@ -276,7 +275,7 @@ export const SearchItem = ({
                   <ResultCard
                     key={item.key}
                     item={item}
-                    query={queryString}
+                    query={deferredQuery}
                     id={optionId(item.key)}
                     isActive={item.key === activeKey}
                     onPick={handlePick}

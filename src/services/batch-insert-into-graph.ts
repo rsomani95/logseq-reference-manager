@@ -1,4 +1,5 @@
 import { ZotData } from '../interfaces'
+import { getChildrenForItem } from './get-zot-items'
 import { handleZotInDb, resolvePageName } from './handle-zot-db'
 import { isSchemaAdded } from './is-schema-added'
 import { buildZoteroCodeIndex } from './zotero-code-index'
@@ -78,10 +79,18 @@ export const batchInsertIntoGraph = async (
     }
 
     try {
-      const { status } = await handleZotInDb(item, resolvePageName(item), {
-        navigate: false,
-        zoteroCodeIndex,
-      })
+      // List paths return parents-only ZotData; fetch each item's children
+      // (notes / attachments / annotations) just before writing. The fan-out
+      // is per item rather than one big library-wide pull because the latter
+      // ballooned with library size, blocked the picker, and re-fetched on
+      // every keystroke.
+      const { attachments, notes } = await getChildrenForItem(item.key)
+      const fullItem: ZotData = { ...item, attachments, notes }
+      const { status } = await handleZotInDb(
+        fullItem,
+        resolvePageName(fullItem),
+        { navigate: false, zoteroCodeIndex },
+      )
       // `status === 'exists'` means the item was already in the graph but the
       // UI's pre-filter missed it — count it as skipped, not imported.
       if (status === 'exists') {

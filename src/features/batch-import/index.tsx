@@ -1,5 +1,12 @@
 import { Bookmark, FolderOpen, LucideIcon, Search } from 'lucide-react'
-import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  type KeyboardEvent,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
 import { useBatchSources, useContainerItems } from '../../hooks/use-batch'
 import { useSearchItems } from '../../hooks/use-items'
@@ -27,6 +34,9 @@ const batchOptionId = (key: string): string => `batch-opt-${key}`
 export const BatchView = () => {
   const [source, setSource] = useState<BatchSource>('search')
   const [query, setQuery] = useState('')
+  // Input stays bound to `query` for instant feedback; the server fetch and
+  // list re-render read the deferred value so typing is never blocked.
+  const deferredQuery = useDeferredValue(query)
   const [collectionKey, setCollectionKey] = useState('')
   const [savedSearchKey, setSavedSearchKey] = useState('')
   const [selected, setSelected] = useState<Map<string, ZotData>>(new Map())
@@ -44,7 +54,7 @@ export const BatchView = () => {
     savedSearches,
     loading: sourcesLoading,
   } = useBatchSources()
-  const search = useSearchItems(source === 'search' ? query : '')
+  const search = useSearchItems(source === 'search' ? deferredQuery : '')
   const container = useContainerItems(source, collectionKey, savedSearchKey)
 
   const items = source === 'search' ? search.results : container.items
@@ -55,7 +65,7 @@ export const BatchView = () => {
   // Streamed sources keep loading after the first chunk; search doesn't stream.
   const loadingMore = source === 'search' ? false : container.loadingMore
   const error = source === 'search' ? search.error : container.error
-  const cardQuery = source === 'search' ? query : ''
+  const cardQuery = source === 'search' ? deferredQuery : ''
 
   const selectableItems = useMemo(
     () => items.filter((i) => !i.inGraph),

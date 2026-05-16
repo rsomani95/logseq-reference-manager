@@ -1,4 +1,5 @@
 import { ZotData } from '../interfaces'
+import { getChildrenForItem } from './get-zot-items'
 import { handleZotInDb, resolvePageName } from './handle-zot-db'
 
 export const insertZotIntoGraph = async (
@@ -8,9 +9,16 @@ export const insertZotIntoGraph = async (
   // No hideMainUI / "please wait" toast here — the inline search UI owns
   // loading and hides itself once the page is built.
   try {
+    // List paths return parents-only ZotData; pull notes / attachments /
+    // annotations from Zotero now so handleZotInDb can write them into the
+    // page. One round-trip plus a parallel fan-out for annotations — ~10ms on
+    // localhost.
+    const { attachments, notes } = await getChildrenForItem(zotItem.key)
+    const fullItem: ZotData = { ...zotItem, attachments, notes }
+
     const { status, pageName } = await handleZotInDb(
-      zotItem,
-      resolvePageName(zotItem),
+      fullItem,
+      resolvePageName(fullItem),
       { navigate: opts.navigate },
     )
     await logseq.UI.showMsg(
