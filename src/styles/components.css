@@ -329,6 +329,20 @@ html[data-theme="dark"] {
   scrollbar-color: var(--zot-color-scrollbar) transparent;
   /* component-level responsiveness for the shared ResultCardBody */
   container-type: inline-size;
+  /* Stale-state cross-fade — see .is-stale below. */
+  transition: opacity var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+/* Mild dim while the user has typed ahead of the deferred query / server
+   response. Gated by a 120ms transition-delay on dim-in (0ms on dim-out):
+   fast-path cycles never flash a dim, only cycles that genuinely exceed
+   ~120ms get the ACK that the visible content is the previous query's.
+   Overrides .batch-results' standard-duration transition (used for the
+   slower importing-phase lock) — typing feedback is a micro tier. */
+.results-list.is-stale,
+.batch-results.is-stale {
+  opacity: 0.55;
+  transition: opacity var(--zot-duration-micro) var(--zot-ease-out) 120ms;
 }
 
 /* Time-grouped recents */

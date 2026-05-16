@@ -205,6 +205,12 @@ export const SearchItem = ({
   const activeKey = flatResults[activeIndex]?.key
   const activeId = activeKey ? optionId(activeKey) : undefined
 
+  // Stale when typing has run ahead of the deferred query, or while the server
+  // fetch is in flight. The list dims after a 120ms CSS delay so fast-path
+  // cycles (typical localhost search) never flash a dim — only slower cycles
+  // cross the threshold and get the ACK.
+  const isStale = query !== deferredQuery || isLoadingFallback
+
   return (
     <div
       className="search-container"
@@ -245,7 +251,11 @@ export const SearchItem = ({
             />
             <span className="search-result-count">{renderStatus()}</span>
           </div>
-          <div className="results-list" id="zot-results" role="listbox">
+          <div
+            className={`results-list${isStale ? ' is-stale' : ''}`}
+            id="zot-results"
+            role="listbox"
+          >
             {mode === 'recents' && grouped
               ? BUCKET_ORDER.map((bucket) => {
                   const items = grouped.get(bucket)

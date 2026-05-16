@@ -67,6 +67,12 @@ export const BatchView = () => {
   const error = source === 'search' ? search.error : container.error
   const cardQuery = source === 'search' ? deferredQuery : ''
 
+  // Mild dim on the list while a search is pending. Only relevant for the
+  // Search source; container sources have their own loading states. Gated by
+  // a 120ms CSS transition-delay so fast-path queries never flash.
+  const isStale =
+    source === 'search' && (query !== deferredQuery || search.isLoadingFallback)
+
   const selectableItems = useMemo(
     () => items.filter((i) => !i.inGraph),
     [items],
@@ -323,7 +329,7 @@ export const BatchView = () => {
           <div
             className={`batch-results${
               phase === 'importing' ? ' is-disabled' : ''
-            }`}
+            }${isStale ? ' is-stale' : ''}`}
             role="listbox"
             aria-multiselectable="true"
             aria-label="Zotero items to import"
