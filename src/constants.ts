@@ -65,6 +65,7 @@ export const PROP_PRESET_ESSENTIALS = [
   'archiveID',
   'extra',
   'shortTitle',
+  'publisher',
   'publicationTitle',
   'proceedingsTitle',
   'volume',
