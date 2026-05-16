@@ -11,6 +11,7 @@ import { registerAdminCommands } from './services/register-admin-commands'
 import { syncAnnotations } from './services/sync-annotations'
 import { registerThemeSync } from './services/sync-theme'
 import { registerSchemaSettingsWatcher } from './services/watch-schema-settings'
+import { registerTagRulesWatcher } from './services/watch-tag-rules'
 import {
   handleSettings,
   migratePagePropsIfNeeded,
@@ -29,6 +30,7 @@ const main = async () => {
   registerThemeSync()
   registerSchemaSettingsWatcher()
   registerPresetVisibilityWatcher()
+  registerTagRulesWatcher()
   migratePagePropsIfNeeded()
 
   // Re-register with the live connection status. Defaults for new keys were

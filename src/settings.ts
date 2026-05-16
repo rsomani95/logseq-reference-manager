@@ -5,6 +5,7 @@ import {
   PROP_PRESET_ESSENTIALS,
   ZOT_DATA_KEY_MAP,
 } from './constants'
+import { DEFAULT_TAG_RULES_JSON } from './extended-tags'
 import { PropertyPreset } from './interfaces'
 import { formatPagePropChoice } from './services/page-props-choice'
 
@@ -87,6 +88,13 @@ ${PLUGIN_PANEL} [data-key="pageProps"] .ui__checkbox-list label {
   white-space: normal;
   margin-top: 0;
   padding-right: 0;
+}
+
+${PLUGIN_PANEL} [data-key="tagRules"] textarea {
+  min-height: 12rem;
+  font-family: var(--ls-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.85rem;
+  line-height: 1.45;
 }
 `
 
@@ -191,6 +199,22 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       description:
         'If disabled, attachments will open in the default system app. If enabled, attachments will open in Logseq.',
       default: true,
+    },
+    {
+      key: 'extendedTagsSectionHeading',
+      type: 'heading',
+      title: 'Extended tags',
+      description:
+        'Apply additional Logseq tags to imported pages when items match your rules. All matching rules apply (the base Zotero tag is always added on top).',
+      default: '',
+    },
+    {
+      key: 'tagRules',
+      type: 'string',
+      inputAs: 'textarea',
+      title: 'Tag rules',
+      description: `Operators: contains, equals, regex. Match modes: any, all. Common fields: title, url, DOI, publicationTitle, citationKey, libraryCatalog, itemType. Unknown fields never match.`,
+      default: DEFAULT_TAG_RULES_JSON,
     },
   ]
 
