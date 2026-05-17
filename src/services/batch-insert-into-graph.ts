@@ -99,10 +99,13 @@ export const batchInsertIntoGraph = async (
         result.imported.push(item)
       }
     } catch (e) {
-      result.failed.push({
-        item,
-        message: e instanceof Error ? e.message : String(e),
-      })
+      const message =
+        e instanceof Error
+          ? e.message
+          : typeof e === 'object' && e !== null
+            ? JSON.stringify(e)
+            : String(e)
+      result.failed.push({ item, message })
     }
   }
 

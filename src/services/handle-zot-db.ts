@@ -132,13 +132,31 @@ export const handleZotInDb = async (
   await logseq.Editor.addBlockTag(existingPage.uuid, zotTag)
 
   // Apply matched extended tags, if any. Rules come from the `tagRules`
-  // setting (JSON); assumes each tag exists in Logseq and extends the base
-  // Zotero tag.
+  // setting (JSON). Auto-create the tag (extending the base Zotero tag) if
+  // it doesn't exist yet — a rule targeting e.g. "MLPaper" should work
+  // without the user pre-creating the class. Per-tag failures are isolated
+  // so one bad tag doesn't abort the whole import.
   const tagRules = getConfiguredTagRules()
   for (const tag of matchTagRules(zotItem, tagRules)) {
     if (tag === zotTag) continue
     console.log(`[extended-tags] Applying matched tag: ${tag}`)
-    await logseq.Editor.addBlockTag(existingPage.uuid, tag)
+    try {
+      const existing = await logseq.Editor.getTag(tag)
+      if (!existing) {
+        const created = await logseq.Editor.createTag(tag)
+        if (created) await logseq.Editor.addTagExtends(tag, zotTag)
+      }
+      await logseq.Editor.addBlockTag(existingPage.uuid, tag)
+    } catch (e) {
+      console.warn(`[extended-tags] Failed to apply tag "${tag}":`, e)
+      const msg =
+        e instanceof Error
+          ? e.message
+          : typeof e === 'object' && e !== null
+            ? JSON.stringify(e)
+            : String(e)
+      await logseq.UI.showMsg(`Couldn't apply tag "${tag}": ${msg}`, 'warning')
+    }
   }
 
   /*

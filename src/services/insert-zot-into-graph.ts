@@ -29,6 +29,12 @@ export const insertZotIntoGraph = async (
     )
     return pageName
   } catch (e) {
-    await logseq.UI.showMsg(e instanceof Error ? e.message : String(e), 'error')
+    const msg =
+      e instanceof Error
+        ? e.message
+        : typeof e === 'object' && e !== null
+          ? JSON.stringify(e)
+          : String(e)
+    await logseq.UI.showMsg(msg, 'error')
   }
 }
