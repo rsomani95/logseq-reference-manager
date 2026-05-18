@@ -358,6 +358,7 @@ export const PROP_DESCRIPTIONS: Record<string, string> = {
     'Zotero key of the attachment, used to sync annotations',
 }
 
+// TODO: Wtf is the point of this?
 export const ZOT_DATA_KEY_MAP = {
   abstractNote: true,
   accessDate: true,

@@ -1,3 +1,5 @@
+// TODO: Clarify if this is a 1:1 mapping of what the Zotero
+// API gives us
 // DO NOT TOUCH BELOW SECTION //
 export interface ZotItem {
   key: string

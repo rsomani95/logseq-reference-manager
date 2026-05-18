@@ -15,12 +15,15 @@ import { buildZoteroCodeIndex, ZoteroCodedPage } from './zotero-code-index'
  * Resolves the Logseq page name for a Zotero item by filling the configured
  * `pagenameTemplate`. Shared by the single-item and batch import paths.
  */
+// FIXME: This is fucking brittle. We need to make the settings strongly typed
+// via a dropdown or something. No string replace nonsense pls.
 export const resolvePageName = (zotItem: ZotData): string =>
   (logseq.settings!.pagenameTemplate as string)
     .replace('<% title %>', zotItem.title)
     .replace('<% citeKey %>', zotItem.citeKey)
     .trim()
 
+// FIXME: Same shit as above
 const DEFAULT_CREATOR_TEMPLATE = '<% firstName %> <% lastName %>'
 
 /**
@@ -40,6 +43,7 @@ export const resolveCreatorName = (creator: CreatorItem): string => {
     .trim()
 }
 
+// FIXME: Add docstring. what does this do?
 export const handleZotInDb = async (
   zotItem: ZotData,
   pageName: string,
