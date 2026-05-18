@@ -36,6 +36,10 @@ Package manager is **bun**. Husky pre-commit runs `npm run lint:precommit` (Biom
 
 The `.bruno/` directory contains Bruno HTTP request collections for ad-hoc exploration of the Zotero local API (items, collections, query, notes/attachments by parent). Useful when debugging what Zotero is returning.
 
+## SDK notes
+
+DB-graph Logseq plugin SDK quirks (property API, theming, dev workflow, debugging) are collected in [`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md). Check there first when an `@logseq/libs` call behaves unexpectedly.
+
 ## Architecture
 
 ### Entry and lifecycle
