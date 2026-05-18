@@ -12,13 +12,22 @@ import { PropertyPreset } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
 import { parsePagePropChoice } from './page-props-choice'
 
+// TODO: Add docstring
+// NOTE: This seems to be adding properties at the global level
+// See https://github.com/logseq/logseq/blob/master/libs/guides/db_properties_references.md#addtagpropertytagid-propertyidorname
 const createTagProperties = async (props: string[]) => {
   for (const originalProp of props) {
     const prop = convertPropToKebabCase(originalProp)
+
+    // FIXME: Make this stricter. If PROP_DISPLAY_NAMES doesn't cover we should know instead
+    // of silently defaulting to `prop`... YEESH
     const displayName = PROP_DISPLAY_NAMES[originalProp] ?? prop
     console.log('Adding property schema', prop, 'to Logseq')
 
     let schema: Partial<PropertySchema>
+
+    // Depending on user pref, decide whether or not to create a page ('node) for each
+    // author/creators or to just keep them as the default (string) type
     if (prop === 'authors' || prop === 'creators') {
       const asNodes = (logseq.settings?.creatorsAsNodes as boolean) ?? true
       schema = asNodes
@@ -40,7 +49,9 @@ const createTagProperties = async (props: string[]) => {
 
     await logseq.Editor.upsertProperty(prop, schema, { name: displayName })
 
-    const property = await logseq.Editor.getProperty(`${ZOTERO_PROP}/${prop}`)
+    // const property = await logseq.Editor.getProperty(`${ZOTERO_PROP}/${prop}`)
+    // Keep it simple stupid. Properties are global. No need to access via namespace
+    const property = await logseq.Editor.getProperty(prop)
     if (property?.uuid) {
       // `upsertProperty`'s `name` opt is a no-op in current Logseq-DB — the
       // property's display name falls back to its kebab ident. The display
@@ -60,11 +71,20 @@ const createTagProperties = async (props: string[]) => {
         true,
       )
 
+      await logseq.Editor.upsertBlockProperty(
+        property.uuid,
+        'logseq.property/hide-empty-value',
+        true,
+      )
+
       // Same story for the description shown under each property in the tag
       // schema UI — it's the built-in `:logseq.property/description`, set
       // directly on the property block. An empty or missing entry clears it:
       // `upsertBlockProperty` ignores `''`, so removal is the only way to
       // actually unset a description that was set on a previous run.
+      
+      // FIXME: Instead of making dual API calls here, just filter PROP_DESCRIPTIONS
+      // for non-empty descriptions, and only set those... dumb shit™
       const description = PROP_DESCRIPTIONS[originalProp]
       if (description) {
         await logseq.Editor.upsertBlockProperty(
@@ -110,6 +130,7 @@ export const setLogseqDbSchema = async () => {
       .map(parsePagePropChoice)
       .filter((k): k is string => k !== null)
   } else if (preset === 'Full') {
+    // FIXME: Use as Array<keyof typeof ZOT_DATA_KEY_MAP ?
     selectedProps = Object.keys(ZOT_DATA_KEY_MAP).filter(
       (prop) =>
         prop !== 'abstractNote' &&
