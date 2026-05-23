@@ -74,6 +74,21 @@ You can't clear a value by setting it to `''`. To unset a previously-set descrip
 await logseq.Editor.removeBlockProperty(prop.uuid, 'logseq.property/description')
 ```
 
+### Tag-schema view doesn't show descriptions until the property is hydrated
+
+After setting `:logseq.property/description` on every tag-associated property and then reloading Logseq, the tag-properties view ("# Zotero" page → property list) shows *"Add description"* for every row — even though every description is still in SQLite. This is a Logseq render bug, not data loss.
+
+The render at `src/main/frontend/components/property.cljs:559-575` reads via `(get user-property :logseq.property/description)` on the main-thread DataScript entity. After a cold load, that entity exists but its description ref hasn't been hydrated from the worker yet; `get` returns nil and the row falls through to the *"Add description"* placeholder. Eager fetches (`getBlockProperties(uuid)`, `<get-block`) return the correct value because they force a worker round-trip.
+
+Two ways to confirm the data is really there:
+
+- Hover the property name in the tag schema — the tooltip at `property.cljs:292` reads `(:block/title (:logseq.property/description property))` directly and shows the text.
+- Click a property to open its own page — the full entity gets pulled and the description renders.
+
+If you need to verify programmatically from a plugin, use `logseq.Editor.getBlockProperties(prop.uuid)` (which calls through to `<get-block`); `logseq.Editor.getProperty(name)` returns the lazy entity and may show `:logseq.property/description: null` even when it's persisted.
+
+There's no clean plugin-side fix for the render — it's an upstream issue. The only meaningful workaround is to hydrate every Zotero-tagged property at plugin startup (one `getBlockProperties` per property) so the main-thread entity is warm before the user navigates to the tag page.
+
 ## SDK versioning
 
 `@logseq/libs` on npm has a misleading `latest` tag. As of 2026-05-18:

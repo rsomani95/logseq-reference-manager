@@ -21,7 +21,7 @@ import { ZotContainer } from './ZotContainer'
 
 const main = async () => {
   await logseq.UI.showMsg(
-    `logseq-zoterolocal-plugin loaded. Please proceed to settings to continue setup.`,
+    `Zotero (Local) loaded. Please proceed to settings to continue setup.`,
     'warning',
   )
 
@@ -63,8 +63,8 @@ const main = async () => {
 
   logseq.App.registerCommandPalette(
     {
-      key: 'zoterolocal-plugin-sync-all-annotations',
-      label: 'logseq-zoterolocal-plugin: Sync all annotations',
+      key: 'logseq-zotero-sync-all-annotations',
+      label: 'Zotero: Sync all annotations',
     },
     async () => {
       const allZoteroPages: BlockEntity[][] =
@@ -91,12 +91,66 @@ const main = async () => {
   })
 
   ///////////////////////////////////
+  /////////////  DEBUG  /////////////
+  ///////////////////////////////////
+  // Inspects real production properties' descriptions. Run AFTER the real
+  // schema-setup command + a Logseq reload. Tells us whether the production
+  // path's descriptions actually survive to SQLite.
+  logseq.Editor.registerSlashCommand(
+    'Zotero: Inspect schema descriptions',
+    async () => {
+      // Mix of properties that should have descriptions in PROP_DESCRIPTIONS
+      // and ones that shouldn't (empty string → removeBlockProperty in prod).
+      const probes = [
+        { name: 'date', expectedSubstring: 'Publication date' },
+        { name: 'date-added', expectedSubstring: 'Date the item was added' },
+        { name: 'item-type', expectedSubstring: 'Zotero item type' },
+        { name: 'zotero-code', expectedSubstring: 'Zotero item key' },
+        { name: 'tags', expectedSubstring: 'Zotero tags applied' },
+        { name: 'authors', expectedSubstring: null }, // empty in prod
+        { name: 'title', expectedSubstring: null }, // empty in prod
+      ]
+      console.group('[debug-prod] Inspecting production-property descriptions')
+      for (const { name, expectedSubstring } of probes) {
+        const prop = await logseq.Editor.getProperty(name)
+        if (!prop?.uuid) {
+          console.warn(`[debug-prod] ${name}: not found`)
+          continue
+        }
+        const readable = await logseq.Editor.getBlockProperties(prop.uuid)
+        const descValue = (readable as Record<string, unknown> | null)?.[
+          ':logseq.property/description'
+        ]
+        let verdict = 'unknown'
+        if (expectedSubstring === null) {
+          verdict = descValue == null ? 'OK (empty as expected)' : 'UNEXPECTED'
+        } else if (
+          typeof descValue === 'string' &&
+          descValue.includes(expectedSubstring)
+        ) {
+          verdict = 'OK'
+        } else {
+          verdict = 'LOST'
+        }
+        console.log(
+          `[debug-prod] ${name}: ${verdict}  expected~="${expectedSubstring ?? '(empty)'}"  got=${JSON.stringify(descValue)}`,
+        )
+      }
+      console.groupEnd()
+      await logseq.UI.showMsg(
+        'Production inspection complete — check the console.',
+        'success',
+      )
+    },
+  )
+
+  ///////////////////////////////////
   ///////////  BATCH IMPORT  ////////
   ///////////////////////////////////
   logseq.App.registerCommandPalette(
     {
-      key: 'zoterolocal-plugin-batch-import',
-      label: 'logseq-zoterolocal-plugin: Batch import',
+      key: 'logseq-zotero-batch-import',
+      label: 'Zotero: Batch import',
     },
     () => {
       // A fresh `key` forces a clean remount, so every invocation starts at the

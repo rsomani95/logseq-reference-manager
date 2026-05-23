@@ -1,11 +1,28 @@
 {
-  "name": "logseq-zoterolocal-plugin",
-  "author": "benjypng",
-  "description": "Connect to Zotero locally using Zotero Beta 7 (and above), import and keep track of your Zotero library.",
+  "name": "logseq-zotero",
+  "author": "Rahul Somani",
+  "description": "Connect to a running Zotero 7+ instance over its local API and import items into your Logseq graph — no Zotero Cloud sync required.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rsomani95/logseq-zotero.git"
+  },
+  "homepage": "https://github.com/rsomani95/logseq-zotero#readme",
+  "bugs": {
+    "url": "https://github.com/rsomani95/logseq-zotero/issues"
+  },
+  "keywords": [
+    "logseq",
+    "logseq-plugin",
+    "zotero",
+    "references",
+    "citations",
+    "bibliography",
+    "pkm"
+  ],
   "logseq": {
-    "id": "logseq-zoterolocal-plugin",
-    "title": "logseq-zoterolocal-plugin",
+    "id": "logseq-zotero",
+    "title": "Zotero (Local)",
     "icon": "./icon.svg",
     "main": "dist/index.html"
   },
@@ -25,7 +42,7 @@
         "@semantic-release/github",
         {
           "assets": [
-            "logseq-zoterolocal-plugin.zip"
+            "logseq-zotero.zip"
           ],
           "options": {
             "successComment": false

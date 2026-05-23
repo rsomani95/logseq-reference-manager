@@ -82,7 +82,7 @@ const createTagProperties = async (props: string[]) => {
       // directly on the property block. An empty or missing entry clears it:
       // `upsertBlockProperty` ignores `''`, so removal is the only way to
       // actually unset a description that was set on a previous run.
-      
+
       // FIXME: Instead of making dual API calls here, just filter PROP_DESCRIPTIONS
       // for non-empty descriptions, and only set those... dumb shit™
       const description = PROP_DESCRIPTIONS[originalProp]
@@ -115,7 +115,7 @@ export const setLogseqDbSchema = async () => {
   await logseq.Editor.createTag(logseq.settings?.zotTag as string)
 
   /**
-  All added properties follow the same structure: ":plugin.property.logseq-zoterolocal-plugin/year"
+  All added properties follow the same structure: ":plugin.property.logseq-zotero/year"
   **/
 
   // Resolve which properties to set up based on the selected preset

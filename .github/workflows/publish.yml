@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  PLUGIN_NAME: ${{ github.event.repository.name }}
+  PLUGIN_NAME: logseq-zotero
 
 jobs:
   build:

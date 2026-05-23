@@ -98,7 +98,7 @@ export const buildZoteroCodeIndex = async (): Promise<
     }
 
     console.log(
-      `logseq-zoterolocal-plugin: zotero-code index built — ${pages.length} Zotero page(s), ${index.size} with a zotero-code`,
+      `logseq-zotero: zotero-code index built — ${pages.length} Zotero page(s), ${index.size} with a zotero-code`,
     )
 
     // Self-diagnostic: tagged pages exist but none yielded a code — the
@@ -107,7 +107,7 @@ export const buildZoteroCodeIndex = async (): Promise<
     const sample = pages[0]
     if (index.size === 0 && sample) {
       console.warn(
-        'logseq-zoterolocal-plugin: zotero-code index is EMPTY despite ' +
+        'logseq-zotero: zotero-code index is EMPTY despite ' +
           `${pages.length} tagged page(s). Looked for property key ` +
           `"${ZOTERO_CODE_PROP}". Sample pulled entity + its properties:`,
         sample,
@@ -116,7 +116,7 @@ export const buildZoteroCodeIndex = async (): Promise<
     }
   } catch (e) {
     console.error(
-      'logseq-zoterolocal-plugin: failed to build zotero-code index; ' +
+      'logseq-zotero: failed to build zotero-code index; ' +
         'in-graph detection will fall back to page-name matching',
       e,
     )

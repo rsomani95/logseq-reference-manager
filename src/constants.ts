@@ -1,12 +1,11 @@
 import { PropertyPreset } from './interfaces'
 
-export const ZOTERO_PROP = ':plugin.property.logseq-zoterolocal-plugin'
-export const ZOTERO_CODE_PROP =
-  ':plugin.property.logseq-zoterolocal-plugin/zotero-code'
+export const ZOTERO_PROP = ':plugin.property.logseq-zotero'
+export const ZOTERO_CODE_PROP = ':plugin.property.logseq-zotero/zotero-code'
 export const ZOTERO_LAST_SYNC_PROP =
-  ':plugin.property.logseq-zoterolocal-plugin/zotero-last-sync'
+  ':plugin.property.logseq-zotero/zotero-last-sync'
 export const ZOTERO_ATTACHMENT_KEY_PROP =
-  ':plugin.property.logseq-zoterolocal-plugin/zotero-attachment-key'
+  ':plugin.property.logseq-zotero/zotero-attachment-key'
 export const ZOT_URL = 'http://127.0.0.1:23119/api/users/0'
 export const ZOTERO_LIBRARY_ITEM = 'zotero://select/library/items?itemKey='
 export const BASE_QUERY = {

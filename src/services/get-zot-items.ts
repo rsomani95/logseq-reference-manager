@@ -86,7 +86,7 @@ export const getZotParents = async (
 
     const endTime = performance.now()
     console.log(
-      `logseq-zoterolocal-plugin: getZotParents(${queryString ? `q=${queryString}` : 'recents'}) ${(endTime - startTime).toFixed(2)}ms · ${zotDataArr.length} results`,
+      `logseq-zotero: getZotParents(${queryString ? `q=${queryString}` : 'recents'}) ${(endTime - startTime).toFixed(2)}ms · ${zotDataArr.length} results`,
     )
 
     return zotDataArr

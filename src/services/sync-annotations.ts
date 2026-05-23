@@ -91,7 +91,7 @@ export const syncAnnotations = async (pageName: string) => {
 
     if (!targetAttachmentBlock) {
       console.log(
-        `logseq-zoterolocal-plugin: No matching attachment block for key ${attachmentKey}, skipping`,
+        `logseq-zotero: No matching attachment block for key ${attachmentKey}, skipping`,
       )
       continue
     }

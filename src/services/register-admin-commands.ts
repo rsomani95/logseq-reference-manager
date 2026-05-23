@@ -3,8 +3,8 @@ import { setLogseqDbSchema } from './set-logseqdb-schema'
 export const registerAdminCommands = () => {
   logseq.App.registerCommandPalette(
     {
-      key: 'zoterolocal-plugin-remove-all-created-schema',
-      label: 'logseq-zoterolocal-plugin: Remove all created schema',
+      key: 'logseq-zotero-remove-all-created-schema',
+      label: 'Zotero: Remove all created schema',
     },
     async () => {
       const msg = await logseq.UI.showMsg(
@@ -17,7 +17,7 @@ export const registerAdminCommands = () => {
       if (!allPropsInLs) return
       const pagesToDelete = allPropsInLs
         .filter((prop) =>
-          prop.ident?.includes(':plugin.property.logseq-zoterolocal-plugin'),
+          prop.ident?.includes(':plugin.property.logseq-zotero'),
         )
         .map((prop) => prop.title!)
 
@@ -36,8 +36,8 @@ export const registerAdminCommands = () => {
 
   logseq.App.registerCommandPalette(
     {
-      key: 'logseq-zoterolocal-plugin-reset-current-settings',
-      label: 'logseq-zoterolocal-plugin: Reset current settings',
+      key: 'logseq-zotero-reset-current-settings',
+      label: 'Zotero: Reset current settings',
     },
     async () => {
       logseq.useSettingsSchema([
@@ -54,8 +54,8 @@ export const registerAdminCommands = () => {
 
   logseq.App.registerCommandPalette(
     {
-      key: 'logseq-zoterolocal-plugin-add-zotero-schema',
-      label: 'logseq-zoterolocal-plugin: Add Zotero schema to Logseq',
+      key: 'logseq-zotero-add-zotero-schema',
+      label: 'Zotero: Add Zotero schema to Logseq',
     },
     async () => {
       await setLogseqDbSchema()

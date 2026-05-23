@@ -49,7 +49,7 @@ export const batchInsertIntoGraph = async (
 
   if (!(await isSchemaAdded())) {
     throw new Error(
-      'Add the Zotero schema first — run "logseq-zoterolocal-plugin: Add Zotero schema to Logseq" from the command palette, then try again.',
+      'Add the Zotero schema first — run "Zotero: Add Zotero schema to Logseq" from the command palette, then try again.',
     )
   }
 

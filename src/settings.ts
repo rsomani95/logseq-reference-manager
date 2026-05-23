@@ -53,7 +53,7 @@ let lastConnectionMsg = ''
 // scoped to this plugin's settings panel via the `.panel-wrap[data-id=…]`
 // wrapper Logseq renders around it.
 const STYLE_KEY = 'zotero-settings-styles'
-const PLUGIN_PANEL = '.panel-wrap[data-id="logseq-zoterolocal-plugin"]'
+const PLUGIN_PANEL = '.panel-wrap[data-id="logseq-zotero"]'
 
 const applySettingsStyles = () => {
   const preset =

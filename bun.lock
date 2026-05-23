@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "logseq-zoterolocal-plugin",
+      "name": "logseq-zotero",
       "dependencies": {
         "@logseq/libs": "0.3.3",
         "date-fns": "^4.1.0",

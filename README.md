@@ -1,8 +1,8 @@
 ![Logseq Badge](https://img.shields.io/badge/logseq%20%7C%20db-%2385C8C8?style=for-the-badge&logo=logseq&logoColor=black)
 
-# Logseq Zotero Plugin
+# Zotero (Local) for Logseq
 
-Connect locally to Zotero 8 (and above) and pull your items into Logseq without needing to sync with Zotero Cloud.
+Connect locally to Zotero 7 (and above) and pull your items into Logseq without needing to sync with Zotero Cloud.
 
 ![](/screenshots/demo.gif)
 
@@ -36,10 +36,10 @@ Connect locally to Zotero 8 (and above) and pull your items into Logseq without 
 ## Usage
 
 1. Ensure that you have completed the DB-related settings in the plugin settings.
-2. Trigger the command palette (`Mod+Shift+P`) and use `Add Zotero schema to Logseq` to configure the property types used by Zotero.
+2. Trigger the command palette (`Mod+Shift+P`) and run **Zotero: Add Zotero schema to Logseq** to configure the property types used by Zotero.
 3. If you encounter any issues, try using the following commands from the command palette:
-   - `Remove all created schem`: This removes all the schema created by the plugin
-   - `Reset current settings`: This resets all settings to default. Restart Logseq after using this command.
+   - **Zotero: Remove all created schema**: This removes all the schema created by the plugin
+   - **Zotero: Reset current settings**: This resets all settings to default. Restart Logseq after using this command.
 
 ### Insert Zotero item
 
@@ -84,7 +84,7 @@ After importing a Zotero item, you can sync new annotations that you've added in
 
 **Single page:** Navigate to a Zotero item page in Logseq, right-click the page title and select **Zotero: Sync annotations**. Only annotations added after the last sync will be appended under their respective attachment.
 
-**All pages:** Open the command palette (`Mod+Shift+P`) and run **logseq-zoterolocal-plugin: Sync all annotations**. This will sync annotations for every page tagged with "Zotero" in your graph.
+**All pages:** Open the command palette (`Mod+Shift+P`) and run **Zotero: Sync all annotations**. This will sync annotations for every page tagged with "Zotero" in your graph.
 
 The plugin tracks a `zotero-last-sync` timestamp on each page to determine which annotations are new. This timestamp is set automatically on initial import and updated after each sync.
 
@@ -92,19 +92,14 @@ The plugin tracks a `zotero-last-sync` timestamp on each page to determine which
 
 For the Page Name template, use only the stated placeholders. Refer to the plugin settings for available options.
 
-## Support
-
-If you find this plugin useful, consider supporting the developer:
-
-- [:gift_heart: Sponsor this project on Github](https://github.com/sponsors/benjypng)
-- [:coffee: Buy me a coffee](https://www.buymeacoffee.com/hkgnp.dev)
-
 ## Issues and Contributions
 
-For bug reports, feature requests, or contributions, please visit the [GitHub repository](https://github.com/benjypng/logseq-zoterolocal-plugin).
-
-*Note: This repository is currently not taking in any pull requests.*
+For bug reports, feature requests, or contributions, please visit the [GitHub repository](https://github.com/rsomani95/logseq-zotero).
 
 ## License
 
-[MIT License](LICENSE)
+[MIT License](LICENSE.md)
+
+## Credits
+
+Forked from [benjypng/logseq-zoterolocal-plugin](https://github.com/benjypng/logseq-zoterolocal-plugin), originally created by benjypng.
