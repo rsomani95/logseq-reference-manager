@@ -36,15 +36,15 @@ Connect locally to Zotero 7 (and above) and pull your items into Logseq without 
 ## Usage
 
 1. Ensure that you have completed the DB-related settings in the plugin settings.
-2. Trigger the command palette (`Mod+Shift+P`) and run **Zotero: Add Zotero schema to Logseq** to configure the property types used by Zotero.
+2. Trigger the command palette (`Mod+Shift+P`) and run **Zotero: Setup schema** to configure the property types used by Zotero.
 3. If you encounter any issues, try using the following commands from the command palette:
-   - **Zotero: Remove all created schema**: This removes all the schema created by the plugin
-   - **Zotero: Reset current settings**: This resets all settings to default. Restart Logseq after using this command.
+   - **Zotero: Delete schema**: This removes all the schema created by the plugin
+   - **Zotero: Reset settings**: This resets all settings to default. Restart Logseq after using this command.
 
-### Insert Zotero item
+### Import a Zotero item
 
 - Navigate to the page where you want to insert a Zotero item.
-- Type `/Zotero: Insert full item`.
+- Type `/Zotero: Import single item`.
 - Perform your search.
 - Click the desired item.
 - A new page will be created, and a reference to it will be inserted at your cursor position.

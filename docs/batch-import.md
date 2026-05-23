@@ -1,10 +1,10 @@
 # Batch import
 
 Imports many Zotero items into the graph in one pass — the multi-item
-counterpart to the `Zotero: Insert full item` slash command.
+counterpart to the `Zotero: Import single item` slash command.
 
-Run **`Batch import`** from the command palette. It opens a modal that moves
-through three phases: **select → importing → done**.
+Run **`Zotero: Batch import`** from the slash menu or the command palette. It
+opens a modal that moves through three phases: **select → importing → done**.
 
 ## How it works
 
@@ -43,7 +43,8 @@ listed alongside its reason.
 
 **Entry & shell**
 
-- `src/index.tsx` — registers the `Batch import` command palette command.
+- `src/index.tsx` — registers `Zotero: Batch import` as both a slash command
+  and a command palette command (one shared handler).
 - `src/BatchContainer.tsx` — mounts `BatchView` into the shared `#app` overlay.
 - `src/features/batch-import/index.tsx` — `BatchView`, the orchestrator: owns
   source / selection / phase state and the import flow.

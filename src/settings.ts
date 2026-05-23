@@ -133,7 +133,7 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       key: 'schemaSectionHeading',
       type: 'heading',
       title: 'Schema',
-      description: `Changes to settings below require running "Zotero: Add Zotero schema to Logseq" from the command palette to take effect.`,
+      description: `Changes to settings below require running "Zotero: Setup schema" from the command palette to take effect.`,
       default: '',
     },
     {

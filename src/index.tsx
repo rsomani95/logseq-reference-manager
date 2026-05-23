@@ -79,23 +79,29 @@ const main = async () => {
   )
 
   ///////////////////////////////////
-  // INSERT FULL DOCUMENT IN GRAPH //
+  ////////  IMPORT SINGLE ITEM //////
   ///////////////////////////////////
-  logseq.Editor.registerSlashCommand('Zotero: Insert full item', async (e) => {
-    const { rect } =
-      (await logseq.Editor.getEditingCursorPosition()) as BlockCursorPosition
-    root.render(
-      <ZotContainer uuid={e.uuid} rect={rect} openedAt={Date.now()} />,
-    )
-    logseq.showMainUI()
-  })
+  // Slash-only: the popup anchors to the editing cursor and links the new
+  // page into the current block, so it needs an active block to run in.
+  logseq.Editor.registerSlashCommand(
+    'Zotero: Import single item',
+    async (e) => {
+      const { rect } =
+        (await logseq.Editor.getEditingCursorPosition()) as BlockCursorPosition
+      root.render(
+        <ZotContainer uuid={e.uuid} rect={rect} openedAt={Date.now()} />,
+      )
+      logseq.showMainUI()
+    },
+  )
 
   ///////////////////////////////////
   /////////////  DEBUG  /////////////
   ///////////////////////////////////
-  // Inspects real production properties' descriptions. Run AFTER the real
-  // schema-setup command + a Logseq reload. Tells us whether the production
-  // path's descriptions actually survive to SQLite.
+  // Disabled (debug-only). Inspects real production properties' descriptions.
+  // Run AFTER the real schema-setup command + a Logseq reload to check whether
+  // the production path's descriptions survive to SQLite. Uncomment to enable.
+  /*
   logseq.Editor.registerSlashCommand(
     'Zotero: Inspect schema descriptions',
     async () => {
@@ -143,21 +149,28 @@ const main = async () => {
       )
     },
   )
+  */
 
   ///////////////////////////////////
   ///////////  BATCH IMPORT  ////////
   ///////////////////////////////////
+  // Cursor-independent (centered modal, writes no back-link), so it's offered
+  // on both the slash menu and the command palette off the same handler. A
+  // fresh `key` forces a clean remount, so every invocation starts at the
+  // select phase with no carried-over selection or summary.
+  const openBatchImport = async () => {
+    root.render(<BatchContainer key={`batch-${Date.now()}`} />)
+    await logseq.showMainUI()
+  }
+
+  logseq.Editor.registerSlashCommand('Zotero: Batch import', openBatchImport)
+
   logseq.App.registerCommandPalette(
     {
       key: 'logseq-zotero-batch-import',
       label: 'Zotero: Batch import',
     },
-    () => {
-      // A fresh `key` forces a clean remount, so every invocation starts at the
-      // select phase with no carried-over selection or summary.
-      root.render(<BatchContainer key={`batch-${Date.now()}`} />)
-      logseq.showMainUI()
-    },
+    openBatchImport,
   )
 }
 

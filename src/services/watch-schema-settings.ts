@@ -1,5 +1,5 @@
 // Schema-affecting settings only take effect after the user re-runs the
-// "Add Zotero schema to Logseq" command — the panel's `Schema` heading says
+// "Zotero: Setup schema" command — the panel's `Schema` heading says
 // this once, and this watcher fires a single trailing-debounced toast at the
 // moment of change so the requirement isn't lost between reading and acting.
 // Render-only settings (creatorNameTemplate, pagenameTemplate, etc.) are
@@ -31,7 +31,7 @@ export const registerSchemaSettingsWatcher = () => {
     if (timer) clearTimeout(timer)
     timer = setTimeout(() => {
       logseq.UI.showMsg(
-        'Schema setting changed — run "Zotero: Add Zotero schema to Logseq" from the command palette to apply.',
+        'Schema setting changed — run "Zotero: Setup schema" from the command palette to apply.',
         'warning',
         { timeout: TOAST_TIMEOUT_MS },
       )

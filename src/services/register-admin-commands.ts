@@ -4,7 +4,7 @@ export const registerAdminCommands = () => {
   logseq.App.registerCommandPalette(
     {
       key: 'logseq-zotero-remove-all-created-schema',
-      label: 'Zotero: Remove all created schema',
+      label: 'Zotero: Delete schema',
     },
     async () => {
       const msg = await logseq.UI.showMsg(
@@ -37,7 +37,7 @@ export const registerAdminCommands = () => {
   logseq.App.registerCommandPalette(
     {
       key: 'logseq-zotero-reset-current-settings',
-      label: 'Zotero: Reset current settings',
+      label: 'Zotero: Reset settings',
     },
     async () => {
       logseq.useSettingsSchema([
@@ -55,7 +55,7 @@ export const registerAdminCommands = () => {
   logseq.App.registerCommandPalette(
     {
       key: 'logseq-zotero-add-zotero-schema',
-      label: 'Zotero: Add Zotero schema to Logseq',
+      label: 'Zotero: Setup schema',
     },
     async () => {
       await setLogseqDbSchema()

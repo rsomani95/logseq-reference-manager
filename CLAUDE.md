@@ -49,13 +49,13 @@ DB-graph Logseq plugin SDK quirks (property API, theming, dev workflow, debuggin
 2. Registers settings via `settings.ts` (`handleSettings`).
 3. Registers admin commands via `services/register-admin-commands.ts` (schema setup, schema removal, settings reset).
 4. Registers the user-facing commands:
-   - Slash `Zotero: Insert full item` → opens the search popup, on pick creates a new Logseq page for the item and links it into the current block.
-   - Command palette `Batch import` → opens the batch import view to import many items at once (see **Batch import** below).
+   - Slash `Zotero: Import single item` → opens the cursor-anchored search popup; on pick creates a new Logseq page for the item and links it into the current block. Slash-only — it needs an active block to link into.
+   - Slash + command palette `Zotero: Batch import` → opens the batch import view to import many items at once (see **Batch import** below). Both surfaces share one handler; the modal is cursor-independent, so it works from either.
    - Page menu `Zotero: Sync annotations` + command palette `Sync all annotations` → fetches new annotations from Zotero and appends them under the matching attachment block.
 
 Both UIs render into the `#app` div and toggle via `logseq.showMainUI()` / `hideMainUI()`: the search popup is `ZotContainer` → `SearchItem` → `ResultCard`, the batch view is `BatchContainer` → `BatchView`. `ResultCard` and the batch view's `SelectableResultCard` share their visual body via `components/ResultCardBody.tsx`.
 
-### Data flow for "Insert full item"
+### Data flow for "Import single item"
 
 1. `services/get-zot-items.ts` calls Zotero's local API (`/items/top` for parent items, `/items?itemType=note||attachment||annotation` for children) via `wretch`.
 2. `services/map-items.ts` transforms raw `ZotItem[]` into the plugin's `ZotData[]`:
@@ -73,7 +73,7 @@ Both UIs render into the `#app` div and toggle via `logseq.showMainUI()` / `hide
 
 ### Property presets and schema setup
 
-Before importing items the user must run **`Add Zotero schema to Logseq`** from the command palette. This calls `services/set-logseqdb-schema.ts`, which:
+Before importing items the user must run **`Zotero: Setup schema`** from the command palette. This calls `services/set-logseqdb-schema.ts`, which:
 - Creates the Zotero tag.
 - For each property in the resolved preset (plus always `zotero-code`, `zotero-last-sync`, `zotero-attachment-key`), calls `logseq.Editor.upsertProperty` with the correct type:
   - `creators` → `node` cardinality many
@@ -94,7 +94,7 @@ The "Sync all annotations" command uses a datascript query (`src/queries.ts:QUER
 
 ### Batch import
 
-`Batch import` (command palette) opens `BatchContainer` → `BatchView`, a centered modal for importing many items at once. A source switcher drives one selectable list:
+`Zotero: Batch import` (slash or command palette) opens `BatchContainer` → `BatchView`, a centered modal for importing many items at once. A source switcher drives one selectable list:
 - **Search** — reuses `useSearchItems` (same recents + fuzzy search as the single-item popup).
 - **Collection** / **Saved search** — `hooks/use-batch.ts`: `useBatchSources` populates the pickers from `/collections` and `/searches`; `useContainerItems` fetches the chosen container via `getItemsForCollection` (2 calls — `/collections/{key}/items/top` plus its scoped note/attachment/annotation children) or `getItemsForSavedSearch` (1 call to `/searches/{key}/items`, partitioned into parents/children client-side). Both feed the same `mapItems` join used by the search flow — which resolves each item's `inGraph` badge (`buildZoteroCodeIndex` builds a Zotero-key → page index once, then each badge is an instant Map lookup), walks the list in growing chunks, and streams them back via an `onChunk` callback, so the list paints progressively rather than in one jump. `useContainerItems` surfaces this as `loading` (first chunk) and `loadingMore` (the rest).
 
