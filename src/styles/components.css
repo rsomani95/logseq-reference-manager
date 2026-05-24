@@ -6,12 +6,6 @@
    from Logseq (Layer 1); the plugin owns only its functional palette (Layer 2)
    and its elevation (Layer 3). Use the tokens — don't hardcode hex/rgba. */
 :root {
-  /* Form controls (selects and their native option popups especially) are
-     UA-rendered and follow `color-scheme`. Without this their chrome renders in
-     light mode on our dark surfaces. Declare it so controls honor the active
-     theme; the dark block flips it. */
-  color-scheme: light;
-
   /* Families — inherited; the fallbacks name Inter, the face Logseq ships.
      Logseq doesn't sync a mono family var, so the fallback stack carries mono. */
   --zot-font: var(
@@ -153,7 +147,6 @@
 /* Dark theme — overrides only the Layer 2 base hues + Layer 3 elevation;
    Layer 1 and the derived tints flip on their own. */
 html[data-theme="dark"] {
-  color-scheme: dark;
   --zot-color-success: #69db7c; /* green-4 */
   --zot-color-danger: #ff8787; /* red-4 — light enough for a dark surface */
   --zot-color-danger-fill-hover: #f03e3e; /* red-7 — hover lifts toward light */
@@ -164,6 +157,22 @@ html[data-theme="dark"] {
   --zot-shadow-modal:
     0 40px 80px -20px rgba(0, 0, 0, 0.72), 0 16px 36px -16px rgba(0, 0, 0, 0.6);
   --zot-color-backdrop: rgba(0, 0, 0, 0.3);
+}
+
+/* Native controls (<select> dropdown popups, checkboxes) are browser-drawn; this
+   forwards Logseq's light/dark to them so they don't render light on dark surfaces.
+   Scoped to the controls, never the root — color-scheme on the root also paints the
+   plugin iframe's canvas opaque, which curtains off the graph behind our overlays.
+   The plugin's own surfaces use the --ls-* mirror and scrollbars use scrollbar-color,
+   so nothing else needs it. (<option> inherits the <select>'s scheme, so the popup
+   follows.) */
+select,
+input[type="checkbox"] {
+  color-scheme: light;
+}
+html[data-theme="dark"] select,
+html[data-theme="dark"] input[type="checkbox"] {
+  color-scheme: dark;
 }
 
 /* ─── Motion · keyframes + reduced-motion ──────────────────────────────────
@@ -229,12 +238,22 @@ html[data-theme="dark"] {
   border: 0;
 }
 
-/* Dims the rest of the app behind an active plugin modal. */
+/* Dims the rest of the app behind an active plugin modal (batch, tag rules). */
 .zot-backdrop {
   position: fixed;
   inset: 0;
   background: var(--zot-color-backdrop);
   animation: zot-backdrop-in var(--zot-duration-standard) var(--zot-ease-out);
+}
+
+/* The single-item search popup is inline / in-flow — it floats at the cursor over
+   a fully-visible graph (like Logseq's own autocomplete), so its layer carries no
+   dim: dropping one reference mid-sentence shouldn't curtain off the app. The layer
+   still spans the viewport to catch an outside-click for dismissal. */
+.zot-popup-layer {
+  position: fixed;
+  inset: 0;
+  background: transparent;
 }
 
 /* Modal shell — shared by the single-item search popup and the batch import

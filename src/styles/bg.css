@@ -1,3 +1,6 @@
+/* The plugin renders into a showMainUI overlay iframe; both the root and body must
+   be transparent for the graph to show through behind our popup / modal layers. */
+html,
 body {
-  background: none !important;
+  background: transparent !important;
 }
