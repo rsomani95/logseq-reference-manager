@@ -17,6 +17,7 @@ import {
   migratePagePropsIfNeeded,
   registerPresetVisibilityWatcher,
 } from './settings'
+import { TagRulesContainer } from './TagRulesContainer'
 import { ZotContainer } from './ZotContainer'
 
 const main = async () => {
@@ -171,6 +172,23 @@ const main = async () => {
       label: 'Zotero: Batch import',
     },
     openBatchImport,
+  )
+
+  ///////////////////////////////////
+  ///////////  TAG RULES  ///////////
+  ///////////////////////////////////
+  // Visual editor for the `tagRules` setting (the settings panel can only show
+  // it as read-only JSON). Command-palette-only — it's a setup task, not a
+  // mid-writing action. Keyed remount starts every open from current settings.
+  logseq.App.registerCommandPalette(
+    {
+      key: 'logseq-zotero-edit-tag-rules',
+      label: 'Zotero: Edit tag rules',
+    },
+    async () => {
+      root.render(<TagRulesContainer key={`tagrules-${Date.now()}`} />)
+      await logseq.showMainUI()
+    },
   )
 }
 

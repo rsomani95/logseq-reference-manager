@@ -1307,4 +1307,337 @@ html[data-theme="dark"] {
     width: 1.25rem;
     height: 1.25rem;
   }
+
+  /* Tag-rules controls reach the 44px target on touch too. */
+  .tagrule-icon-btn,
+  .tagrule-add,
+  .tagrule-seg span,
+  .tagrule-input,
+  .tagrule-select {
+    min-height: 44px;
+  }
+}
+
+/* ─── Tag rules editor ─────────────────────────────────────────────────────
+   Reuses the .batch-container modal shell (width, elevation, entry animation).
+   Header / body / footer stack: header + footer fixed, body scrolls. */
+.tagrule-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+  padding: 0.85rem 0.95rem 0.75rem;
+  border-bottom: 1px solid var(--zot-color-border);
+}
+
+.tagrule-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.tagrule-title {
+  margin: 0;
+  font-size: var(--zot-text-heading);
+  font-weight: var(--zot-weight-semibold);
+  line-height: var(--zot-leading-tight);
+  letter-spacing: var(--zot-tracking-tight);
+  color: var(--zot-color-text);
+}
+
+.tagrule-subtitle {
+  margin: 0;
+  font-size: var(--zot-text-base);
+  line-height: var(--zot-leading-normal);
+  color: var(--zot-color-text-muted);
+  max-width: 46ch;
+}
+
+.tagrule-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.85rem 0.95rem;
+  scrollbar-color: var(--zot-color-scrollbar) transparent;
+}
+
+/* Empty state — calm and instructive, not a dead end. */
+.tagrule-empty {
+  text-align: center;
+  padding: 1.75rem 1rem 1.25rem;
+  color: var(--zot-color-text);
+}
+
+.tagrule-empty p {
+  margin: 0 0 0.35rem;
+  font-size: var(--zot-text-base);
+}
+
+.tagrule-empty-sub {
+  color: var(--zot-color-text-muted);
+  max-width: 40ch;
+  margin-inline: auto;
+}
+
+/* Rule card — elevation via surface + faint border (no heavy outline). */
+.tagrule-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border: 1px solid var(--zot-color-divider);
+  border-radius: 8px;
+  background: var(--zot-color-bg-secondary);
+  animation: zot-fade-in var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.tagrule-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tagrule-tag-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Eyebrow label — small, uppercase, low-attention. */
+.tagrule-label-text {
+  font-size: var(--zot-text-sm);
+  font-weight: var(--zot-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--zot-tracking-caps);
+  color: var(--zot-color-text-muted);
+  white-space: nowrap;
+}
+
+/* Shared input / select base. */
+.tagrule-input,
+.tagrule-select {
+  font-family: inherit;
+  font-size: var(--zot-text-base);
+  color: var(--zot-color-text);
+  background: var(--zot-color-bg);
+  border: 1px solid var(--zot-color-border);
+  border-radius: 4px;
+  padding: 0.3rem 0.45rem;
+  line-height: var(--zot-leading-normal);
+}
+
+.tagrule-select {
+  cursor: pointer;
+}
+
+.tagrule-input:focus-visible,
+.tagrule-select:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 1px;
+}
+
+.tagrule-input::placeholder {
+  color: var(--zot-color-text-muted);
+}
+
+.tagrule-tag {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--zot-weight-medium);
+}
+
+.tagrule-input.is-invalid,
+.tagrule-select.is-invalid {
+  border-color: var(--zot-color-danger);
+}
+
+/* Match mode — radios styled as a pill segmented control. */
+.tagrule-match {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.tagrule-seg {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The native radio carries semantics + keyboard; the span carries the look. */
+.tagrule-seg input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.tagrule-seg span {
+  padding: 0.2rem 0.6rem;
+  font-size: var(--zot-text-base);
+  border: 1px solid var(--zot-color-border);
+  border-radius: 999px;
+  color: var(--zot-color-text-muted);
+  transition:
+    background-color var(--zot-duration-micro) var(--zot-ease-out),
+    color var(--zot-duration-micro) var(--zot-ease-out),
+    border-color var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.tagrule-seg:has(input:checked) span {
+  background: var(--zot-color-accent-host);
+  border-color: var(--zot-color-accent-host);
+  color: var(--zot-color-on-accent);
+}
+
+.tagrule-seg:has(input:focus-visible) span {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 2px;
+}
+
+.tagrule-match-suffix {
+  font-size: var(--zot-text-base);
+  color: var(--zot-color-text-muted);
+}
+
+/* Conditions */
+.tagrule-conditions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.tagrule-condition-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tagrule-field {
+  flex: 0 1 11rem;
+  min-width: 0;
+}
+
+.tagrule-field-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 0 1 11rem;
+  min-width: 0;
+}
+
+.tagrule-field-custom .tagrule-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.tagrule-op {
+  flex: 0 0 auto;
+}
+
+.tagrule-value {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tagrule-error {
+  font-size: var(--zot-text-sm);
+  line-height: var(--zot-leading-normal);
+  color: var(--zot-color-danger);
+  padding-left: 0.1rem;
+}
+
+/* Icon button — delete rule / remove condition / close. */
+.tagrule-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem;
+  border: none;
+  background: transparent;
+  color: var(--zot-color-text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color var(--zot-duration-micro) var(--zot-ease-out),
+    background-color var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.tagrule-icon-btn:hover:not(:disabled) {
+  color: var(--zot-color-text);
+  background: var(--zot-color-hover);
+}
+
+.tagrule-delete-rule:hover:not(:disabled) {
+  color: var(--zot-color-danger);
+}
+
+.tagrule-icon-btn:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 1px;
+}
+
+.tagrule-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Ghost "add" buttons — quiet until hovered. */
+.tagrule-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  align-self: flex-start;
+  padding: 0.3rem 0.4rem;
+  font-size: var(--zot-text-base);
+  font-family: inherit;
+  color: var(--zot-color-info);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.tagrule-add:hover:not(:disabled) {
+  opacity: 0.75;
+}
+
+.tagrule-add:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 1px;
+}
+
+.tagrule-add:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tagrule-add-rule {
+  font-weight: var(--zot-weight-medium);
+}
+
+/* Inline "back to list" link inside custom-field mode. */
+.tagrule-link-btn {
+  font-size: var(--zot-text-sm);
+  color: var(--zot-color-info);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.1rem 0.2rem;
+  white-space: nowrap;
+}
+
+.tagrule-link-btn:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 1px;
 }

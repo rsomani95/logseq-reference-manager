@@ -200,3 +200,135 @@ export const matchTagRules = (item: ZotData, rules: TagRule[]): string[] => {
   }
   return [...matched]
 }
+
+// ─── Draft model (for the visual rule-builder modal) ────────────────────────
+//
+// The stored format is the validated `TagRule[]` above. The editor works on a
+// looser *draft* shape: values can be empty / mid-edit, and every rule and
+// condition carries a stable client `id` so React can key rows without losing
+// focus when the list reorders or a sibling is removed. `validateDraftRules`
+// is the bridge back to the strict format — it returns the well-formed subset
+// plus structured per-field errors the UI renders inline.
+
+export interface DraftCondition {
+  id: string
+  field: string
+  op: RuleOp
+  value: string
+}
+
+export interface DraftRule {
+  id: string
+  tag: string
+  match: 'any' | 'all'
+  when: DraftCondition[]
+}
+
+/** Per-condition error messages, keyed to the slot that failed. */
+export interface ConditionErrors {
+  field?: string
+  value?: string
+}
+
+/** Per-rule errors. `when` is keyed by condition id; only failing slots appear. */
+export interface RuleErrors {
+  tag?: string
+  general?: string
+  when: Record<string, ConditionErrors>
+}
+
+export interface DraftValidation {
+  /** The well-formed rules, ready to serialize (client ids stripped). */
+  rules: TagRule[]
+  /** Keyed by rule id; only rules that have at least one error appear. */
+  errors: Record<string, RuleErrors>
+  hasErrors: boolean
+}
+
+// Counter-backed id generator. Uniqueness within a session is all React keys
+// need; the suffix guards against collisions if `Date.now()` is coarse.
+let draftIdCounter = 0
+export const newDraftId = (): string => {
+  draftIdCounter += 1
+  return `tr-${draftIdCounter}-${Math.random().toString(36).slice(2, 7)}`
+}
+
+export const emptyDraftCondition = (): DraftCondition => ({
+  id: newDraftId(),
+  field: '',
+  op: 'contains',
+  value: '',
+})
+
+export const emptyDraftRule = (): DraftRule => ({
+  id: newDraftId(),
+  tag: '',
+  match: 'any',
+  when: [emptyDraftCondition()],
+})
+
+/** Seed the editor from stored rules, assigning fresh client ids. */
+export const rulesToDrafts = (rules: TagRule[]): DraftRule[] =>
+  rules.map((rule) => ({
+    id: newDraftId(),
+    tag: rule.tag,
+    match: rule.match,
+    when: rule.when.map((c) => ({ id: newDraftId(), ...c })),
+  }))
+
+/**
+ * Validates editor drafts into the strict `TagRule[]` format, collecting
+ * inline errors for anything incomplete. Stricter than `parseTagRules` on one
+ * point by design: an empty `value` is rejected, because a blank `contains`
+ * would silently match every item — almost never the intent when authoring in
+ * the GUI. A rule is included in `rules` only when it is wholly well-formed.
+ */
+export const validateDraftRules = (drafts: DraftRule[]): DraftValidation => {
+  const errors: Record<string, RuleErrors> = {}
+  const rules: TagRule[] = []
+
+  for (const draft of drafts) {
+    const ruleErrors: RuleErrors = { when: {} }
+    const tag = draft.tag.trim()
+    if (tag === '') ruleErrors.tag = 'Enter a tag name.'
+    if (draft.when.length === 0)
+      ruleErrors.general = 'Add at least one condition.'
+
+    const conditions: TagRuleCondition[] = []
+    for (const cond of draft.when) {
+      const condErrors: ConditionErrors = {}
+      const field = cond.field.trim()
+      if (field === '') condErrors.field = 'Pick a field.'
+      if (cond.value.trim() === '') {
+        condErrors.value = 'Enter a value.'
+      } else if (cond.op === 'regex') {
+        try {
+          new RegExp(cond.value)
+        } catch (e) {
+          condErrors.value = `Invalid regex: ${(e as Error).message}`
+        }
+      }
+      if (condErrors.field || condErrors.value) {
+        ruleErrors.when[cond.id] = condErrors
+      } else {
+        conditions.push({ field, op: cond.op, value: cond.value })
+      }
+    }
+
+    const hasError =
+      ruleErrors.tag !== undefined ||
+      ruleErrors.general !== undefined ||
+      Object.keys(ruleErrors.when).length > 0
+    if (hasError) {
+      errors[draft.id] = ruleErrors
+    } else {
+      rules.push({ tag, match: draft.match, when: conditions })
+    }
+  }
+
+  return { rules, errors, hasErrors: Object.keys(errors).length > 0 }
+}
+
+/** Pretty-print rules for storage in the `tagRules` setting. */
+export const serializeRules = (rules: TagRule[]): string =>
+  JSON.stringify(rules, null, 2)

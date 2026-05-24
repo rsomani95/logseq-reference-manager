@@ -129,6 +129,19 @@ The dev server (e.g. `vite` via `vite-plugin-logseq`) and the prod build both wr
 
 Fix: restart the dev server and reload the plugin in Logseq (Settings → Plugins → reload).
 
+## Settings panel
+
+### The schema renders a fixed set of widgets — no repeaters, no buttons
+
+`useSettingsSchema` accepts only `type: 'string' | 'number' | 'boolean' | 'enum' | 'object' | 'heading'` (with `inputAs: 'color' | 'date' | 'datetime-local' | 'range' | 'textarea'` and `enumPicker: 'select' | 'radio' | 'checkbox'`). There is no array/repeater type and no button type. Anything with a dynamic, variable-length shape (e.g. a list of rules, each with a list of conditions) can't be expressed as native widgets — it ends up as a JSON blob in a `textarea`. For a real editor, render your own React UI into `#app` and open it from a command palette entry (see `TagRulesContainer` + the `logseq-zotero-edit-tag-rules` command).
+
+### The plugin iframe can't touch the settings-panel DOM — only `provideStyle` CSS crosses
+
+The settings panel is rendered by Logseq's host app, not inside the plugin iframe, so `document.querySelector` from plugin code can't reach it (no setting the `readonly`/`disabled` attribute on a settings `textarea`, no injecting a button into a row). The one thing that does cross the boundary is CSS injected via `logseq.provideStyle`, scoped to `.panel-wrap[data-id="<plugin-id>"]`. Consequences:
+
+- **Hide / show a row** by value: register the row always, then `display: none` it via injected CSS, and re-inject when a controlling setting changes (`onSettingsChanged`). The stored value persists across hide/show. Used for both the `pageProps` row (gated by `propertyPreset`) and the read-only `tagRules` JSON row (gated by `showTagRulesJson`).
+- **"Read-only"** is only approximate from CSS: `pointer-events: none` is the strongest signal (it also blocks text selection/copy). The `readonly` attribute itself is unreachable. If true read-only-with-copy is needed, render the value in UI the plugin owns (the modal) instead.
+
 ## Debugging
 
 ### Slash-command callbacks swallow errors

@@ -60,6 +60,9 @@ const applySettingsStyles = () => {
     (logseq.settings?.propertyPreset as PropertyPreset | undefined) ??
     'Essentials'
   const hidePageProps = preset !== 'Custom'
+  // The raw tag-rules JSON is hidden until the user opts in via the
+  // `showTagRulesJson` toggle, mirroring how `propertyPreset` gates `pageProps`.
+  const showTagRulesJson = logseq.settings?.showTagRulesJson === true
 
   // The focus ring on Logseq's select trigger uses a 2px box-shadow with a
   // 2px offset — visually a bright cyan band wrapped in a pale halo. Drop
@@ -96,9 +99,20 @@ ${PLUGIN_PANEL} [data-key="tagRules"] textarea {
   font-size: 0.85rem;
   line-height: 1.45;
 }
+
+/* The JSON is a read-only mirror of what the "Zotero: Edit tag rules" command
+   writes. The plugin iframe can't reach the settings-panel DOM to set the
+   textarea's readonly attribute — only injected CSS crosses that boundary — so
+   block interaction here. pointer-events:none is the strongest read-only signal
+   CSS alone can give (it also disables selection); copy/edit live in the modal. */
+${PLUGIN_PANEL} [data-key="tagRules"] textarea {
+  pointer-events: none;
+  cursor: default;
+  opacity: 0.85;
+}
 `
 
-  const hideCss = hidePageProps
+  const hidePagePropsCss = hidePageProps
     ? `
 ${PLUGIN_PANEL} [data-key="pageProps"] {
   display: none !important;
@@ -106,7 +120,18 @@ ${PLUGIN_PANEL} [data-key="pageProps"] {
 `
     : ''
 
-  logseq.provideStyle({ key: STYLE_KEY, style: baseCss + hideCss })
+  const hideTagRulesCss = showTagRulesJson
+    ? ''
+    : `
+${PLUGIN_PANEL} [data-key="tagRules"] {
+  display: none !important;
+}
+`
+
+  logseq.provideStyle({
+    key: STYLE_KEY,
+    style: baseCss + hidePagePropsCss + hideTagRulesCss,
+  })
 }
 
 export const handleSettings = (opts: { msg?: string } = {}) => {
@@ -205,16 +230,24 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       type: 'heading',
       title: 'Extended tags',
       description:
-        'Apply additional Logseq tags to imported pages when items match your rules. All matching rules apply (the base Zotero tag is always added on top).',
+        'Automatically apply extra Logseq tags to imported pages when items match your rules (the base Zotero tag is always added on top). Edit rules visually with the "Zotero: Edit tag rules" command in the command palette.',
       default: '',
+    },
+    {
+      key: 'showTagRulesJson',
+      type: 'boolean',
+      title: 'Show raw JSON (read-only)',
+      description:
+        'Reveal the underlying tag-rules JSON below for inspection. It is read-only — use the "Zotero: Edit tag rules" command to make changes.',
+      default: false,
     },
     {
       key: 'tagRules',
       type: 'string',
       inputAs: 'textarea',
-      title: 'Tag rules',
+      title: 'Tag rules (JSON)',
       description:
-        'Operators: contains, equals, regex. Match modes: any, all. Common fields: `title`, `url`, `DOI`, `publicationTitle`, `citationKey`, `libraryCatalog`, `itemType`. Unknown fields never match.',
+        'Read-only mirror of the rules written by the "Zotero: Edit tag rules" command.',
       default: DEFAULT_TAG_RULES_JSON,
     },
   ]
@@ -223,15 +256,20 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
   applySettingsStyles()
 }
 
-// Refresh the injected CSS when `propertyPreset` changes — Logseq doesn't
-// re-render the open settings panel on schema changes, so toggling
-// `pageProps` visibility has to happen at the CSS layer (the row is always
-// in the DOM; we just `display: none` it). The stored `pageProps` value
-// persists across hide/show.
+// Refresh the injected CSS when a visibility-controlling setting changes —
+// Logseq doesn't re-render the open settings panel on schema changes, so
+// toggling a row's visibility has to happen at the CSS layer (the row is
+// always in the DOM; we just `display: none` it). `propertyPreset` gates the
+// `pageProps` row; `showTagRulesJson` gates the read-only `tagRules` row. The
+// stored values persist across hide/show.
 export const registerPresetVisibilityWatcher = () => {
   logseq.onSettingsChanged((next, prev) => {
     if (!prev) return
-    if (next.propertyPreset === prev.propertyPreset) return
+    if (
+      next.propertyPreset === prev.propertyPreset &&
+      next.showTagRulesJson === prev.showTagRulesJson
+    )
+      return
     applySettingsStyles()
   })
 }
