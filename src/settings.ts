@@ -213,7 +213,8 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       type: 'string',
       inputAs: 'textarea',
       title: 'Tag rules',
-      description: `Operators: contains, equals, regex. Match modes: any, all. Common fields: title, url, DOI, publicationTitle, citationKey, libraryCatalog, itemType. Unknown fields never match.`,
+      description:
+        'Operators: contains, equals, regex. Match modes: any, all. Common fields: `title`, `url`, `DOI`, `publicationTitle`, `citationKey`, `libraryCatalog`, `itemType`. Unknown fields never match.',
       default: DEFAULT_TAG_RULES_JSON,
     },
   ]
