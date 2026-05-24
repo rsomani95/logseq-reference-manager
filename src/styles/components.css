@@ -6,6 +6,12 @@
    from Logseq (Layer 1); the plugin owns only its functional palette (Layer 2)
    and its elevation (Layer 3). Use the tokens — don't hardcode hex/rgba. */
 :root {
+  /* Form controls (selects and their native option popups especially) are
+     UA-rendered and follow `color-scheme`. Without this their chrome renders in
+     light mode on our dark surfaces. Declare it so controls honor the active
+     theme; the dark block flips it. */
+  color-scheme: light;
+
   /* Families — inherited; the fallbacks name Inter, the face Logseq ships.
      Logseq doesn't sync a mono family var, so the fallback stack carries mono. */
   --zot-font: var(
@@ -147,6 +153,7 @@
 /* Dark theme — overrides only the Layer 2 base hues + Layer 3 elevation;
    Layer 1 and the derived tints flip on their own. */
 html[data-theme="dark"] {
+  color-scheme: dark;
   --zot-color-success: #69db7c; /* green-4 */
   --zot-color-danger: #ff8787; /* red-4 — light enough for a dark surface */
   --zot-color-danger-fill-hover: #f03e3e; /* red-7 — hover lifts toward light */
@@ -1425,6 +1432,10 @@ html[data-theme="dark"] {
   font-family: inherit;
   font-size: var(--zot-text-base);
   color: var(--zot-color-text);
+  /* Pin fill-color to match: form controls paint glyphs through
+     -webkit-text-fill-color, so an inherited/UA value would otherwise win over
+     `color`. Entered text stays at the full-strength primary token. */
+  -webkit-text-fill-color: var(--zot-color-text);
   background: var(--zot-color-bg);
   border: 1px solid var(--zot-color-border);
   border-radius: 4px;
@@ -1443,7 +1454,19 @@ html[data-theme="dark"] {
 }
 
 .tagrule-input::placeholder {
-  color: var(--zot-color-text-muted);
+  /* Derive the ghost color from the entered-text color, faded halfway to the
+     surface — so the placeholder is dimmer than entered text *by construction*.
+     Don't reach for --zot-color-text-muted (secondary): a Logseq theme may set
+     secondary brighter than primary, which inverts the hierarchy (entered text
+     ends up dimmer than its own placeholder). Pin fill-color + opacity:1 so the
+     value actually lands on the rendered glyphs. */
+  color: color-mix(in srgb, var(--zot-color-text) 50%, var(--zot-color-bg));
+  -webkit-text-fill-color: color-mix(
+    in srgb,
+    var(--zot-color-text) 50%,
+    var(--zot-color-bg)
+  );
+  opacity: 1;
 }
 
 .tagrule-tag {
@@ -1455,6 +1478,14 @@ html[data-theme="dark"] {
 .tagrule-input.is-invalid,
 .tagrule-select.is-invalid {
   border-color: var(--zot-color-danger);
+}
+
+/* When the field is both invalid and focused, the accent (blue) focus ring
+   clashes with the red error border — two rings in two hues. Recolor the ring
+   to danger so the error reads as one coherent red signal. */
+.tagrule-input.is-invalid:focus-visible,
+.tagrule-select.is-invalid:focus-visible {
+  outline-color: var(--zot-color-danger);
 }
 
 /* Match mode — radios styled as a pill segmented control. */
@@ -1492,10 +1523,15 @@ html[data-theme="dark"] {
     border-color var(--zot-duration-micro) var(--zot-ease-out);
 }
 
+/* Selected segment carries the host accent as text + border on a faint tint of
+   itself — never white-on-accent, which fails AA whenever the host accent is
+   light (the accent's lightness is unknowable). Accent-on-surface contrasts in
+   either theme, and keeps the native host-accent identity. */
 .tagrule-seg:has(input:checked) span {
-  background: var(--zot-color-accent-host);
+  background: color-mix(in srgb, var(--zot-color-accent-host) 14%, transparent);
   border-color: var(--zot-color-accent-host);
-  color: var(--zot-color-on-accent);
+  color: var(--zot-color-accent-host);
+  font-weight: var(--zot-weight-medium);
 }
 
 .tagrule-seg:has(input:focus-visible) span {
