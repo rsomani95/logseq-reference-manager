@@ -37,31 +37,37 @@ export const hasCiteKeyToken = (template: string | undefined): boolean =>
   token('citeKey', 'i').test(template ?? '')
 
 /**
- * Fills a page-name template. Tolerant of case/whitespace in the placeholders;
- * if the template carries no recognised placeholder (so every item would
- * collapse to the same colliding page name) it falls back to the citeKey
- * default, and if the result still comes out empty it falls back to the bare
- * citeKey, then the title.
+ * Fills a page-name template, then prepends the user-defined `prefix` (default
+ * none) to the result. The prefix is a literal lead-in — e.g. the academic `@`
+ * before a cite key — kept separate from the structural template so it can be
+ * edited on its own (see the Formats setup section). It applies to the resolved
+ * name *and* to the fallback, so a prefixed scheme stays consistent.
+ *
+ * Tolerant of case/whitespace in the placeholders; if the template carries no
+ * recognised placeholder (so every item would collapse to the same colliding
+ * page name) it falls back to the cite key, then the title.
  */
 export const applyPageNameTemplate = (
   template: string | undefined,
   item: PageNameItem,
+  prefix = '',
 ): string => {
   const tpl = template || ''
   // A safe per-item default: prefer the citeKey, but fall back to the title
-  // when no usable citeKey exists — `@N/A` would collide across every item
-  // just as a constant template would.
-  const fallback =
+  // when no usable citeKey exists — a prefixed `N/A` would collide across every
+  // item just as a constant template would.
+  const body =
     item.citeKey && item.citeKey !== 'N/A'
-      ? `@${item.citeKey}`
+      ? item.citeKey
       : item.title?.trim() || 'Untitled'
+  const fallback = `${prefix}${body}`
   if (!hasAnyToken(tpl, ['citeKey', 'title'])) return fallback
   const out = stripUnknownTokens(
     tpl
       .replace(token('citeKey'), item.citeKey ?? '')
       .replace(token('title'), item.title ?? ''),
   ).trim()
-  return out || fallback
+  return out ? `${prefix}${out}` : fallback
 }
 
 /**

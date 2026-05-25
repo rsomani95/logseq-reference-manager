@@ -24,10 +24,11 @@ import { buildZoteroCodeIndex, ZoteroCodedPage } from './zotero-code-index'
  * which is pure so the Formats settings preview can render through it too.
  */
 export const resolvePageName = (zotItem: ZotData): string =>
-  applyPageNameTemplate(logseq.settings?.pagenameTemplate as string, {
-    title: zotItem.title,
-    citeKey: zotItem.citeKey,
-  })
+  applyPageNameTemplate(
+    logseq.settings?.pagenameTemplate as string,
+    { title: zotItem.title, citeKey: zotItem.citeKey },
+    (logseq.settings?.pagenamePrefix as string) ?? '',
+  )
 
 /**
  * Renders a single creator's name via `creatorNameTemplate`. Used for both the
@@ -266,7 +267,8 @@ export const handleZotInDb = async (
           )
         }
       } else {
-        const text = creators.map(resolveCreatorName).join(', ')
+        const separator = (logseq.settings?.creatorSeparator as string) ?? ', '
+        const text = creators.map(resolveCreatorName).join(separator)
         await logseq.Editor.upsertBlockProperty(
           existingPage.uuid,
           fixedProp,

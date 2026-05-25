@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react'
+import { Plus, Tags } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import {
@@ -79,33 +79,44 @@ export const TagRulesSection = () => {
       <div className="setup-section-body">
         {drafts.length === 0 ? (
           <div className="tagrule-empty">
-            <p>No tag rules yet.</p>
+            <Tags size={30} aria-hidden className="tagrule-empty-icon" />
+            <p className="tagrule-empty-title">No tag rules yet</p>
             <p className="tagrule-empty-sub">
               Add a rule to automatically tag matching imports — for example,
               tag anything from arxiv.org as MLPaper.
             </p>
+            <button
+              type="button"
+              className="tagrule-add tagrule-add-rule"
+              disabled={saving}
+              onClick={addRule}
+            >
+              <Plus size={15} aria-hidden /> Add rule
+            </button>
           </div>
         ) : (
-          drafts.map((rule, i) => (
-            <RuleCard
-              key={rule.id}
-              rule={rule}
-              index={i}
-              errors={showErrors ? validation.errors[rule.id] : undefined}
+          <>
+            {drafts.map((rule, i) => (
+              <RuleCard
+                key={rule.id}
+                rule={rule}
+                index={i}
+                errors={showErrors ? validation.errors[rule.id] : undefined}
+                disabled={saving}
+                onChange={updateRule}
+                onRemove={() => removeRule(rule.id)}
+              />
+            ))}
+            <button
+              type="button"
+              className="tagrule-add tagrule-add-rule"
               disabled={saving}
-              onChange={updateRule}
-              onRemove={() => removeRule(rule.id)}
-            />
-          ))
+              onClick={addRule}
+            >
+              <Plus size={15} aria-hidden /> Add rule
+            </button>
+          </>
         )}
-        <button
-          type="button"
-          className="tagrule-add tagrule-add-rule"
-          disabled={saving}
-          onClick={addRule}
-        >
-          <Plus size={15} aria-hidden /> Add rule
-        </button>
       </div>
 
       <div className="setup-section-footer">

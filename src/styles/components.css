@@ -1395,22 +1395,50 @@ html[data-theme="dark"] input[type="checkbox"] {
   scrollbar-color: var(--zot-color-scrollbar) transparent;
 }
 
-/* Empty state — calm and instructive, not a dead end. */
+/* Empty state — a centered onboarding moment, not a dead end. Fills the body
+   (flex:1) so it sits in the optical center on a single axis: a quiet icon
+   anchor, the headline, one explanatory line, then the Add-rule action.
+   Replaces the old top-aligned text + left-aligned button, whose competing
+   axes read as misaligned. */
 .tagrule-empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 1.75rem 1rem 1.25rem;
+  gap: 0.4rem;
+  padding: 2rem 1rem;
   color: var(--zot-color-text);
 }
 
-.tagrule-empty p {
-  margin: 0 0 0.35rem;
-  font-size: var(--zot-text-base);
+.tagrule-empty-icon {
+  color: var(--zot-color-text-muted);
+  opacity: 0.7;
+  margin-bottom: 0.4rem;
+}
+
+.tagrule-empty-title {
+  margin: 0;
+  font-size: var(--zot-text-title);
+  font-weight: var(--zot-weight-semibold);
+  letter-spacing: var(--zot-tracking-tight);
+  color: var(--zot-color-text);
 }
 
 .tagrule-empty-sub {
+  margin: 0;
+  font-size: var(--zot-text-base);
+  line-height: var(--zot-leading-normal);
   color: var(--zot-color-text-muted);
-  max-width: 40ch;
-  margin-inline: auto;
+  max-width: 42ch;
+}
+
+/* The CTA rides the shared ghost add-button; override its list-context
+   left-alignment so it centers within the empty composition. */
+.tagrule-empty .tagrule-add {
+  align-self: center;
+  margin-top: 0.5rem;
 }
 
 /* Rule card — elevation via surface + faint border (no heavy outline). */
@@ -1949,6 +1977,28 @@ html[data-theme="dark"] input[type="checkbox"] {
   width: 100%;
 }
 
+/* Inline customization control — a compact, quiet field that sits under a
+   dropdown (the page-name prefix, the author separator). Light by design: a
+   muted caption label + a narrow input, so it reads as a refinement of the
+   choice above, not a new primary control. The live preview below carries the
+   weight of showing the effect. */
+.setup-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.setup-inline-label {
+  font-size: var(--zot-text-sm);
+  font-weight: var(--zot-weight-medium);
+  color: var(--zot-color-text-muted);
+}
+
+.setup-inline-input {
+  width: 5rem;
+  flex: 0 0 auto;
+}
+
 /* Connection status card */
 .setup-status {
   display: flex;
@@ -1986,6 +2036,72 @@ html[data-theme="dark"] input[type="checkbox"] {
 .setup-status-sub {
   font-weight: var(--zot-weight-normal);
   color: var(--zot-color-text-muted);
+}
+
+/* Connection help — the "how to connect" guidance shown only when Zotero is
+   unreachable. Deliberately surface-free (no second card under the error card):
+   an eyebrow label + a numbered list carry the "how to fix" calmly, so the only
+   colored block stays the error status itself. */
+.setup-help {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.setup-help-label {
+  font-size: var(--zot-text-sm);
+  font-weight: var(--zot-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--zot-tracking-caps);
+  color: var(--zot-color-text-muted);
+}
+
+.setup-steps {
+  margin: 0;
+  padding-left: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: var(--zot-text-base);
+  line-height: var(--zot-leading-normal);
+  color: var(--zot-color-text-secondary);
+}
+
+.setup-steps li {
+  padding-left: 0.15rem;
+}
+
+/* Numerals as the quiet guide — muted, tabular so they align. */
+.setup-steps li::marker {
+  color: var(--zot-color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.setup-steps strong {
+  font-weight: var(--zot-weight-medium);
+  color: var(--zot-color-text);
+}
+
+/* Text-only link to the Zotero docs — info-colored, no chrome. */
+.setup-help-link {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: var(--zot-text-base);
+  color: var(--zot-color-info);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.setup-help-link:hover {
+  opacity: 0.8;
+}
+
+.setup-help-link:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Preset radios */

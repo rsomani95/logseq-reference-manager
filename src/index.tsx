@@ -12,7 +12,11 @@ import { testZotConnection } from './services/get-zot-items'
 import { syncAnnotations } from './services/sync-annotations'
 import { registerThemeSync } from './services/sync-theme'
 import { registerTagRulesWatcher } from './services/watch-tag-rules'
-import { handleSettings, migratePagePropsIfNeeded } from './settings'
+import {
+  handleSettings,
+  migratePagenamePrefixIfNeeded,
+  migratePagePropsIfNeeded,
+} from './settings'
 import { ZotContainer } from './ZotContainer'
 
 const main = async () => {
@@ -25,6 +29,7 @@ const main = async () => {
   registerThemeSync()
   registerTagRulesWatcher()
   migratePagePropsIfNeeded()
+  migratePagenamePrefixIfNeeded()
 
   // Re-register with the live connection status. Defaults for new keys were
   // already populated by the pre-ready call below; this just refreshes the

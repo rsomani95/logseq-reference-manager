@@ -38,10 +38,10 @@ describe('applyPageNameTemplate', () => {
     )
   })
 
-  test('a placeholder-free (constant) template falls back to the citeKey default — no collisions', () => {
-    expect(applyPageNameTemplate('MyPaper', PAGE)).toBe('@vaswani2017')
-    expect(applyPageNameTemplate('', PAGE)).toBe('@vaswani2017')
-    expect(applyPageNameTemplate(undefined, PAGE)).toBe('@vaswani2017')
+  test('a placeholder-free (constant) template falls back to the citeKey — no collisions', () => {
+    expect(applyPageNameTemplate('MyPaper', PAGE)).toBe('vaswani2017')
+    expect(applyPageNameTemplate('', PAGE)).toBe('vaswani2017')
+    expect(applyPageNameTemplate(undefined, PAGE)).toBe('vaswani2017')
   })
 
   test('falls back to title when citeKey is unavailable and not templated', () => {
@@ -51,6 +51,19 @@ describe('applyPageNameTemplate', () => {
     expect(
       applyPageNameTemplate('MyPaper', { title: 'X', citeKey: 'N/A' }),
     ).toBe('X')
+  })
+
+  test('prepends the user-defined prefix to the resolved name and the fallback', () => {
+    expect(applyPageNameTemplate('<% citeKey %>', PAGE, '@')).toBe(
+      '@vaswani2017',
+    )
+    expect(applyPageNameTemplate('<% title %>', PAGE, '#')).toBe(
+      '#Attention Is All You Need',
+    )
+    // The fallback (constant template) receives the prefix too.
+    expect(applyPageNameTemplate('MyPaper', PAGE, '@')).toBe('@vaswani2017')
+    // Default prefix is empty — the bare result, no lead-in.
+    expect(applyPageNameTemplate('<% citeKey %>', PAGE)).toBe('vaswani2017')
   })
 })
 

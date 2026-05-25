@@ -62,7 +62,9 @@ const HIDDEN_KEYS = [
   'pageProps',
   'creatorsAsNodes',
   'creatorNameTemplate',
+  'creatorSeparator',
   'pagenameTemplate',
+  'pagenamePrefix',
   'openAttachmentInline',
   'webTag',
   'webCapturePageContent',
@@ -145,11 +147,31 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       default: '<% firstName %> <% lastName %>',
     },
     {
+      // Joins author names when creators are stored as plain text. Default
+      // matches the previously-hardcoded join, so existing graphs are unchanged.
+      key: 'creatorSeparator',
+      type: 'string',
+      title: 'Creator Separator',
+      description: '',
+      default: ', ',
+    },
+    {
       key: 'pagenameTemplate',
       type: 'string',
       title: 'Page Name Template',
       description: '',
       default: '@<% citeKey %>',
+    },
+    {
+      // Literal lead-in prepended to the page name (e.g. the academic `@`).
+      // Seeds empty; `migratePagenamePrefixIfNeeded` peels the leading literal
+      // out of the (default or stored) template into this key on first load, so
+      // new installs get `@` and existing templates keep their exact output.
+      key: 'pagenamePrefix',
+      type: 'string',
+      title: 'Page Name Prefix',
+      description: '',
+      default: '',
     },
     {
       key: 'openAttachmentInline',
@@ -225,4 +247,27 @@ export const migratePagePropsIfNeeded = () => {
   if (migrated.some((v, i) => v !== stored[i])) {
     logseq.updateSettings({ pageProps: migrated })
   }
+}
+
+// Splits the page-name template into a literal `pagenamePrefix` + a token-led
+// body, so the prefix (e.g. the academic `@`) is editable on its own. Peels any
+// literal text before the first `<% … %>` into the prefix and strips it from the
+// template. Idempotent: once the template starts with a token there's nothing to
+// peel. Runs for everyone on load —
+//   • new install: the default `@<% citeKey %>` → prefix `@`, body `<% citeKey %>`
+//   • old `@`-prefixed template → same split, output unchanged
+//   • a bare `<% citeKey %>` / `<% title %>` / `<% citeKey %> — <% title %>` →
+//     no leading literal, so prefix stays empty and output is preserved exactly
+// `pagenamePrefix` seeds empty (not `@`) precisely so a user who removed the `@`
+// isn't given one back here.
+export const migratePagenamePrefixIfNeeded = () => {
+  const tpl = logseq.settings?.pagenameTemplate as string | undefined
+  if (tpl == null) return
+  const tokenStart = tpl.indexOf('<%')
+  // tokenStart <= 0 → no leading literal to peel (already split, or no token).
+  if (tokenStart <= 0) return
+  logseq.updateSettings({
+    pagenamePrefix: tpl.slice(0, tokenStart),
+    pagenameTemplate: tpl.slice(tokenStart),
+  })
 }

@@ -33,8 +33,9 @@ const FALLBACK_SAMPLE: FmtSample = {
   fromLibrary: false,
 }
 
+// The literal `@` lives in the separate Prefix field now (see `pagenamePrefix`
+// + migratePagenamePrefixIfNeeded), so the structure presets carry tokens only.
 const PAGE_PRESETS: FmtPreset[] = [
-  { value: '@<% citeKey %>', label: 'Citekey, @-prefixed' },
   { value: '<% citeKey %>', label: 'Citekey' },
   { value: '<% title %>', label: 'Title' },
   { value: '<% citeKey %> — <% title %>', label: 'Citekey — Title' },
@@ -86,11 +87,17 @@ export const FormatsSection = ({
   onSchemaDirty: () => void
 }) => {
   const [pageTpl, setPageTpl] = useState<string>(
-    (logseq.settings?.pagenameTemplate as string) ?? '@<% citeKey %>',
+    (logseq.settings?.pagenameTemplate as string) ?? '<% citeKey %>',
+  )
+  const [prefix, setPrefix] = useState<string>(
+    (logseq.settings?.pagenamePrefix as string) ?? '',
   )
   const [creatorTpl, setCreatorTpl] = useState<string>(
     (logseq.settings?.creatorNameTemplate as string) ??
       '<% firstName %> <% lastName %>',
+  )
+  const [separator, setSeparator] = useState<string>(
+    (logseq.settings?.creatorSeparator as string) ?? ', ',
   )
   const [asNodes, setAsNodes] = useState<boolean>(
     (logseq.settings?.creatorsAsNodes as boolean) ?? true,
@@ -118,9 +125,17 @@ export const FormatsSection = ({
     setPageTpl(v)
     void logseq.updateSettings({ pagenameTemplate: v })
   }
+  const onPrefix = (v: string) => {
+    setPrefix(v)
+    void logseq.updateSettings({ pagenamePrefix: v })
+  }
   const onCreator = (v: string) => {
     setCreatorTpl(v)
     void logseq.updateSettings({ creatorNameTemplate: v })
+  }
+  const onSeparator = (v: string) => {
+    setSeparator(v)
+    void logseq.updateSettings({ creatorSeparator: v })
   }
   const onAsNodes = (v: boolean) => {
     setAsNodes(v)
@@ -132,16 +147,19 @@ export const FormatsSection = ({
     void logseq.updateSettings({ openAttachmentInline: v })
   }
 
-  const pagePreview = applyPageNameTemplate(pageTpl, {
-    title: sample.title,
-    citeKey: sample.citeKey,
-  })
-  // Mirror the import: text mode joins formatted names with ", "; node mode
-  // creates a page per author — shown here as `[[…]]` links.
+  const pagePreview = applyPageNameTemplate(
+    pageTpl,
+    { title: sample.title, citeKey: sample.citeKey },
+    prefix,
+  )
+  // Mirror the import: text mode joins formatted names with the separator; node
+  // mode creates a page per author — shown here as `[[…]]` links. (In node mode
+  // the separator is illustrative — Logseq renders the linked list — but it
+  // controls the plain-text join exactly.)
   const authorPreview = sample.authors
     .map((c) => applyCreatorTemplate(creatorTpl, c))
     .map((name) => (asNodes ? `[[${name}]]` : name))
-    .join(', ')
+    .join(separator)
 
   return (
     <>
@@ -171,6 +189,19 @@ export const FormatsSection = ({
               </option>
             ))}
           </select>
+          <div className="setup-inline-field">
+            <label className="setup-inline-label" htmlFor="page-prefix">
+              Prefix
+            </label>
+            <input
+              id="page-prefix"
+              className="tagrule-input setup-inline-input"
+              value={prefix}
+              placeholder="@"
+              aria-label="Page name prefix"
+              onChange={(e) => onPrefix(e.target.value)}
+            />
+          </div>
           <div className="setup-preview">
             <span className="setup-preview-label">Preview</span>
             <span className="setup-preview-value">{pagePreview}</span>
@@ -193,6 +224,19 @@ export const FormatsSection = ({
               </option>
             ))}
           </select>
+          <div className="setup-inline-field">
+            <label className="setup-inline-label" htmlFor="author-sep">
+              Separator
+            </label>
+            <input
+              id="author-sep"
+              className="tagrule-input setup-inline-input"
+              value={separator}
+              placeholder=", "
+              aria-label="Separator between author names"
+              onChange={(e) => onSeparator(e.target.value)}
+            />
+          </div>
           <div className="setup-preview">
             <span className="setup-preview-label">Preview</span>
             <span className="setup-preview-value">{authorPreview}</span>
