@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import type { PropertyPreset } from '../../interfaces'
+import { deleteZoteroSchema } from '../../services/delete-zotero-schema'
 import { isSchemaAdded } from '../../services/is-schema-added'
 import { setLogseqDbSchema } from '../../services/set-logseqdb-schema'
 import { PropertyPicker } from './PropertyPicker'
@@ -35,6 +36,9 @@ export const LibrarySection = ({
   // graph when the user clicks Apply, so we surface a quiet "re-apply" nudge
   // instead of the old global toast.
   const [dirty, setDirty] = useState(false)
+  // Two-click guard for the destructive delete (the former Delete schema cmd).
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     void isSchemaAdded().then(setApplied)
@@ -84,6 +88,41 @@ export const LibrarySection = ({
       )
     } finally {
       setApplying(false)
+    }
+  }
+
+  const doDelete = async () => {
+    setDeleting(true)
+    try {
+      const removed = await deleteZoteroSchema()
+      // Re-derive applied state from the graph rather than assuming success.
+      const stillThere = await isSchemaAdded()
+      setApplied(stillThere)
+      setDirty(false)
+      onSchemaChange(stillThere)
+      if (stillThere) {
+        await logseq.UI.showMsg(
+          removed > 0
+            ? `Removed ${removed}, but some Zotero properties remain — see the console.`
+            : 'Couldn’t remove the Zotero properties — see the console.',
+          'warning',
+        )
+      } else {
+        await logseq.UI.showMsg(
+          removed > 0
+            ? `Removed ${removed} Zotero ${removed === 1 ? 'property' : 'properties'}.`
+            : 'No Zotero properties to remove.',
+          'success',
+        )
+      }
+    } catch (e) {
+      await logseq.UI.showMsg(
+        `Couldn't delete schema: ${e instanceof Error ? e.message : String(e)}`,
+        'error',
+      )
+    } finally {
+      setDeleting(false)
+      setConfirmDelete(false)
     }
   }
 
@@ -158,6 +197,48 @@ export const LibrarySection = ({
             Each author becomes its own page, so you can jump from an author to
             all their works. Off = store them as plain text.
           </p>
+        </div>
+
+        <div className="setup-danger">
+          <span className="setup-danger-label">Danger zone</span>
+          <div className="setup-danger-row">
+            <div className="setup-danger-text">
+              <span className="setup-danger-title">Delete schema</span>
+              <span className="setup-field-hint">
+                Removes every Zotero property this plugin created. The tag page
+                is left intact (deleting it would clear its backlinks — do that
+                manually if you want). You can re-apply afterward.
+              </span>
+            </div>
+            {confirmDelete ? (
+              <div className="btn-group">
+                <button
+                  type="button"
+                  className="btn btn-white"
+                  disabled={deleting}
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  disabled={deleting}
+                  onClick={doDelete}
+                >
+                  {deleting ? 'Deleting…' : 'Confirm delete'}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-danger-outline"
+                onClick={() => setConfirmDelete(true)}
+              >
+                Delete schema
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

@@ -47,14 +47,23 @@ DB-graph Logseq plugin SDK quirks (property API, theming, dev workflow, debuggin
 `src/index.tsx` is the Logseq plugin entry. On `logseq.ready` it:
 1. Tests the connection to Zotero (`testZotConnection` in `services/get-zot-items.ts`).
 2. Registers settings via `settings.ts` (`handleSettings`).
-3. Registers admin commands via `services/register-admin-commands.ts` (schema setup, schema removal, settings reset).
-4. Registers the user-facing commands:
+3. Registers the commands:
    - Slash `Zotero: Import single item` → opens the cursor-anchored search popup; on pick creates a new Logseq page for the item and links it into the current block. Slash-only — it needs an active block to link into.
    - Slash + command palette `Zotero: Batch import` → opens the batch import view to import many items at once (see **Batch import** below). Both surfaces share one handler; the modal is cursor-independent, so it works from either.
    - Page menu `Zotero: Sync annotations` + command palette `Sync all annotations` → fetches new annotations from Zotero and appends them under the matching attachment block.
-   - Command palette `Zotero: Edit tag rules` → opens the visual tag-rules editor (see **Extended tags** below). Palette-only — it's a setup task, not a mid-writing action.
+   - Command palette `Zotero: Settings` → opens the setup hub (see **Setup hub** below), the single home for all configuration — connection test, library mapping + schema apply/delete, import formats, and tag rules.
 
-Both UIs render into the `#app` div and toggle via `logseq.showMainUI()` / `hideMainUI()`: the search popup is `ZotContainer` → `SearchItem` → `ResultCard`, the batch view is `BatchContainer` → `BatchView`, the tag-rules editor is `TagRulesContainer` → `TagRulesEditor`. `ResultCard` and the batch view's `SelectableResultCard` share their visual body via `components/ResultCardBody.tsx`.
+All UIs render into the `#app` div and toggle via `logseq.showMainUI()` / `hideMainUI()`: the search popup is `ZotContainer` → `SearchItem` → `ResultCard`, the batch view is `BatchContainer` → `BatchView`, the setup hub is `SetupContainer` → `SetupApp` → its section components. `ResultCard` and the batch view's `SelectableResultCard` share their visual body via `components/ResultCardBody.tsx`.
+
+### Setup hub
+
+`Zotero: Settings` opens `SetupContainer` → `SetupApp` (`src/features/setup/`), the single surface for all configuration. The native settings panel is reduced to a launcher heading + a live connection-status line; its real keys stay in the schema (their rows hidden via injected CSS — see `HIDDEN_KEYS` in `settings.ts`) only so Logseq populates defaults on a fresh install. Sections:
+- **Connect** (`ConnectSection`) — live connection test (`testZotConnection`).
+- **Library** (`LibrarySection`) — `zotTag`, `propertyPreset`, the searchable custom-property `PropertyPicker`, `creatorsAsNodes`, an explicit **Apply schema** button (`setLogseqDbSchema`), and a **Danger zone** that deletes the created schema (`services/delete-zotero-schema.ts`).
+- **Import formats** (`FormatsSection`) — `pagenameTemplate` / `creatorNameTemplate` as dropdown presets with a live preview, plus `openAttachmentInline`.
+- **Tag rules** (`TagRulesSection`) — the rule builder (see **Extended tags**), set apart as advanced.
+
+Simple controls autosave (`updateSettings`); the heavy ops — Apply schema, schema delete, and Tag rules' Save — are explicit. `SetupApp` probes connection + `isSchemaAdded` on open, ticks the completed sections, and lands on the first incomplete one. The dev-facing reference (every settings key, how to add a setting, the hidden-keys mechanism) lives in [`settings.md`](./settings.md).
 
 ### Data flow for "Import single item"
 
@@ -63,7 +72,7 @@ Both UIs render into the `#app` div and toggle via `logseq.showMainUI()` / `hide
    - Adds `attachments` (with their annotations attached), `notes`, `citeKey`, `inGraph`, `libraryLink` (a `zotero://select/library/items?itemKey=…` URI), and `zotero-code` (the Zotero item key).
    - `inGraph` is computed by `buildZoteroCodeIndex` (`services/zotero-code-index.ts`): a Logseq page is in-graph when it carries a `zotero-code` property matching the item's Zotero key. Matching the key — not a name rebuilt from `pagenameTemplate` — means renaming an imported page in Logseq doesn't flip its badge back to "not in graph". The search popup's cached snapshot can't see graph changes made after it was fetched, so `useSearchItems` re-runs the index (`refreshInGraphFlags`) over the cached items each time the popup reopens (keyed off an `openedAt` prop threaded from `index.tsx`).
 3. User picks a result → `services/insert-zot-into-graph.ts` calls `handle-zot-db.ts`. If the item is already in the graph (matched by `zotero-code`, so rename-proof), no page is created — the existing page is linked into the current block instead.
-4. `handle-zot-db.ts` creates the page, tags it with the configured `zotTag` (default `Zotero`), then iterates the resolved property list (`PROP_PRESETS[preset]` or the custom list from settings) and writes properties with `logseq.Editor.upsertBlockProperty`. Special-cased properties:
+4. `handle-zot-db.ts` creates the page, tags it with the configured `zotTag` (default `Reference`), then iterates the resolved property list (`PROP_PRESETS[preset]` or the custom list from settings) and writes properties with `logseq.Editor.upsertBlockProperty`. Special-cased properties:
    - `creators`, `tags` — each value becomes its own Logseq page; the property gets the page id.
    - `accessDate`, `dateAdded`, `dateModified` — written as Logseq journal page references.
    - `inGraph`, `annotations`, `attachments`, `abstractNote`, `notes`, `version`, `collections`, `pages`, `parentItem`, empty values — skipped.
@@ -74,7 +83,7 @@ Both UIs render into the `#app` div and toggle via `logseq.showMainUI()` / `hide
 
 ### Property presets and schema setup
 
-Before importing items the user must run **`Zotero: Setup schema`** from the command palette. This calls `services/set-logseqdb-schema.ts`, which:
+Before importing items the user clicks **Apply schema** in the setup hub's Library section (`Zotero: Settings`). This calls `services/set-logseqdb-schema.ts`, which:
 - Creates the Zotero tag.
 - For each property in the resolved preset (plus always `zotero-code`, `zotero-last-sync`, `zotero-attachment-key`), calls `logseq.Editor.upsertProperty` with the correct type:
   - `creators` → `node` cardinality many
@@ -85,7 +94,7 @@ Before importing items the user must run **`Zotero: Setup schema`** from the com
   - everything else → `default`
 - Associates every property with the Zotero tag (`addTagProperty`).
 
-Property names are kebab-cased everywhere they touch Logseq (`convert-prop-to-kebab.ts`), **except** `ISSN`/`ISBN`/`DOI` which stay uppercase. Preset definitions live in `src/constants.ts` (`PROP_PRESET_MINIMAL`, `PROP_PRESET_CORE`, `PROP_PRESET_ACADEMIC`) and the master key list is `ZOT_DATA_KEY_MAP`. The `PropertyPreset` setting in `settings.ts` is what selects which preset is active.
+Property names are kebab-cased everywhere they touch Logseq (`convert-prop-to-kebab.ts`), **except** `ISSN`/`ISBN`/`DOI` which stay uppercase. The active preset is the `propertyPreset` setting: `Essentials` (the curated `PROP_PRESET_ESSENTIALS` in `src/constants.ts`), `Full` (everything in the master key list `ZOT_DATA_KEY_MAP`), or `Custom` (the `pageProps` list chosen via the hub's `PropertyPicker`). The Library section's **Danger zone** (`services/delete-zotero-schema.ts`) removes every property the plugin created (via `removeProperty`, matched by the `ZOTERO_PROP` ident namespace so the user's own are never touched). It deliberately leaves the tag/class page intact — deleting it would clear the page's backlinks, so that's a manual op. Properties use `removeProperty`, not `deletePage(title)`, which silently no-ops on a property entity (the bug behind the old command's false-success).
 
 ### Annotation sync
 
@@ -105,9 +114,9 @@ The list is `SelectableResultCard`s; selection is a `Map` keyed by Zotero item k
 
 `src/extended-tags.ts` lets the user apply extra Logseq tags to imported items that match rules. The storage format is a JSON array of `TagRule`s in the `tagRules` setting: `{ tag, match: 'any' | 'all', when: [{ field, op: 'contains' | 'equals' | 'regex', value }] }`. `parseTagRules` validates raw input into the well-formed subset (lenient on field names — any string is accepted, unknown fields just never match, so future Zotero fields work without parser changes). At import, `handle-zot-db.ts` calls `getConfiguredTagRules` + `matchTagRules(item, rules)` and adds every matched tag on top of the base `zotTag`.
 
-Rules are edited through the **`Zotero: Edit tag rules`** modal (`features/tag-rules/`: `TagRulesEditor` → `RuleCard` → `ConditionRow`/`FieldSelect`), not by hand-writing JSON. The editor works on a *draft* model (`DraftRule`/`DraftCondition` with client ids); `validateDraftRules` is the bridge back to the strict format (stricter than `parseTagRules` on one point — it rejects an empty `value`, since a blank `contains` would match everything), and `serializeRules` writes the result back to `tagRules` via `logseq.updateSettings`. Errors stay hidden until the first Save attempt, then validate live. `FieldSelect` offers curated common fields (`services/tag-rule-fields.ts`) first, the rest below, and a custom-entry escape hatch for the parser's any-string forward-compat.
+Rules are edited in the setup hub's **Tag rules** section (`features/setup/TagRulesSection.tsx`, reusing `features/tag-rules/`: `RuleCard` → `ConditionRow`/`FieldSelect`) — reached via `Zotero: Settings`, not by hand-writing JSON. It works on a *draft* model (`DraftRule`/`DraftCondition` with client ids); `validateDraftRules` is the bridge back to the strict format (stricter than `parseTagRules` on one point — it rejects an empty `value`, since a blank `contains` would match everything), and `serializeRules` writes the result back to `tagRules` via `logseq.updateSettings`. Errors stay hidden until the first Save attempt, then validate live. `FieldSelect` offers curated common fields (`services/tag-rule-fields.ts`) first, the rest below, and a custom-entry escape hatch for the parser's any-string forward-compat.
 
-In settings the `tagRules` value is kept as a **read-only** JSON mirror, hidden behind the `showTagRulesJson` toggle — the same register-always-and-gate-with-injected-CSS trick used for `pageProps` (see `applySettingsStyles` / `registerPresetVisibilityWatcher`), because the plugin iframe can't reach the settings-panel DOM to set `readonly` directly. `services/watch-tag-rules.ts` still toasts parse errors as a safety net for externally-edited JSON.
+`tagRules` isn't shown in the native settings panel at all — every editable row is hidden there (see `HIDDEN_KEYS` / `applySettingsStyles` in `settings.ts`, the inject-scoped-CSS trick the iframe needs because it can't reach the panel DOM). `services/watch-tag-rules.ts` still toasts parse errors as a safety net for externally-edited JSON.
 
 ### Key constants
 
@@ -118,7 +127,7 @@ In settings the `tagRules` value is kept as a **read-only** JSON mirror, hidden 
 
 ### Template placeholders
 
-`<% placeholder %>` strings are used in `pagenameTemplate` — only `<% citeKey %>` and `<% title %>` are supported. Substitution lives in `resolvePageName` (`services/handle-zot-db.ts`), shared by the single-item and batch paths. The `inGraph` badge no longer needs it — detection matches the `zotero-code` property, not a templated page name.
+`<% placeholder %>` strings fill `pagenameTemplate` (`<% citeKey %>`, `<% title %>`) and `creatorNameTemplate` (`<% firstName %>`, `<% lastName %>`). Substitution lives in pure, tested functions in `services/resolve-templates.ts` (`applyPageNameTemplate` / `applyCreatorTemplate`) — tolerant of placeholder case/whitespace, stripping unknown tokens, and falling back to a collision-safe name when a template carries no usable placeholder. `handle-zot-db.ts`'s `resolvePageName` / `resolveCreatorName` wrap them with the value from settings, and the Formats preview renders through the same functions, so preview == import output. The `inGraph` badge doesn't use templates — detection matches the `zotero-code` property, not a templated page name.
 
 ## Style and tooling
 

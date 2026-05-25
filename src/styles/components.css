@@ -2152,3 +2152,45 @@ html[data-theme="dark"] input[type="checkbox"] {
   color: var(--zot-color-text);
   word-break: break-word;
 }
+
+/* Danger zone — the relocated "Delete schema" action, set off at the bottom of
+   the Library section so a destructive wipe isn't next to the primary Apply. */
+.setup-danger {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--zot-color-divider);
+}
+
+.setup-danger-label {
+  font-size: var(--zot-text-sm);
+  font-weight: var(--zot-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--zot-tracking-caps);
+  color: var(--zot-color-danger);
+}
+
+.setup-danger-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.setup-danger-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.setup-danger-title {
+  font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-medium);
+  color: var(--zot-color-text);
+}
+
+.setup-danger-row .btn-group {
+  flex-shrink: 0;
+}

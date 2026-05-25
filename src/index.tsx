@@ -5,12 +5,10 @@ import { createRoot } from 'react-dom/client'
 
 import { BatchContainer } from './BatchContainer'
 import { PLUGIN_ID } from './constants'
-import type { SetupSection } from './features/setup'
 import { handlePopup } from './handle-popup'
 import { QUERY_ALL_ZOT_PAGES } from './queries'
 import { SetupContainer } from './SetupContainer'
 import { testZotConnection } from './services/get-zot-items'
-import { registerAdminCommands } from './services/register-admin-commands'
 import { syncAnnotations } from './services/sync-annotations'
 import { registerThemeSync } from './services/sync-theme'
 import { registerTagRulesWatcher } from './services/watch-tag-rules'
@@ -23,7 +21,6 @@ const main = async () => {
     'warning',
   )
 
-  registerAdminCommands()
   handlePopup()
   registerThemeSync()
   registerTagRulesWatcher()
@@ -173,27 +170,14 @@ const main = async () => {
   //////////////  SETUP  ////////////
   ///////////////////////////////////
   // The single hub for all configuration — connection test, library mapping
-  // (+ schema apply), import formats, and tag rules. Keyed remount per open
-  // re-reads settings fresh. `Zotero: Settings` lands on the first incomplete
-  // step; `Zotero: Edit tag rules` deep-links straight to the Tag rules section.
-  const openSetup = async (initialSection?: SetupSection) => {
-    root.render(
-      <SetupContainer
-        key={`setup-${Date.now()}`}
-        initialSection={initialSection}
-      />,
-    )
-    await logseq.showMainUI()
-  }
-
+  // (+ schema apply / delete), import formats, and tag rules. Keyed remount per
+  // open re-reads settings fresh; the hub lands on the first incomplete step.
   logseq.App.registerCommandPalette(
     { key: `${PLUGIN_ID}-settings`, label: 'Zotero: Settings' },
-    () => openSetup(),
-  )
-
-  logseq.App.registerCommandPalette(
-    { key: `${PLUGIN_ID}-edit-tag-rules`, label: 'Zotero: Edit tag rules' },
-    () => openSetup('tagRules'),
+    async () => {
+      root.render(<SetupContainer key={`setup-${Date.now()}`} />)
+      await logseq.showMainUI()
+    },
   )
 }
 

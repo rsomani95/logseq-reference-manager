@@ -51,13 +51,14 @@ externally hand-edited JSON.
 ## Setup hub
 
 ```
-Zotero: Settings ─┐                    Zotero: Edit tag rules ─┐
-                  ▼                                            ▼
+Zotero: Settings ─┐
+                  ▼
 src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
   └─ src/features/setup/index.tsx → SetupApp (shell: header · nav rail · panel)
        sections (src/features/setup/):
          ConnectSection.tsx   — live connection test (testZotConnection)
-         LibrarySection.tsx   — tag, preset, PropertyPicker, Apply schema
+         LibrarySection.tsx   — tag, preset, PropertyPicker, Apply schema,
+                                Danger zone (deleteZoteroSchema)
            └─ PropertyPicker.tsx — searchable custom-property selector
          FormatsSection.tsx   — page/author dropdowns + live preview
          TagRulesSection.tsx  — rule builder (reuses ../tag-rules/RuleCard)
@@ -72,8 +73,10 @@ src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
   incomplete *gating* section (`GATING = ['connect', 'library']`; Formats and
   Tag rules are never "incomplete"). A "Next: …" cue points at the next gating
   gap. A deep-link (`initialSection`) skips the wait.
-- **Deep-link.** `SetupContainer` takes `initialSection?: SetupSection`;
-  `Zotero: Edit tag rules` opens the hub on `'tagRules'`.
+- **Deep-link (capability).** `SetupContainer` / `SetupApp` accept an optional
+  `initialSection` to open straight to a section. No command passes it today —
+  the former `Zotero: Edit tag rules` deep-link was retired with that command —
+  but the extension point is there.
 - **Save model.**
   - Simple controls **autosave** on change (`updateSettings`) — the
     Logseq-native feel.
@@ -116,8 +119,12 @@ Properties and the tag only reach the graph when **Apply schema** runs
 `services/set-logseqdb-schema.ts`, which reads `zotTag` / `propertyPreset` /
 `pageProps` / `creatorsAsNodes` from `logseq.settings`. `LibrarySection` flushes
 its own values via `updateSettings` *before* calling it (the change handlers are
-fire-and-forget). The legacy palette command `Zotero: Setup schema` still calls
-the same function.
+fire-and-forget). The Library **Danger zone** (`services/delete-zotero-schema.ts`)
+removes every property in the `ZOTERO_PROP` ident namespace via `removeProperty`
+(never the user's own). The tag/class page is deliberately left intact —
+deleting it would clear its backlinks, so that's a manual op. Note
+`removeProperty`, not `deletePage(title)`, which silently no-ops on a property
+entity (the bug behind the old command's false-success).
 
 ## Gotchas
 
