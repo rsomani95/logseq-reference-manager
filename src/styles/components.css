@@ -105,19 +105,25 @@
      progress, checkbox); kept distinct from the plugin's semantic colors. */
   --zot-color-accent-host: var(--ls-active-primary-color, #1c7ed6);
 
-  /* ─── Color · Layer 2 — functional (plugin-owned) ──────────────────────────
-     Four hues, all Open Color, all conventional: green = success / in-graph,
-     red = error, blue = link & primary action, warm yellow = highlight. `:root`
-     holds light values; html[data-theme="dark"] overrides the base hues below.
-     `*` = text/icon/border on a neutral surface; `*-fill` = a solid background
-     that carries --zot-color-on-accent text. */
+  /* ─── Color · Layer 2 — functional ─────────────────────────────────────────
+     green = success / in-graph, red = error, warm yellow = highlight — all
+     Open Color, all conventional, plugin-owned. The link / primary-action hue
+     is deliberately NOT plugin-owned: --zot-color-info aliases Logseq's own
+     accent (Layer 1) so links and the primary button read as part of the host
+     theme rather than a fixed plugin blue. `:root` holds light values;
+     html[data-theme="dark"] overrides the plugin-owned base hues below — the
+     accent-derived info needs none, it flips with the host. `*` = text/icon/
+     border on a neutral surface; `*-fill` = a solid background that carries
+     --zot-color-on-accent text. */
   --zot-color-success: #2b8a3e; /* green-8 — ~4.6:1 on white */
   --zot-color-danger: #c92a2a; /* red-9 — danger text/icons, ~5.3:1 on white */
   --zot-color-danger-fill: #e03131; /* red-8 — danger button fill */
   --zot-color-danger-fill-hover: #c92a2a;
-  --zot-color-info: #1971c2; /* blue-7 — links & accent text, ~5.1:1 on white */
-  --zot-color-info-fill: #1971c2; /* blue-7 — primary button fill */
-  --zot-color-info-fill-hover: #1864ab; /* blue-8 */
+  /* links & accent text — Logseq's accent, not a fixed blue (see above). The
+     primary button tints with the accent rather than filling with it, so
+     there's no info-fill: white-on-accent can fail AA when the host accent is
+     light (even the default accent is only ~4.2:1 with white). */
+  --zot-color-info: var(--zot-color-accent-host);
   --zot-color-neutral-fill: #6c757d; /* gray-7 — neutral button fill */
   --zot-color-on-accent: #fff; /* text on any saturated *-fill, both themes */
   --zot-color-mark-bg: var(--ls-page-mark-bg-color, #ffe9a8); /* warm */
@@ -150,7 +156,6 @@ html[data-theme="dark"] {
   --zot-color-success: #69db7c; /* green-4 */
   --zot-color-danger: #ff8787; /* red-4 — light enough for a dark surface */
   --zot-color-danger-fill-hover: #f03e3e; /* red-7 — hover lifts toward light */
-  --zot-color-info: #4dabf7; /* blue-4 */
   --zot-color-neutral-fill: #495057; /* gray-7 */
   --zot-color-mark-bg: var(--ls-page-mark-bg-color, #5c4e1f);
   --zot-color-mark-text: var(--ls-page-mark-color, #f3ead0);
@@ -744,13 +749,27 @@ html[data-theme="dark"] input[type="checkbox"] {
   transform: scale(0.97);
 }
 
+/* Primary action — accent-tinted, never a white-on-accent fill: the host
+   accent's lightness is unknowable, and white on it can fail AA (even Logseq's
+   default accent is ~4.2:1). Accent text + border on a faint wash of the accent
+   reads as primary and contrasts in either theme — the same pattern the
+   selected segment / radio already use. */
 .btn-primary {
-  background-color: var(--zot-color-info-fill);
-  color: var(--zot-color-on-accent);
+  background-color: color-mix(
+    in srgb,
+    var(--zot-color-accent-host) 14%,
+    transparent
+  );
+  color: var(--zot-color-accent-host);
+  border-color: var(--zot-color-accent-host);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--zot-color-info-fill-hover);
+  background-color: color-mix(
+    in srgb,
+    var(--zot-color-accent-host) 22%,
+    transparent
+  );
 }
 
 .btn-danger {
@@ -1495,8 +1514,25 @@ html[data-theme="dark"] input[type="checkbox"] {
   line-height: var(--zot-leading-normal);
 }
 
+/* Restyle only the closed control so the chevron can sit a comfortable gap off
+   the right border — the native arrow hugs the edge and ignores padding. The
+   open <option> popup stays browser-drawn (and color-scheme-aware, see top of
+   file). Chevron is a neutral mid-gray that reads on light + dark surfaces; the
+   dark block lifts it a touch. background-image is set after the base rule's
+   `background` shorthand, so the surface color it set survives. */
 .tagrule-select {
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23868e96' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 0.85rem;
+  padding-right: 1.85rem;
+}
+
+html[data-theme="dark"] .tagrule-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23909296' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
 .tagrule-input:focus-visible,
@@ -1977,15 +2013,27 @@ html[data-theme="dark"] input[type="checkbox"] {
   width: 100%;
 }
 
-/* Inline customization control — a compact, quiet field that sits under a
-   dropdown (the page-name prefix, the author separator). Light by design: a
-   muted caption label + a narrow input, so it reads as a refinement of the
-   choice above, not a new primary control. The live preview below carries the
-   weight of showing the effect. */
+/* A dropdown and its inline modifier (the page-name prefix, the author
+   separator) share one row: the dropdown is the primary choice and flexes to
+   fill, the modifier sits compact at the end — so the modifier reads as a
+   refinement of the choice, not a second full-width control stacked below it.
+   The live preview underneath carries the weight of showing the effect. */
+.setup-field-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.setup-field-row .setup-control {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .setup-inline-field {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  flex: 0 0 auto;
 }
 
 .setup-inline-label {
@@ -1994,9 +2042,16 @@ html[data-theme="dark"] input[type="checkbox"] {
   color: var(--zot-color-text-muted);
 }
 
+/* Quieter than the dropdown beside it: a faint inset fill, no visible border
+   (the 1px stays transparent so heights still align on the row), and centered
+   since the value is a glyph or two. The focus ring (inherited from
+   .tagrule-input) still marks it on keyboard entry. */
 .setup-inline-input {
-  width: 5rem;
+  width: 4rem;
   flex: 0 0 auto;
+  background: var(--zot-color-bg-secondary);
+  border-color: transparent;
+  text-align: center;
 }
 
 /* Connection status card */

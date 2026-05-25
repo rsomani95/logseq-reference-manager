@@ -177,30 +177,32 @@ export const FormatsSection = ({
           <label className="setup-field-label" htmlFor="page-fmt">
             Page name
           </label>
-          <select
-            id="page-fmt"
-            className="tagrule-select setup-control"
-            value={pageTpl}
-            onChange={(e) => onPage(e.target.value)}
-          >
-            {withCurrent(PAGE_PRESETS, pageTpl).map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-          <div className="setup-inline-field">
-            <label className="setup-inline-label" htmlFor="page-prefix">
-              Prefix
-            </label>
-            <input
-              id="page-prefix"
-              className="tagrule-input setup-inline-input"
-              value={prefix}
-              placeholder="@"
-              aria-label="Page name prefix"
-              onChange={(e) => onPrefix(e.target.value)}
-            />
+          <div className="setup-field-row">
+            <select
+              id="page-fmt"
+              className="tagrule-select setup-control"
+              value={pageTpl}
+              onChange={(e) => onPage(e.target.value)}
+            >
+              {withCurrent(PAGE_PRESETS, pageTpl).map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <div className="setup-inline-field">
+              <label className="setup-inline-label" htmlFor="page-prefix">
+                Prefix
+              </label>
+              <input
+                id="page-prefix"
+                className="tagrule-input setup-inline-input"
+                value={prefix}
+                placeholder="@"
+                aria-label="Page name prefix"
+                onChange={(e) => onPrefix(e.target.value)}
+              />
+            </div>
           </div>
           <div className="setup-preview">
             <span className="setup-preview-label">Preview</span>
@@ -212,30 +214,32 @@ export const FormatsSection = ({
           <label className="setup-field-label" htmlFor="creator-fmt">
             Author name
           </label>
-          <select
-            id="creator-fmt"
-            className="tagrule-select setup-control"
-            value={creatorTpl}
-            onChange={(e) => onCreator(e.target.value)}
-          >
-            {withCurrent(CREATOR_PRESETS, creatorTpl).map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-          <div className="setup-inline-field">
-            <label className="setup-inline-label" htmlFor="author-sep">
-              Separator
-            </label>
-            <input
-              id="author-sep"
-              className="tagrule-input setup-inline-input"
-              value={separator}
-              placeholder=", "
-              aria-label="Separator between author names"
-              onChange={(e) => onSeparator(e.target.value)}
-            />
+          <div className="setup-field-row">
+            <select
+              id="creator-fmt"
+              className="tagrule-select setup-control"
+              value={creatorTpl}
+              onChange={(e) => onCreator(e.target.value)}
+            >
+              {withCurrent(CREATOR_PRESETS, creatorTpl).map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+            <div className="setup-inline-field">
+              <label className="setup-inline-label" htmlFor="author-sep">
+                Separator
+              </label>
+              <input
+                id="author-sep"
+                className="tagrule-input setup-inline-input"
+                value={separator}
+                placeholder=", "
+                aria-label="Separator between author names"
+                onChange={(e) => onSeparator(e.target.value)}
+              />
+            </div>
           </div>
           <div className="setup-preview">
             <span className="setup-preview-label">Preview</span>

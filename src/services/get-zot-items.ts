@@ -20,6 +20,14 @@ const api = wretch().url(ZOT_URL).headers({
   'zotero-allowed-request': 'true',
 })
 
+/**
+ * Probes the Zotero local API. A pure status check — it returns the result
+ * rather than toasting, because every caller surfaces it in context: the setup
+ * hub's Connection section shows it inline, and the load-time probe feeds the
+ * settings status line. The import paths don't use this (they carry their own
+ * error toasts), so a connection failure is never announced twice — and a test
+ * run from the settings panel stays silent.
+ */
 export const testZotConnection = async (): Promise<{
   code: 'success' | 'error'
   msg: string
@@ -28,15 +36,8 @@ export const testZotConnection = async (): Promise<{
     await api.url('/items').addon(QueryAddon).query({ limit: 1 }).get().res()
     return { code: 'success', msg: '✅ Connection to Zotero is working' }
   } catch (error) {
-    // If error.status is undefined, it means Zotero is not open
-
+    // A missing status (vs. an HTTP error code) means Zotero isn't running.
     const wretchError = error as WretchError
-    logseq.UI.showMsg(
-      `❌ ${PLUGIN_ID}: Connection error
-Status: ${wretchError.status}
-Response: ${wretchError.message}`,
-      'error',
-    )
     return {
       code: 'error',
       msg: `❌ ${PLUGIN_ID}: Connection error
