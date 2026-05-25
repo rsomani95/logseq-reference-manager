@@ -119,7 +119,22 @@ Properties and the tag only reach the graph when **Apply schema** runs
 `services/set-logseqdb-schema.ts`, which reads `zotTag` / `propertyPreset` /
 `pageProps` / `creatorsAsNodes` from `logseq.settings`. `LibrarySection` flushes
 its own values via `updateSettings` *before* calling it (the change handlers are
-fire-and-forget). The Library **Danger zone** (`services/delete-zotero-schema.ts`)
+fire-and-forget).
+
+**Per-property visibility.** Every created property gets
+`:logseq.property/hide-empty-value` (a nil value collapses).
+`:logseq.property/hide?` ("hide by default") is set on all properties *except*
+the `VISIBLE_BY_DEFAULT_PROPS` allowlist (`constants.ts` — currently
+authors/title/url/date/date-added), which show inline, so an imported page reads
+as notes rather than a metadata dump. This is an opinionated hardcoded default —
+**TODO: surface it as a setting** so users choose their visible fields. Caveats
+that drive the design: Logseq only hides `nil`, never `""` (so `handle-zot-db`
+drops blank values at import); expanding "Hidden properties" reveals *all* hidden
+props, empties included (the expand path skips the empty-value check); and
+`hide?`=true also blocks property deletion (which `delete-zotero-schema` works
+around by stripping it first).
+
+The Library **Danger zone** (`services/delete-zotero-schema.ts`)
 removes every property in the `ZOTERO_PROP` ident namespace via `removeProperty`
 (never the user's own). The tag/class page is deliberately left intact —
 deleting it would clear its backlinks, so that's a manual op. Note

@@ -47,6 +47,19 @@ export const PROP_PRIORITY_ORDER = [
   'dateAdded',
 ] as const
 
+// Properties shown inline on an imported page by default. Everything else is
+// marked "hide by default", so it's tucked into Logseq's collapsed "Hidden
+// properties" group and the page reads as notes, not a metadata dump. Kebab
+// form — compared against the kebab `prop` in `set-logseqdb-schema`.
+// Opinionated default for now; making it user-configurable is a TODO (settings.md).
+export const VISIBLE_BY_DEFAULT_PROPS = new Set<string>([
+  'authors',
+  'title',
+  'url',
+  'date',
+  'date-added',
+])
+
 // Property presets - each tier includes all properties from the tier(s) below it
 export const PROP_PRESET_ESSENTIALS = [
   'title',

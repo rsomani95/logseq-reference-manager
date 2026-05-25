@@ -5,6 +5,7 @@ import {
   PROP_DISPLAY_NAMES,
   PROP_PRESETS,
   PROP_PRIORITY_ORDER,
+  VISIBLE_BY_DEFAULT_PROPS,
   ZOT_DATA_KEY_MAP,
   ZOTERO_PROP,
 } from '../constants'
@@ -60,22 +61,32 @@ const createTagProperties = async (props: string[]) => {
         await logseq.Editor.updateBlock(property.uuid, displayName)
       }
 
-      // Deliberately do NOT hide-by-default. Logseq lumps hide-by-default
-      // properties into the collapsed "Hidden properties" group, and expanding
-      // that group shows *every* hidden property — including the unset schema
-      // fields an item doesn't fill (a paper has no `publisher`/`volume`/…) —
-      // because the expand path skips the empty-value check. The result is a
-      // page full of empty rows. Leaving properties visible inline lets
-      // `hide-empty-value` (below) suppress the unset ones instead: Logseq hides
-      // a property when `hide-empty-value` is set AND its value is nil. We
-      // actively *clear* any `hide?` a previous schema version set, so a
-      // re-apply migrates existing properties. (Aside: `hide?`=true also blocks
-      // property deletion — see `delete-zotero-schema.ts`.)
-      await logseq.Editor.removeBlockProperty(
-        property.uuid,
-        'logseq.property/hide?',
-      )
+      // Visibility default: only the allowlisted fields (VISIBLE_BY_DEFAULT_PROPS)
+      // show inline on an imported page; every other property is hide-by-default,
+      // tucked into Logseq's collapsed "Hidden properties" group so the page reads
+      // as notes, not a metadata dump. We set `hide?` explicitly either way (not
+      // relying on prior state) so a re-apply migrates existing properties. NB:
+      // expanding "Hidden properties" reveals *all* hidden props, empties included
+      // — Logseq's expand path skips the empty-value check — so hide-by-default is
+      // for the default view, not a guarantee. `hide?`=true also blocks deletion
+      // (delete-zotero-schema strips it first).
+      // TODO: make the visible-by-default set user-configurable (see settings.md).
+      if (VISIBLE_BY_DEFAULT_PROPS.has(prop)) {
+        await logseq.Editor.removeBlockProperty(
+          property.uuid,
+          'logseq.property/hide?',
+        )
+      } else {
+        await logseq.Editor.upsertBlockProperty(
+          property.uuid,
+          'logseq.property/hide?',
+          true,
+        )
+      }
 
+      // `hide-empty-value` hides a property when its value is nil — so the
+      // visible-by-default fields collapse when empty too. (Logseq does NOT treat
+      // "" as empty, so blank values are dropped at import — see handle-zot-db.)
       await logseq.Editor.upsertBlockProperty(
         property.uuid,
         'logseq.property/hide-empty-value',
