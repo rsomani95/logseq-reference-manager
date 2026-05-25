@@ -24,7 +24,7 @@ Connect locally to Zotero 7 (and above) and pull your items into Logseq without 
 
 1. Close Logseq.
 2. Ensure Zotero 7 is running, and then:
-   - In settings, under `Advanced`, check `Allow other applications on this computer to communicate with Zotero`.
+   - In settings, under `Advanced`, check `Allow other applications on this computer to communicate with Zotero`
    - (only if you want to citation keys) Install [Better Bibtex](https://github.com/retorquere/zotero-better-bibtex/releases).
    - In the Better Bibtex section of your Zotero settings, ensure that `Automatically pin citation key after X seconds` is set to `1`.
    - Note: Citation keys need to be **both** set up and pinned in Zotero 7 in order to use citation keys in Logseq. If you have issues setting this up, please seek help at the Zotero or Better Bibtex forums as I may not be as familiar.
@@ -51,32 +51,6 @@ Connect locally to Zotero 7 (and above) and pull your items into Logseq without 
 
 ## Configuration
 
-### Property Presets
-
-Choose a preset in the plugin settings to control which Zotero properties are added to your pages. The default is **Core**.
-
-| Preset | Description |
-|--------|-------------|
-| **Essentials** | Personal preset based on my own Library |
-| **Minimal** | Just the essentials: title, date, creators, itemType, DOI, ISBN, publicationTitle, libraryLink |
-| **Core** (default) | Minimal + common citation fields for journal articles, books, and chapters |
-| **Academic Extended** | Core + dates, institutional, manuscript, report, and thesis fields |
-| **Full** | Every available Zotero property |
-| **Custom** | Pick individual properties via the checkbox list in settings |
-
-<details>
-<summary>Core properties</summary>
-
-title, date, creators, itemType, DOI, ISBN, publicationTitle, libraryLink, shortTitle, year, publisher, place, volume, issue, pages, numPages, edition, series, seriesTitle, seriesNumber, ISSN, url, language, tags, key, libraryCatalog, rights, license, citationKey, journalAbbreviation, bookTitle, callNumber
-
-</details>
-
-<details>
-<summary>Academic Extended properties (includes Core)</summary>
-
-All Core properties, plus: accessDate, dateAdded, dateModified, month, day, number, versionNumber, parentItem, relations, references, university, institution, distributor, repository, manuscriptType, reportType, reportNumber, thesisType, extra, section, numberOfVolumes, firstPage, seriesText, subject, label
-
-</details>
 
 ### Syncing Annotations
 
