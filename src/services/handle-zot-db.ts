@@ -9,39 +9,33 @@ import { isRecycledPage } from './is-recycled-page'
 import { isSchemaAdded } from './is-schema-added'
 import { parsePagePropChoice } from './page-props-choice'
 import { parseHtml } from './parse-html'
+import {
+  applyCreatorTemplate,
+  applyPageNameTemplate,
+  hasCiteKeyToken,
+} from './resolve-templates'
 import { buildZoteroCodeIndex, ZoteroCodedPage } from './zotero-code-index'
 
 /**
  * Resolves the Logseq page name for a Zotero item by filling the configured
- * `pagenameTemplate`. Shared by the single-item and batch import paths.
+ * `pagenameTemplate`. Shared by the single-item and batch import paths. The
+ * substitution is tolerant of placeholder case/whitespace and falls back to a
+ * collision-safe default — the real work lives in `applyPageNameTemplate`,
+ * which is pure so the Formats settings preview can render through it too.
  */
-// FIXME: This is fucking brittle. We need to make the settings strongly typed
-// via a dropdown or something. No string replace nonsense pls.
 export const resolvePageName = (zotItem: ZotData): string =>
-  (logseq.settings!.pagenameTemplate as string)
-    .replace('<% title %>', zotItem.title)
-    .replace('<% citeKey %>', zotItem.citeKey)
-    .trim()
-
-// FIXME: Same shit as above
-const DEFAULT_CREATOR_TEMPLATE = '<% firstName %> <% lastName %>'
+  applyPageNameTemplate(logseq.settings?.pagenameTemplate as string, {
+    title: zotItem.title,
+    citeKey: zotItem.citeKey,
+  })
 
 /**
  * Renders a single creator's name via `creatorNameTemplate`. Used for both the
  * Logseq page title when creators are stored as page references, and for each
  * entry when they're stored as comma-separated text.
  */
-export const resolveCreatorName = (creator: CreatorItem): string => {
-  // Single-field creator (institutional, "Various", etc.) — there's nothing
-  // to plug into the firstName/lastName template, so use `name` verbatim.
-  if (creator.name) return creator.name.trim()
-  const template =
-    (logseq.settings?.creatorNameTemplate as string) || DEFAULT_CREATOR_TEMPLATE
-  return template
-    .replace('<% firstName %>', creator.firstName ?? '')
-    .replace('<% lastName %>', creator.lastName ?? '')
-    .trim()
-}
+export const resolveCreatorName = (creator: CreatorItem): string =>
+  applyCreatorTemplate(logseq.settings?.creatorNameTemplate as string, creator)
 
 // FIXME: Add docstring. what does this do?
 export const handleZotInDb = async (
@@ -58,7 +52,7 @@ export const handleZotInDb = async (
 
   // Check if citekey has been configured correctly
   if (
-    (logseq.settings!.pagenameTemplate as string).includes('<% citeKey %>') &&
+    hasCiteKeyToken(logseq.settings?.pagenameTemplate as string) &&
     zotItem.citeKey === 'N/A'
   ) {
     //logseq.UI.showMsg(

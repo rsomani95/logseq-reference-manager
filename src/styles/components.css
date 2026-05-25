@@ -256,10 +256,11 @@ html[data-theme="dark"] input[type="checkbox"] {
   background: transparent;
 }
 
-/* Modal shell — shared by the single-item search popup and the batch import
-   view; each then sets its own width and position below. */
+/* Modal shell — shared by the single-item search popup, the batch import view,
+   and the setup hub; each then sets its own width and position below. */
 .search-container,
-.batch-container {
+.batch-container,
+.setup-container {
   position: absolute;
   background: var(--zot-color-bg);
   color: var(--zot-color-text);
@@ -1699,4 +1700,455 @@ html[data-theme="dark"] input[type="checkbox"] {
 .tagrule-link-btn:focus-visible {
   outline: 2px solid var(--zot-color-accent-host);
   outline-offset: 1px;
+}
+
+/* ─── Setup hub ─────────────────────────────────────────────────────────────
+   The single configuration window (Connection · Library · Import formats ·
+   Tag rules). Reuses the modal shell (bg / shadow / radius / entry) above and
+   the --zot-* tokens; adds a fixed-height two-column layout — a left nav rail
+   and a scrolling section panel (each section is head / body / footer). */
+.setup-container {
+  width: min(54rem, calc(100vw - 1.5rem));
+  height: min(40rem, 86vh);
+  top: 7vh;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: zot-modal-in var(--zot-duration-standard) var(--zot-ease-out);
+}
+
+.setup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 0.7rem 0.95rem;
+  border-bottom: 1px solid var(--zot-color-border);
+}
+
+.setup-title {
+  margin: 0;
+  font-size: var(--zot-text-title);
+  font-weight: var(--zot-weight-semibold);
+  letter-spacing: var(--zot-tracking-tight);
+  color: var(--zot-color-text);
+}
+
+.setup-main {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Left nav rail */
+.setup-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  width: 12.5rem;
+  padding: 0.6rem;
+  border-right: 1px solid var(--zot-color-border);
+  background: var(--zot-color-bg-secondary);
+  overflow-y: auto;
+  scrollbar-color: var(--zot-color-scrollbar) transparent;
+}
+
+.setup-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  font-size: var(--zot-text-base);
+  font-family: inherit;
+  text-align: left;
+  color: var(--zot-color-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background-color var(--zot-duration-micro) var(--zot-ease-out),
+    color var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.setup-nav-item:hover {
+  background: var(--zot-color-hover);
+  color: var(--zot-color-text);
+}
+
+.setup-nav-item:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: -2px;
+}
+
+.setup-nav-item.is-active {
+  background: color-mix(in srgb, var(--zot-color-accent-host) 14%, transparent);
+  color: var(--zot-color-accent-host);
+  font-weight: var(--zot-weight-medium);
+}
+
+.setup-nav-icon {
+  flex-shrink: 0;
+}
+
+.setup-nav-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.setup-nav-check {
+  flex-shrink: 0;
+  color: var(--zot-color-success);
+}
+
+/* "Advanced" divider above the Tag rules entry. */
+.setup-nav-divider {
+  margin: 0.5rem 0.55rem 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--zot-color-divider);
+  font-size: var(--zot-text-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--zot-tracking-caps);
+  color: var(--zot-color-text-muted);
+}
+
+/* Guidance cue — quiet link to the next incomplete step, pinned to the rail's
+   bottom so the section list reads as the primary path. */
+.setup-nav-next {
+  margin-top: auto;
+  padding: 0.45rem 0.55rem;
+  font-size: var(--zot-text-sm);
+  font-family: inherit;
+  text-align: left;
+  color: var(--zot-color-info);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.setup-nav-next:hover {
+  background: var(--zot-color-hover);
+}
+
+.setup-nav-next:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: -2px;
+}
+
+/* Right panel — the active section as a head / body / footer stack. */
+.setup-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.setup-loading {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Section parts remount on switch, so the entry fades the whole panel as one. */
+.setup-section-head,
+.setup-section-body,
+.setup-section-footer {
+  animation: zot-fade-in var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.setup-section-head {
+  flex-shrink: 0;
+  padding: 0.95rem 1.1rem 0.75rem;
+  border-bottom: 1px solid var(--zot-color-border);
+}
+
+.setup-section-title {
+  margin: 0 0 0.2rem;
+  font-size: var(--zot-text-title);
+  font-weight: var(--zot-weight-semibold);
+  letter-spacing: var(--zot-tracking-tight);
+  color: var(--zot-color-text);
+}
+
+.setup-section-desc {
+  margin: 0;
+  font-size: var(--zot-text-base);
+  line-height: var(--zot-leading-normal);
+  color: var(--zot-color-text-muted);
+  max-width: 52ch;
+}
+
+.setup-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1rem 1.1rem;
+  scrollbar-color: var(--zot-color-scrollbar) transparent;
+}
+
+.setup-section-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  padding: 0.6rem 1.1rem;
+  border-top: 1px solid var(--zot-color-border);
+}
+
+/* Footer actions can carry a leading icon (e.g. the connection retry). */
+.setup-section-footer .btn {
+  gap: 0.4rem;
+}
+
+.setup-footer-status {
+  min-width: 0;
+  font-size: var(--zot-text-base);
+  color: var(--zot-color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Fields */
+.setup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.setup-field-label {
+  font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-medium);
+  color: var(--zot-color-text);
+}
+
+.setup-field-hint {
+  margin: 0;
+  font-size: var(--zot-text-sm);
+  line-height: var(--zot-leading-normal);
+  color: var(--zot-color-text-muted);
+}
+
+.setup-control {
+  width: 100%;
+}
+
+/* Connection status card */
+.setup-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: var(--zot-color-bg-secondary);
+  color: var(--zot-color-text);
+}
+
+.setup-status.is-ok {
+  color: var(--zot-color-success);
+  background: var(--zot-color-success-bg);
+}
+
+.setup-status.is-error {
+  color: var(--zot-color-danger);
+  background: var(--zot-color-danger-bg);
+}
+
+.setup-status > svg {
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.setup-status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-medium);
+}
+
+.setup-status-sub {
+  font-weight: var(--zot-weight-normal);
+  color: var(--zot-color-text-muted);
+}
+
+/* Preset radios */
+.setup-preset-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.setup-radio {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 0.1rem 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--zot-color-divider);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.setup-radio:hover {
+  border-color: var(--zot-color-border);
+}
+
+.setup-radio.is-selected {
+  border-color: var(--zot-color-accent-host);
+  background: color-mix(in srgb, var(--zot-color-accent-host) 8%, transparent);
+}
+
+.setup-radio input {
+  grid-row: 1 / span 2;
+  align-self: center;
+  margin: 0;
+  accent-color: var(--zot-color-accent-host);
+}
+
+.setup-radio input:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 2px;
+}
+
+.setup-radio-label {
+  font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-medium);
+  color: var(--zot-color-text);
+}
+
+.setup-radio-desc {
+  grid-column: 2;
+  font-size: var(--zot-text-sm);
+  color: var(--zot-color-text-muted);
+}
+
+/* Property picker (Custom preset) */
+.setup-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0.5rem;
+  border: 1px solid var(--zot-color-divider);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.setup-picker-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--zot-color-divider);
+  background: var(--zot-color-bg-secondary);
+}
+
+.setup-picker-search {
+  flex: 1;
+  min-width: 0;
+}
+
+.setup-picker-count {
+  flex-shrink: 0;
+  font-size: var(--zot-text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--zot-color-text-muted);
+}
+
+.setup-picker-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 16rem;
+  overflow-y: auto;
+  scrollbar-color: var(--zot-color-scrollbar) transparent;
+}
+
+.setup-picker-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--zot-color-divider);
+}
+
+.setup-picker-item:last-child {
+  border-bottom: none;
+}
+
+.setup-picker-item:hover {
+  background: var(--zot-color-hover);
+}
+
+.setup-picker-item input {
+  margin: 0.15rem 0 0;
+  flex-shrink: 0;
+  accent-color: var(--zot-color-accent-host);
+}
+
+.setup-picker-item input:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 2px;
+}
+
+.setup-picker-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.setup-picker-item-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--zot-text-base);
+  color: var(--zot-color-text);
+}
+
+.setup-picker-badge {
+  font-size: var(--zot-text-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--zot-tracking-caps);
+  color: var(--zot-color-info);
+}
+
+.setup-picker-item-desc {
+  font-size: var(--zot-text-sm);
+  line-height: var(--zot-leading-normal);
+  color: var(--zot-color-text-muted);
+}
+
+/* Format preview — the rendered example, monospace so it reads as output. */
+.setup-preview {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  background: var(--zot-color-bg-secondary);
+}
+
+.setup-preview-label {
+  flex-shrink: 0;
+  font-size: var(--zot-text-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--zot-tracking-caps);
+  color: var(--zot-color-text-muted);
+}
+
+.setup-preview-value {
+  font-family: var(--zot-font-mono);
+  font-size: var(--zot-text-base);
+  color: var(--zot-color-text);
+  word-break: break-word;
 }

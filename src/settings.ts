@@ -6,7 +6,6 @@ import {
   PROP_PRESET_ESSENTIALS,
   ZOT_DATA_KEY_MAP,
 } from './constants'
-import { DEFAULT_TAG_RULES_JSON } from './extended-tags'
 import { PropertyPreset } from './interfaces'
 import { formatPagePropChoice } from './services/page-props-choice'
 
@@ -20,9 +19,10 @@ const SKIPPED_PROPS = new Set([
 ])
 
 // Essentials first (in the curated `PROP_PRESET_ESSENTIALS` order), then every
-// other property alphabetical by display name. The pre-checked items cluster
-// at the top so the user can see at a glance what they're starting from when
-// switching to Custom.
+// other property alphabetical by display name. Drives the `pageProps` enum's
+// defaults / choices — the in-hub PropertyPicker is the real editing surface,
+// but the schema entry still needs valid choices so Logseq populates the
+// default selection on a fresh install.
 const buildPagePropsChoices = (): {
   choices: string[]
   defaults: string[]
@@ -41,98 +41,37 @@ const buildPagePropsChoices = (): {
   }
 }
 
-// Caches the latest connection-test result so re-registering the schema
-// doesn't blank the heading description that `main` sets after the first
-// connection probe.
+// Caches the latest connection-test result so re-registering the schema doesn't
+// blank the heading description that `main` sets after the first connection probe.
 let lastConnectionMsg = ''
 
-// Logseq's plugin settings panel reads the schema once when it renders and
-// doesn't re-render on `useSettingsSchema` updates — so dynamically *adding*
-// `pageProps` when the user switches to Custom would only appear after a
-// settings reopen. Instead, register `pageProps` once (always) and hide its
-// row via CSS injected through `provideStyle`. The injected styles are
-// scoped to this plugin's settings panel via the `.panel-wrap[data-id=…]`
-// wrapper Logseq renders around it.
 const STYLE_KEY = 'zotero-settings-styles'
 const PLUGIN_PANEL = `.panel-wrap[data-id="${PLUGIN_ID}"]`
 
+// Every real setting now lives in the in-app setup window (the `Zotero:
+// Settings` command); the native panel is just a launcher + live connection
+// status. These keys stay in the schema only so Logseq still populates their
+// defaults on a fresh install — and so the host's `settings:changed` handler
+// stays stable (see the pre-ready note in index.tsx). We hide their rows rather
+// than drop the keys. The plugin iframe can't reach the settings-panel DOM
+// directly; injected CSS scoped to this plugin's panel wrapper is the only way
+// across that boundary (same trick the old preset/tag-rules gating used).
+const HIDDEN_KEYS = [
+  'zotTag',
+  'propertyPreset',
+  'pageProps',
+  'creatorsAsNodes',
+  'creatorNameTemplate',
+  'pagenameTemplate',
+  'openAttachmentInline',
+]
+
 const applySettingsStyles = () => {
-  const preset =
-    (logseq.settings?.propertyPreset as PropertyPreset | undefined) ??
-    'Essentials'
-  const hidePageProps = preset !== 'Custom'
-  // The raw tag-rules JSON is hidden until the user opts in via the
-  // `showTagRulesJson` toggle, mirroring how `propertyPreset` gates `pageProps`.
-  const showTagRulesJson = logseq.settings?.showTagRulesJson === true
-
-  // The focus ring on Logseq's select trigger uses a 2px box-shadow with a
-  // 2px offset — visually a bright cyan band wrapped in a pale halo. Drop
-  // the shadow and signal focus with a single coloured border instead, which
-  // sits flush with the input (no halo) and still meets AA visible-focus.
-  //
-  // The Custom Page Properties checkbox list inherits Logseq's default
-  // `.ui__checkbox-list` styles, which lay items out row-wise with
-  // `flex-wrap: wrap` and `white-space: nowrap`. With ~90 items and long
-  // "Display Name — description" labels that becomes an unreadable jumble.
-  // Override to a column with comfortable spacing and let long labels wrap.
-  const baseCss = `
-${PLUGIN_PANEL} .ui__select-trigger:focus,
-${PLUGIN_PANEL} .ui__select-trigger:focus-visible {
-  box-shadow: none;
-  border-color: var(--ls-active-primary-color);
-}
-
-${PLUGIN_PANEL} [data-key="pageProps"] .ui__checkbox-list {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-${PLUGIN_PANEL} [data-key="pageProps"] .ui__checkbox-list label {
-  white-space: normal;
-  margin-top: 0;
-  padding-right: 0;
-}
-
-${PLUGIN_PANEL} [data-key="tagRules"] textarea {
-  min-height: 12rem;
-  font-family: var(--ls-font-family-monospace, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 0.85rem;
-  line-height: 1.45;
-}
-
-/* The JSON is a read-only mirror of what the "Zotero: Edit tag rules" command
-   writes. The plugin iframe can't reach the settings-panel DOM to set the
-   textarea's readonly attribute — only injected CSS crosses that boundary — so
-   block interaction here. pointer-events:none is the strongest read-only signal
-   CSS alone can give (it also disables selection); copy/edit live in the modal. */
-${PLUGIN_PANEL} [data-key="tagRules"] textarea {
-  pointer-events: none;
-  cursor: default;
-  opacity: 0.85;
-}
-`
-
-  const hidePagePropsCss = hidePageProps
-    ? `
-${PLUGIN_PANEL} [data-key="pageProps"] {
-  display: none !important;
-}
-`
-    : ''
-
-  const hideTagRulesCss = showTagRulesJson
-    ? ''
-    : `
-${PLUGIN_PANEL} [data-key="tagRules"] {
-  display: none !important;
-}
-`
-
-  logseq.provideStyle({
-    key: STYLE_KEY,
-    style: baseCss + hidePagePropsCss + hideTagRulesCss,
-  })
+  const style = HIDDEN_KEYS.map(
+    (key) =>
+      `${PLUGIN_PANEL} [data-key="${key}"] { display: none !important; }`,
+  ).join('\n')
+  logseq.provideStyle({ key: STYLE_KEY, style })
 }
 
 export const handleSettings = (opts: { msg?: string } = {}) => {
@@ -140,41 +79,37 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
 
   const { choices, defaults } = buildPagePropsChoices()
 
-  // Settings are clustered into two groups by an asymmetry the user can't
-  // otherwise see: settings under `Schema` mutate the Logseq tag / property
-  // graph (and only take effect after re-running the schema command), while
-  // settings under `Import behavior` only affect what gets written at import
-  // time. One heading per group says the rerun requirement *once*, where it
-  // applies, instead of repeating it in every description. A debounced toast
-  // in index.tsx catches the user at the moment of change for the acute case.
   const settings: SettingSchemaDesc[] = [
+    {
+      key: 'openSetup',
+      type: 'heading',
+      title: 'Zotero (Local)',
+      description:
+        'All settings live in the setup window. Open the command palette and run “Zotero: Settings” to configure the connection, library, import formats, and tag rules.',
+      default: '',
+    },
     {
       key: 'testConnection',
       type: 'heading',
-      title: 'Connection Test',
+      title: 'Connection',
       description: lastConnectionMsg,
       default: '',
     },
-    {
-      key: 'schemaSectionHeading',
-      type: 'heading',
-      title: 'Schema',
-      description: `Changes to settings below require running "Zotero: Setup schema" from the command palette to take effect.`,
-      default: '',
-    },
+    // ─── Hidden below ──────────────────────────────────────────────────────
+    // Edited in the setup window; kept here only so Logseq populates their
+    // defaults. `applySettingsStyles` hides every one of these rows.
     {
       key: 'zotTag',
       type: 'string',
       title: 'Zotero Tag Name',
-      description: `Specify the tag name used for Zotero imports`,
-      default: 'Zotero',
+      description: 'The tag name used for Zotero imports.',
+      default: 'Reference',
     },
     {
       key: 'propertyPreset',
       type: 'enum',
       title: 'Property Preset',
-      description:
-        'Choose a preset to control which properties are added to Zotero pages. "Essentials" covers the common citation fields for papers/articles. "Full" includes everything. "Custom" lets you pick individual properties below.',
+      description: '',
       default: 'Essentials',
       enumPicker: 'select',
       enumChoices: PRESET_CHOICES,
@@ -183,8 +118,7 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       key: 'pageProps',
       type: 'enum',
       title: 'Custom Page Properties',
-      description:
-        'Pick the Zotero fields to import as page properties. Essentials are pre-checked — add more below.',
+      description: '',
       default: defaults,
       enumPicker: 'checkbox',
       enumChoices: choices,
@@ -193,63 +127,29 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       key: 'creatorsAsNodes',
       type: 'boolean',
       title: 'Store Creators as Page References',
-      description:
-        'If enabled, each author/creator becomes its own Logseq page and the property holds a page reference (lets you navigate from a creator page to all their works). If disabled, creators are stored as plain text.',
-      default: true,
-    },
-    {
-      key: 'importBehaviorSectionHeading',
-      type: 'heading',
-      title: 'Import behavior',
       description: '',
-      default: '',
+      default: true,
     },
     {
       key: 'creatorNameTemplate',
       type: 'string',
       title: 'Creator Name Format',
-      description: `Specify how each author/creator name is rendered (used for the creator page title when stored as a reference, or for each entry when stored as text). Available placeholders: <% firstName %>, <% lastName %>. Multiple creators are always comma-separated when stored as text.`,
-      default: `<% firstName %> <% lastName %>`,
+      description: '',
+      default: '<% firstName %> <% lastName %>',
     },
     {
       key: 'pagenameTemplate',
       type: 'string',
       title: 'Page Name Template',
-      description: `Specify the page name for each Zotero import. Available placeholders: <% citeKey %>, <% title %>`,
-      default: `@<% citeKey %>`,
+      description: '',
+      default: '@<% citeKey %>',
     },
     {
       key: 'openAttachmentInline',
       type: 'boolean',
       title: 'Open Attachment in Logseq',
-      description:
-        'If disabled, attachments will open in the default system app. If enabled, attachments will open in Logseq.',
+      description: '',
       default: true,
-    },
-    {
-      key: 'extendedTagsSectionHeading',
-      type: 'heading',
-      title: 'Extended tags',
-      description:
-        'Automatically apply extra Logseq tags to imported pages when items match your rules (the base Zotero tag is always added on top). Edit rules visually with the "Zotero: Edit tag rules" command in the command palette.',
-      default: '',
-    },
-    {
-      key: 'showTagRulesJson',
-      type: 'boolean',
-      title: 'Show raw JSON (read-only)',
-      description:
-        'Reveal the underlying tag-rules JSON below for inspection. It is read-only — use the "Zotero: Edit tag rules" command to make changes.',
-      default: false,
-    },
-    {
-      key: 'tagRules',
-      type: 'string',
-      inputAs: 'textarea',
-      title: 'Tag rules (JSON)',
-      description:
-        'Read-only mirror of the rules written by the "Zotero: Edit tag rules" command.',
-      default: DEFAULT_TAG_RULES_JSON,
     },
   ]
 
@@ -257,29 +157,11 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
   applySettingsStyles()
 }
 
-// Refresh the injected CSS when a visibility-controlling setting changes —
-// Logseq doesn't re-render the open settings panel on schema changes, so
-// toggling a row's visibility has to happen at the CSS layer (the row is
-// always in the DOM; we just `display: none` it). `propertyPreset` gates the
-// `pageProps` row; `showTagRulesJson` gates the read-only `tagRules` row. The
-// stored values persist across hide/show.
-export const registerPresetVisibilityWatcher = () => {
-  logseq.onSettingsChanged((next, prev) => {
-    if (!prev) return
-    if (
-      next.propertyPreset === prev.propertyPreset &&
-      next.showTagRulesJson === prev.showTagRulesJson
-    )
-      return
-    applySettingsStyles()
-  })
-}
-
 // Translate any stored `pageProps` entries written in the old bare-camelCase
 // format ("DOI", "abstractNote", …) into the new "Display Name — description"
-// label so the checkbox UI shows the user's prior selection as actually
-// checked. The set of selected items is preserved exactly — only the encoding
-// changes. Idempotent: values already in the new format pass through.
+// label so the picker shows the user's prior selection as actually checked.
+// The set of selected items is preserved exactly — only the encoding changes.
+// Idempotent: values already in the new format pass through.
 export const migratePagePropsIfNeeded = () => {
   const stored = logseq.settings?.pageProps as string[] | undefined
   if (!stored?.length) return

@@ -1,4 +1,4 @@
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import {
@@ -9,19 +9,21 @@ import {
   serializeRules,
   validateDraftRules,
 } from '../../extended-tags'
-import { RuleCard } from './RuleCard'
+import { RuleCard } from '../tag-rules/RuleCard'
 
-export const TagRulesEditor = () => {
-  // Seed from the current setting on each open (the container remounts per
-  // invocation), so external edits and prior saves are reflected.
+// The former standalone modal's logic, embedded as a hub section: the draft
+// model, validation and serialize are unchanged — only the modal chrome (own
+// header, close-X, and the Cancel/Save footer that called hideMainUI) is gone.
+// Saving persists to the `tagRules` setting and shows an inline tick instead of
+// closing the window, so the user can keep editing other sections.
+export const TagRulesSection = () => {
   const [drafts, setDrafts] = useState<DraftRule[]>(() =>
     rulesToDrafts(getConfiguredTagRules()),
   )
-  // Errors stay hidden until the first Save attempt — calmer than flagging
-  // every half-typed field. After that, validation is live, so each fix clears
-  // its own error as the user types.
+  // Errors stay hidden until the first Save attempt, then validate live.
   const [showErrors, setShowErrors] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [savedTick, setSavedTick] = useState(false)
 
   const validation = useMemo(() => validateDraftRules(drafts), [drafts])
 
@@ -29,9 +31,10 @@ export const TagRulesEditor = () => {
     setDrafts((prev) => prev.map((r) => (r.id === next.id ? next : r)))
   const removeRule = (id: string) =>
     setDrafts((prev) => prev.filter((r) => r.id !== id))
-  const addRule = () => setDrafts((prev) => [...prev, emptyDraftRule()])
-
-  const close = () => logseq.hideMainUI()
+  const addRule = () => {
+    setSavedTick(false)
+    setDrafts((prev) => [...prev, emptyDraftRule()])
+  }
 
   const save = async () => {
     if (validation.hasErrors) {
@@ -43,16 +46,15 @@ export const TagRulesEditor = () => {
       await logseq.updateSettings({
         tagRules: serializeRules(validation.rules),
       })
-      await logseq.UI.showMsg('Tag rules saved', 'success')
-      logseq.hideMainUI()
+      setSavedTick(true)
+      setTimeout(() => setSavedTick(false), 2500)
     } catch (e) {
-      setSaving(false)
       await logseq.UI.showMsg(
-        `Couldn't save tag rules: ${
-          e instanceof Error ? e.message : String(e)
-        }`,
+        `Couldn't save tag rules: ${e instanceof Error ? e.message : String(e)}`,
         'error',
       )
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -60,29 +62,21 @@ export const TagRulesEditor = () => {
   const status =
     showErrors && validation.hasErrors
       ? `Fix ${errorCount} ${errorCount === 1 ? 'rule' : 'rules'} to save`
-      : `${drafts.length} ${drafts.length === 1 ? 'rule' : 'rules'}`
+      : savedTick
+        ? 'Saved'
+        : `${drafts.length} ${drafts.length === 1 ? 'rule' : 'rules'}`
 
   return (
-    <div className="batch-container tagrule-container">
-      <div className="tagrule-header">
-        <div className="tagrule-header-text">
-          <h2 className="tagrule-title">Tag rules</h2>
-          <p className="tagrule-subtitle">
-            Add extra Logseq tags to imported items that match your conditions.
-            The base Zotero tag is always applied on top.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="tagrule-icon-btn"
-          aria-label="Close"
-          onClick={close}
-        >
-          <X size={18} aria-hidden />
-        </button>
+    <>
+      <div className="setup-section-head">
+        <h3 className="setup-section-title">Tag rules</h3>
+        <p className="setup-section-desc">
+          Add extra Logseq tags to imported items that match your conditions.
+          The base Zotero tag is always applied on top.
+        </p>
       </div>
 
-      <div className="tagrule-body">
+      <div className="setup-section-body">
         {drafts.length === 0 ? (
           <div className="tagrule-empty">
             <p>No tag rules yet.</p>
@@ -114,29 +108,17 @@ export const TagRulesEditor = () => {
         </button>
       </div>
 
-      <div className="batch-footer">
-        <div className="batch-footer-row">
-          <span className="batch-footer-status">{status}</span>
-          <div className="btn-group">
-            <button
-              type="button"
-              className="btn btn-white"
-              disabled={saving}
-              onClick={close}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={saving}
-              onClick={save}
-            >
-              Save
-            </button>
-          </div>
-        </div>
+      <div className="setup-section-footer">
+        <span className="setup-footer-status">{status}</span>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={saving}
+          onClick={save}
+        >
+          Save rules
+        </button>
       </div>
-    </div>
+    </>
   )
 }

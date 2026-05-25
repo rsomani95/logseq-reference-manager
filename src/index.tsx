@@ -5,33 +5,27 @@ import { createRoot } from 'react-dom/client'
 
 import { BatchContainer } from './BatchContainer'
 import { PLUGIN_ID } from './constants'
+import type { SetupSection } from './features/setup'
 import { handlePopup } from './handle-popup'
 import { QUERY_ALL_ZOT_PAGES } from './queries'
+import { SetupContainer } from './SetupContainer'
 import { testZotConnection } from './services/get-zot-items'
 import { registerAdminCommands } from './services/register-admin-commands'
 import { syncAnnotations } from './services/sync-annotations'
 import { registerThemeSync } from './services/sync-theme'
-import { registerSchemaSettingsWatcher } from './services/watch-schema-settings'
 import { registerTagRulesWatcher } from './services/watch-tag-rules'
-import {
-  handleSettings,
-  migratePagePropsIfNeeded,
-  registerPresetVisibilityWatcher,
-} from './settings'
-import { TagRulesContainer } from './TagRulesContainer'
+import { handleSettings, migratePagePropsIfNeeded } from './settings'
 import { ZotContainer } from './ZotContainer'
 
 const main = async () => {
   await logseq.UI.showMsg(
-    `Zotero (Local) loaded. Please proceed to settings to continue setup.`,
+    `Zotero (Local) loaded. Run "Zotero: Settings" from the command palette to set up.`,
     'warning',
   )
 
   registerAdminCommands()
   handlePopup()
   registerThemeSync()
-  registerSchemaSettingsWatcher()
-  registerPresetVisibilityWatcher()
   registerTagRulesWatcher()
   migratePagePropsIfNeeded()
 
@@ -176,20 +170,30 @@ const main = async () => {
   )
 
   ///////////////////////////////////
-  ///////////  TAG RULES  ///////////
+  //////////////  SETUP  ////////////
   ///////////////////////////////////
-  // Visual editor for the `tagRules` setting (the settings panel can only show
-  // it as read-only JSON). Command-palette-only — it's a setup task, not a
-  // mid-writing action. Keyed remount starts every open from current settings.
+  // The single hub for all configuration — connection test, library mapping
+  // (+ schema apply), import formats, and tag rules. Keyed remount per open
+  // re-reads settings fresh. `Zotero: Settings` lands on the first incomplete
+  // step; `Zotero: Edit tag rules` deep-links straight to the Tag rules section.
+  const openSetup = async (initialSection?: SetupSection) => {
+    root.render(
+      <SetupContainer
+        key={`setup-${Date.now()}`}
+        initialSection={initialSection}
+      />,
+    )
+    await logseq.showMainUI()
+  }
+
   logseq.App.registerCommandPalette(
-    {
-      key: `${PLUGIN_ID}-edit-tag-rules`,
-      label: 'Zotero: Edit tag rules',
-    },
-    async () => {
-      root.render(<TagRulesContainer key={`tagrules-${Date.now()}`} />)
-      await logseq.showMainUI()
-    },
+    { key: `${PLUGIN_ID}-settings`, label: 'Zotero: Settings' },
+    () => openSetup(),
+  )
+
+  logseq.App.registerCommandPalette(
+    { key: `${PLUGIN_ID}-edit-tag-rules`, label: 'Zotero: Edit tag rules' },
+    () => openSetup('tagRules'),
   )
 }
 
