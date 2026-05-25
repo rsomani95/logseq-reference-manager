@@ -1,10 +1,10 @@
-import { ZOTERO_PROP } from '../constants'
+import { PLUGIN_ID, ZOTERO_PROP } from '../constants'
 import { setLogseqDbSchema } from './set-logseqdb-schema'
 
 export const registerAdminCommands = () => {
   logseq.App.registerCommandPalette(
     {
-      key: 'logseq-zotero-remove-all-created-schema',
+      key: `${PLUGIN_ID}-remove-all-created-schema`,
       label: 'Zotero: Delete schema',
     },
     async () => {
@@ -35,7 +35,7 @@ export const registerAdminCommands = () => {
 
   logseq.App.registerCommandPalette(
     {
-      key: 'logseq-zotero-reset-current-settings',
+      key: `${PLUGIN_ID}-reset-current-settings`,
       label: 'Zotero: Reset settings',
     },
     async () => {
@@ -53,7 +53,7 @@ export const registerAdminCommands = () => {
 
   logseq.App.registerCommandPalette(
     {
-      key: 'logseq-zotero-add-zotero-schema',
+      key: `${PLUGIN_ID}-add-zotero-schema`,
       label: 'Zotero: Setup schema',
     },
     async () => {

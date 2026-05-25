@@ -1,4 +1,4 @@
-import { ZOTERO_CODE_PROP } from '../constants'
+import { PLUGIN_ID, ZOTERO_CODE_PROP } from '../constants'
 import { ZotData } from '../interfaces'
 import { QUERY_ALL_ZOT_PAGES } from '../queries'
 
@@ -98,7 +98,7 @@ export const buildZoteroCodeIndex = async (): Promise<
     }
 
     console.log(
-      `logseq-zotero: zotero-code index built — ${pages.length} Zotero page(s), ${index.size} with a zotero-code`,
+      `${PLUGIN_ID}: zotero-code index built — ${pages.length} Zotero page(s), ${index.size} with a zotero-code`,
     )
 
     // Self-diagnostic: tagged pages exist but none yielded a code — the
@@ -107,7 +107,7 @@ export const buildZoteroCodeIndex = async (): Promise<
     const sample = pages[0]
     if (index.size === 0 && sample) {
       console.warn(
-        'logseq-zotero: zotero-code index is EMPTY despite ' +
+        `${PLUGIN_ID}: zotero-code index is EMPTY despite ` +
           `${pages.length} tagged page(s). Looked for property key ` +
           `"${ZOTERO_CODE_PROP}". Sample pulled entity + its properties:`,
         sample,
@@ -116,7 +116,7 @@ export const buildZoteroCodeIndex = async (): Promise<
     }
   } catch (e) {
     console.error(
-      'logseq-zotero: failed to build zotero-code index; ' +
+      `${PLUGIN_ID}: failed to build zotero-code index; ` +
         'in-graph detection will fall back to page-name matching',
       e,
     )

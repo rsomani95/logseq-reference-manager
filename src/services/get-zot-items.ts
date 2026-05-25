@@ -2,7 +2,7 @@ import wretch from 'wretch'
 import QueryAddon from 'wretch/addons/queryString'
 import { WretchError } from 'wretch/resolver'
 
-import { BASE_QUERY, BATCH_FETCH_LIMIT, ZOT_URL } from '../constants'
+import { BASE_QUERY, BATCH_FETCH_LIMIT, PLUGIN_ID, ZOT_URL } from '../constants'
 import {
   AnnotationItem,
   AttachmentItem,
@@ -32,14 +32,14 @@ export const testZotConnection = async (): Promise<{
 
     const wretchError = error as WretchError
     logseq.UI.showMsg(
-      `❌ logseq-zoteroloca-plugin: Connection error
+      `❌ ${PLUGIN_ID}: Connection error
 Status: ${wretchError.status}
 Response: ${wretchError.message}`,
       'error',
     )
     return {
       code: 'error',
-      msg: `❌ logseq-zoteroloca-plugin: Connection error
+      msg: `❌ ${PLUGIN_ID}: Connection error
 Status: ${wretchError.status}
 Response: ${wretchError.message}`,
     }
@@ -86,7 +86,7 @@ export const getZotParents = async (
 
     const endTime = performance.now()
     console.log(
-      `logseq-zotero: getZotParents(${queryString ? `q=${queryString}` : 'recents'}) ${(endTime - startTime).toFixed(2)}ms · ${zotDataArr.length} results`,
+      `${PLUGIN_ID}: getZotParents(${queryString ? `q=${queryString}` : 'recents'}) ${(endTime - startTime).toFixed(2)}ms · ${zotDataArr.length} results`,
     )
 
     return zotDataArr

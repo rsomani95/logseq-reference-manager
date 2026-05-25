@@ -1,6 +1,7 @@
 import { BlockEntity } from '@logseq/libs/dist/LSPlugin'
 
 import {
+  PLUGIN_ID,
   ZOTERO_ATTACHMENT_KEY_PROP,
   ZOTERO_CODE_PROP,
   ZOTERO_LAST_SYNC_PROP,
@@ -91,7 +92,7 @@ export const syncAnnotations = async (pageName: string) => {
 
     if (!targetAttachmentBlock) {
       console.log(
-        `logseq-zotero: No matching attachment block for key ${attachmentKey}, skipping`,
+        `${PLUGIN_ID}: No matching attachment block for key ${attachmentKey}, skipping`,
       )
       continue
     }

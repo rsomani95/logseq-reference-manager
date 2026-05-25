@@ -4,6 +4,7 @@ import { BlockCursorPosition, BlockEntity } from '@logseq/libs/dist/LSPlugin'
 import { createRoot } from 'react-dom/client'
 
 import { BatchContainer } from './BatchContainer'
+import { PLUGIN_ID } from './constants'
 import { handlePopup } from './handle-popup'
 import { QUERY_ALL_ZOT_PAGES } from './queries'
 import { testZotConnection } from './services/get-zot-items'
@@ -64,7 +65,7 @@ const main = async () => {
 
   logseq.App.registerCommandPalette(
     {
-      key: 'logseq-zotero-sync-all-annotations',
+      key: `${PLUGIN_ID}-sync-all-annotations`,
       label: 'Zotero: Sync all annotations',
     },
     async () => {
@@ -168,7 +169,7 @@ const main = async () => {
 
   logseq.App.registerCommandPalette(
     {
-      key: 'logseq-zotero-batch-import',
+      key: `${PLUGIN_ID}-batch-import`,
       label: 'Zotero: Batch import',
     },
     openBatchImport,
@@ -182,7 +183,7 @@ const main = async () => {
   // mid-writing action. Keyed remount starts every open from current settings.
   logseq.App.registerCommandPalette(
     {
-      key: 'logseq-zotero-edit-tag-rules',
+      key: `${PLUGIN_ID}-edit-tag-rules`,
       label: 'Zotero: Edit tag rules',
     },
     async () => {
