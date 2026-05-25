@@ -1,6 +1,7 @@
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user'
 
 import {
+  PLUGIN_ID,
   PROP_DISPLAY_NAMES,
   PROP_PRESET_ESSENTIALS,
   ZOT_DATA_KEY_MAP,
@@ -53,7 +54,7 @@ let lastConnectionMsg = ''
 // scoped to this plugin's settings panel via the `.panel-wrap[data-id=…]`
 // wrapper Logseq renders around it.
 const STYLE_KEY = 'zotero-settings-styles'
-const PLUGIN_PANEL = '.panel-wrap[data-id="logseq-zotero"]'
+const PLUGIN_PANEL = `.panel-wrap[data-id="${PLUGIN_ID}"]`
 
 const applySettingsStyles = () => {
   const preset =

@@ -115,7 +115,8 @@ export const setLogseqDbSchema = async () => {
   await logseq.Editor.createTag(logseq.settings?.zotTag as string)
 
   /**
-  All added properties follow the same structure: ":plugin.property.logseq-zotero/year"
+  All added properties follow the same structure: ":plugin.property.<plugin-id>/year"
+  (the runtime namespaces them by `logseq.id`; cf. ZOTERO_PROP in constants.ts)
   **/
 
   // Resolve which properties to set up based on the selected preset

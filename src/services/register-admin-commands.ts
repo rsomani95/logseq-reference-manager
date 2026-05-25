@@ -1,3 +1,4 @@
+import { ZOTERO_PROP } from '../constants'
 import { setLogseqDbSchema } from './set-logseqdb-schema'
 
 export const registerAdminCommands = () => {
@@ -16,9 +17,7 @@ export const registerAdminCommands = () => {
       const allPropsInLs = await logseq.Editor.getAllProperties()
       if (!allPropsInLs) return
       const pagesToDelete = allPropsInLs
-        .filter((prop) =>
-          prop.ident?.includes(':plugin.property.logseq-zotero'),
-        )
+        .filter((prop) => prop.ident?.includes(ZOTERO_PROP))
         .map((prop) => prop.title!)
 
       const deletePromisesArr = pagesToDelete.map((title) =>
