@@ -203,7 +203,7 @@ export const WebSection = () => {
           </label>
           <p className="setup-field-hint">
             Keep Markdown <code className="inline-code">#</code> markers on
-            headings. Off = nest by indentation instead.
+            headings.
           </p>
         </div>
 
