@@ -1709,7 +1709,7 @@ html[data-theme="dark"] input[type="checkbox"] {
    and a scrolling section panel (each section is head / body / footer). */
 .setup-container {
   width: min(54rem, calc(100vw - 1.5rem));
-  height: min(40rem, 86vh);
+  height: min(55rem, 86vh);
   top: 7vh;
   left: 50%;
   transform: translateX(-50%);
