@@ -38,7 +38,7 @@ The `.bruno/` directory contains Bruno HTTP request collections for ad-hoc explo
 
 ## SDK notes
 
-DB-graph Logseq plugin SDK quirks (property API, theming, dev workflow, debugging) are collected in [`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md). Check there first when an `@logseq/libs` call behaves unexpectedly.
+DB-graph Logseq plugin SDK quirks (property API — including the `hide?` deletion/display gotchas — theming, dev workflow, debugging) and the local HTTP API for probing a running graph are collected in [`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md). Check there first when an `@logseq/libs` call behaves unexpectedly.
 
 ## Architecture
 
