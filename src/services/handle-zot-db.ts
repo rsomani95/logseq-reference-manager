@@ -209,7 +209,10 @@ export const handleZotInDb = async (
       prop === 'parentItem' ||
       value === undefined ||
       value === null ||
-      value === '' ||
+      // Blank or whitespace-only strings: Logseq's "hide empty value" only
+      // hides nil (`(nil? value)`), NOT "" or "   " — so a blank value writes a
+      // visible empty property row. Drop it here so it never lands on the page.
+      (typeof value === 'string' && value.trim() === '') ||
       (Array.isArray(value) && value.length === 0) || // Empty array
       (typeof value === 'object' && Object.keys(value).length === 0)
     ) {

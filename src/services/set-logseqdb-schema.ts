@@ -60,15 +60,20 @@ const createTagProperties = async (props: string[]) => {
         await logseq.Editor.updateBlock(property.uuid, displayName)
       }
 
-      // The plugin SDK rewrites `schema.hide` to the unqualified attribute
-      // `:hide?` on the property, but the UI's "Hide by default" toggle reads
-      // the qualified `:logseq.property/hide?` — so the schema flag is a no-op.
-      // Qualified keywords pass through `upsertBlockProperty` unchanged, so
-      // setting it directly on the property block is the working path.
-      await logseq.Editor.upsertBlockProperty(
+      // Deliberately do NOT hide-by-default. Logseq lumps hide-by-default
+      // properties into the collapsed "Hidden properties" group, and expanding
+      // that group shows *every* hidden property — including the unset schema
+      // fields an item doesn't fill (a paper has no `publisher`/`volume`/…) —
+      // because the expand path skips the empty-value check. The result is a
+      // page full of empty rows. Leaving properties visible inline lets
+      // `hide-empty-value` (below) suppress the unset ones instead: Logseq hides
+      // a property when `hide-empty-value` is set AND its value is nil. We
+      // actively *clear* any `hide?` a previous schema version set, so a
+      // re-apply migrates existing properties. (Aside: `hide?`=true also blocks
+      // property deletion — see `delete-zotero-schema.ts`.)
+      await logseq.Editor.removeBlockProperty(
         property.uuid,
         'logseq.property/hide?',
-        true,
       )
 
       await logseq.Editor.upsertBlockProperty(
