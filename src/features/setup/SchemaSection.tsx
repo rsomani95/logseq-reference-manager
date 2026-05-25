@@ -17,16 +17,21 @@ const PRESETS: { id: PropertyPreset; label: string; desc: string }[] = [
   { id: 'Custom', label: 'Custom', desc: 'Pick exactly the fields you want.' },
 ]
 
-export const LibrarySection = ({
+// The shared property schema. Pulled out of the (Zotero-specific) Library
+// section because both Zotero imports and Web clips inherit it: the base tag
+// holds the properties, and the Web tag extends it. Presets live here, not
+// under Zotero, even though the field set is *derived* from Zotero's API.
+export const SchemaSection = ({
   onSchemaChange,
   schemaDirty,
   onSchemaDirty,
 }: {
   onSchemaChange: (ready: boolean) => void
   // `schemaDirty` is lifted to SetupApp: a schema-affecting change in another
-  // section (Import formats' "store creators as page references") still raises
-  // this section's quiet "re-apply" nudge, and the flag survives navigating
-  // away and back (a section remount would otherwise reset a local flag).
+  // section (Import formats' "store creators as page references", or the web
+  // tag) still raises this section's quiet "re-apply" nudge, and the flag
+  // survives navigating away and back (a section remount would otherwise reset
+  // a local flag).
   schemaDirty: boolean
   onSchemaDirty: (dirty: boolean) => void
 }) => {
@@ -67,7 +72,8 @@ export const LibrarySection = ({
       // The change handlers fire-and-forget updateSettings; flush this
       // section's values before setLogseqDbSchema reads them back, so a quick
       // change-then-apply can't race the persist. (pageProps is flushed by the
-      // PropertyPicker, creatorsAsNodes by the Import-formats section.)
+      // PropertyPicker, creatorsAsNodes by the Import-formats section, webTag by
+      // the Web references section.)
       await logseq.updateSettings({
         zotTag,
         propertyPreset: preset,
@@ -99,15 +105,15 @@ export const LibrarySection = ({
       if (stillThere) {
         await logseq.UI.showMsg(
           removed > 0
-            ? `Removed ${removed}, but some Zotero properties remain — see the console.`
-            : 'Couldn’t remove the Zotero properties — see the console.',
+            ? `Removed ${removed}, but some reference properties remain — see the console.`
+            : 'Couldn’t remove the reference properties — see the console.',
           'warning',
         )
       } else {
         await logseq.UI.showMsg(
           removed > 0
-            ? `Removed ${removed} Zotero ${removed === 1 ? 'property' : 'properties'}.`
-            : 'No Zotero properties to remove.',
+            ? `Removed ${removed} reference ${removed === 1 ? 'property' : 'properties'}.`
+            : 'No reference properties to remove.',
           'success',
         )
       }
@@ -129,25 +135,28 @@ export const LibrarySection = ({
         ? 'Settings changed — re-apply to update your graph.'
         : applied
           ? 'Schema applied to your graph.'
-          : 'Not applied yet — apply to create the tag & properties.'
+          : 'Not applied yet — apply to create the tags & properties.'
 
   return (
     <>
       <div className="setup-section-head">
-        <h3 className="setup-section-title">Library</h3>
+        <h3 className="setup-section-title">Schema</h3>
         <p className="setup-section-desc">
-          Choose the tag and properties imported pages carry, then apply the
-          schema to your graph.
+          The shared property schema every reference carries — derived from
+          Zotero's fields and inherited by both Zotero imports and Web clips.
+          Choose the base tag and properties, then apply the schema to your
+          graph.
         </p>
       </div>
 
       <div className="setup-section-body">
         <div className="setup-field">
           <label className="setup-field-label" htmlFor="zot-tag">
-            Tag name
+            Base tag
           </label>
           <p className="setup-field-hint">
-            Every imported page is tagged with this.
+            Every reference page carries this. The Web tag extends it, so it
+            inherits the same schema.
           </p>
           <input
             id="zot-tag"
@@ -190,9 +199,10 @@ export const LibrarySection = ({
             <div className="setup-danger-text">
               <span className="setup-danger-title">Delete schema</span>
               <span className="setup-field-hint">
-                Removes every Zotero property this plugin created. The tag page
-                is left intact (deleting it would clear its backlinks — do that
-                manually if you want). You can re-apply afterward.
+                Removes every reference property this plugin created. The tag
+                pages (base + Web) are left intact (deleting them would clear
+                their backlinks — do that manually if you want). You can
+                re-apply afterward.
               </span>
             </div>
             {confirmDelete ? (

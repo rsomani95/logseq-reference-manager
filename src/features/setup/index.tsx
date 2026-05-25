@@ -1,6 +1,7 @@
 import {
   Check,
-  Library,
+  Database,
+  Globe,
   Link2,
   type LucideIcon,
   Tags,
@@ -13,10 +14,11 @@ import { testZotConnection } from '../../services/get-zot-items'
 import { isSchemaAdded } from '../../services/is-schema-added'
 import { ConnectSection } from './ConnectSection'
 import { FormatsSection } from './FormatsSection'
-import { LibrarySection } from './LibrarySection'
+import { SchemaSection } from './SchemaSection'
 import { TagRulesSection } from './TagRulesSection'
+import { WebSection } from './WebSection'
 
-export type SetupSection = 'connect' | 'library' | 'formats' | 'tagRules'
+export type SetupSection = 'schema' | 'connect' | 'formats' | 'tagRules' | 'web'
 
 export interface ConnResult {
   code: 'success' | 'error'
@@ -27,20 +29,24 @@ interface NavItem {
   id: SetupSection
   label: string
   icon: LucideIcon
-  advanced?: boolean
+  group: string
 }
 
+// Three top-level groups. "Schema" is the shared property schema both sources
+// inherit; "Zotero" is the source the plugin imports itself; "Web references"
+// configures the companion browser extension.
 const NAV: NavItem[] = [
-  { id: 'connect', label: 'Connection', icon: Link2 },
-  { id: 'library', label: 'Library', icon: Library },
-  { id: 'formats', label: 'Import formats', icon: Type },
-  { id: 'tagRules', label: 'Tag rules', icon: Tags, advanced: true },
+  { id: 'schema', label: 'Properties', icon: Database, group: 'Schema' },
+  { id: 'connect', label: 'Connection', icon: Link2, group: 'Zotero' },
+  { id: 'formats', label: 'Import formats', icon: Type, group: 'Zotero' },
+  { id: 'tagRules', label: 'Tag rules', icon: Tags, group: 'Zotero' },
+  { id: 'web', label: 'Web clip', icon: Globe, group: 'Web references' },
 ]
 
 // Only these two gate the "first incomplete → land here" logic and show a
-// completion tick. Formats always has valid defaults and Tag rules is optional,
-// so neither can be "incomplete".
-const GATING: SetupSection[] = ['connect', 'library']
+// completion tick. Formats / Tag rules / Web always have valid defaults (or are
+// optional), so none can be "incomplete".
+const GATING: SetupSection[] = ['connect', 'schema']
 
 export const SetupApp = ({
   initialSection,
@@ -54,9 +60,9 @@ export const SetupApp = ({
   )
   const [conn, setConn] = useState<ConnResult | null>(null)
   const [schemaReady, setSchemaReady] = useState<boolean | null>(null)
-  // Lifted out of LibrarySection so a schema-affecting change made in the
+  // Lifted out of SchemaSection so a schema-affecting change made in the
   // Import-formats section (store creators as page references) still nudges
-  // Library to re-apply, and so the flag survives section navigation (which
+  // Schema to re-apply, and so the flag survives section navigation (which
   // remounts the section components).
   const [schemaDirty, setSchemaDirty] = useState(false)
 
@@ -79,7 +85,7 @@ export const SetupApp = ({
       setActive((prev) => {
         if (prev) return prev
         if (c.code !== 'success') return 'connect'
-        if (!s) return 'library'
+        if (!s) return 'schema'
         return 'connect'
       })
     })()
@@ -89,30 +95,33 @@ export const SetupApp = ({
   }, [])
 
   const complete: Record<SetupSection, boolean | null> = {
+    schema: schemaReady,
     connect: conn ? conn.code === 'success' : null,
-    library: schemaReady,
     formats: true,
     tagRules: true,
+    web: true,
   }
 
   const nextIncomplete = GATING.find((id) => complete[id] === false)
 
   const renderSection = () => {
     switch (active) {
-      case 'connect':
-        return <ConnectSection initial={conn} onResult={setConn} />
-      case 'library':
+      case 'schema':
         return (
-          <LibrarySection
+          <SchemaSection
             onSchemaChange={setSchemaReady}
             schemaDirty={schemaDirty}
             onSchemaDirty={setSchemaDirty}
           />
         )
+      case 'connect':
+        return <ConnectSection initial={conn} onResult={setConn} />
       case 'formats':
         return <FormatsSection onSchemaDirty={() => setSchemaDirty(true)} />
       case 'tagRules':
         return <TagRulesSection />
+      case 'web':
+        return <WebSection />
       default:
         return (
           <div className="setup-loading">
@@ -127,10 +136,10 @@ export const SetupApp = ({
       className="setup-container"
       role="dialog"
       aria-modal="true"
-      aria-label="Zotero settings"
+      aria-label="Reference Manager settings"
     >
       <div className="setup-header">
-        <h2 className="setup-title">Zotero settings</h2>
+        <h2 className="setup-title">Reference Manager</h2>
         <button
           type="button"
           className="tagrule-icon-btn"
@@ -143,14 +152,15 @@ export const SetupApp = ({
 
       <div className="setup-main">
         <nav className="setup-nav" aria-label="Settings sections">
-          {NAV.map((item) => {
+          {NAV.map((item, i) => {
             const Icon = item.icon
             const showCheck =
               GATING.includes(item.id) && complete[item.id] === true
+            const showGroup = i === 0 || NAV[i - 1]?.group !== item.group
             return (
               <Fragment key={item.id}>
-                {item.advanced && (
-                  <div className="setup-nav-divider">Advanced</div>
+                {showGroup && (
+                  <div className="setup-nav-group">{item.group}</div>
                 )}
                 <button
                   type="button"

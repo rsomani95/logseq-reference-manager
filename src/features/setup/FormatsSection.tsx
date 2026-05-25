@@ -82,7 +82,7 @@ export const FormatsSection = ({
 }: {
   // "Store creators as page references" lives here now — it's a formatting
   // choice — but it sets the authors/creators property's schema type, so
-  // changing it marks the schema dirty, nudging Library to re-apply.
+  // changing it marks the schema dirty, nudging Schema to re-apply.
   onSchemaDirty: () => void
 }) => {
   const [pageTpl, setPageTpl] = useState<string>(
@@ -211,7 +211,7 @@ export const FormatsSection = ({
           <p className="setup-field-hint">
             Each author becomes its own page — shown as [[links]] above — so you
             can jump to all their works. Off = plain text. This sets a property
-            type, so re-apply the schema in Library after changing it.
+            type, so re-apply the schema after changing it.
           </p>
         </div>
 

@@ -9,8 +9,8 @@ import {
 export const PropertyPicker = ({
   onSchemaDirty,
 }: {
-  // Toggling a custom property changes the schema, so nudge Library to
-  // re-apply (same signal the tag / preset controls raise).
+  // Toggling a custom property changes the schema, so nudge the Schema section
+  // to re-apply (same signal the tag / preset controls raise).
   onSchemaDirty?: () => void
 }) => {
   const options = useMemo(() => buildPropertyOptions(), [])

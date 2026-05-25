@@ -33,14 +33,20 @@ all real configuration lives in the plugin's own modal.
 
 | key | type | default | edited in | read by |
 |-----|------|---------|-----------|---------|
-| `zotTag` | string | `Reference` | Library | `set-logseqdb-schema`, `handle-zot-db` (page tag) |
-| `propertyPreset` | enum `Essentials\|Full\|Custom` | `Essentials` | Library | `set-logseqdb-schema`, `handle-zot-db` |
-| `pageProps` | `string[]` (`formatPagePropChoice` labels) | essentials | Library → `PropertyPicker` (Custom only) | both, via `parsePagePropChoice` |
+| `zotTag` | string | `Reference` | Schema | `set-logseqdb-schema` (base tag), `handle-zot-db` (page tag), `set-web-schema` (extends target), `index.tsx` (sync-all query) |
+| `propertyPreset` | enum `Essentials\|Full\|Custom` | `Essentials` | Schema | `set-logseqdb-schema`, `handle-zot-db` |
+| `pageProps` | `string[]` (`formatPagePropChoice` labels) | essentials | Schema → `PropertyPicker` (Custom only) | both, via `parsePagePropChoice` |
 | `creatorsAsNodes` | boolean | `true` | Import formats | `set-logseqdb-schema` (property type), `handle-zot-db` (render) |
 | `creatorNameTemplate` | string template | `<% firstName %> <% lastName %>` | Import formats | `resolveCreatorName` → `applyCreatorTemplate` |
 | `pagenameTemplate` | string template | `@<% citeKey %>` | Import formats | `resolvePageName` → `applyPageNameTemplate` |
 | `openAttachmentInline` | boolean | `true` | Import formats | `handle-zot-db` (attachment link) |
 | `tagRules` | JSON string (array of `TagRule`) | empty | Tag rules | `getConfiguredTagRules`; watched by `watch-tag-rules` |
+| `webTag` | string | `Web` | Web references | `set-web-schema` (extends base); **web-clipper extension** (clip tag) |
+| `webCapturePageContent` | boolean | `true` | Web references | **web-clipper extension** |
+| `webPageContentBlockName` | string | `Page Content` | Web references | **web-clipper extension** |
+| `webHighlightsBlockName` | string | `Highlights` | Web references | **web-clipper extension** |
+| `webUseHeadingMarkers` | boolean | `false` | Web references | **web-clipper extension** |
+| `webPopulatePageTags` | boolean | `false` | Web references | **web-clipper extension** |
 | `testConnection` | heading | — | — | display-only (native panel status line) |
 | `openSetup` | heading | — | — | launcher copy (native panel) |
 
@@ -48,23 +54,37 @@ all real configuration lives in the plugin's own modal.
 read directly; `watch-tag-rules.ts` toasts parse errors as a safety net for
 externally hand-edited JSON.
 
+The `web*` keys are a **contract** with the companion web-clipper extension: it
+reads them over the HTTP API (`getStateFromStore`) but can't write them, so this
+hub is the only editing surface. The keys/types/defaults must match the
+extension's `logseq-remote-settings.ts` mapping — coordinate before renaming
+any. The extension repo's `LOGSEQ_SETTINGS_INTEGRATION.md` is the full handoff.
+
 ## Setup hub
 
 ```
-Zotero: Settings ─┐
-                  ▼
+Reference Manager: Settings ─┐
+                             ▼
 src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
-  └─ src/features/setup/index.tsx → SetupApp (shell: header · nav rail · panel)
-       sections (src/features/setup/):
-         ConnectSection.tsx   — live connection test (testZotConnection)
-         LibrarySection.tsx   — tag, preset, Apply schema, Danger zone
-                                (deleteZoteroSchema)
-           ├─ PropertyPicker.tsx  — searchable custom-property selector (Custom)
-           └─ PresetFieldList.tsx — read-only Essentials / Full field list
-         FormatsSection.tsx   — page/author dropdowns + live preview from a
+  └─ src/features/setup/index.tsx → SetupApp (shell: header · grouped nav · panel)
+       nav groups → sections (src/features/setup/):
+         Schema:
+           SchemaSection.tsx  — base tag, preset, Apply schema, Danger zone
+                                (deleteZoteroSchema); shared by both sources
+             ├─ PropertyPicker.tsx  — searchable custom-property selector (Custom)
+             └─ PresetFieldList.tsx — read-only Essentials / Full field list
+         Zotero:
+           ConnectSection.tsx — live connection test (testZotConnection)
+           FormatsSection.tsx — page/author dropdowns + live preview from a
                                 real library item, creatorsAsNodes
-         TagRulesSection.tsx  — rule builder (reuses ../tag-rules/RuleCard)
+           TagRulesSection.tsx — rule builder (reuses ../tag-rules/RuleCard)
+         Web references:
+           WebSection.tsx     — webTag + capture knobs (read by the extension)
+                                + Set up web tag (ensureWebTagExtendsBase)
 ```
+
+The nav is grouped: `NAV` in `index.tsx` tags each item with a `group`, and a
+`.setup-nav-group` label renders whenever the group changes.
 
 - **Section model.** Each section renders a `setup-section-head` /
   `setup-section-body` / `setup-section-footer` trio (CSS in `components.css`,
@@ -72,9 +92,9 @@ src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
   close, nav rail.
 - **Landing & completion.** `SetupApp` probes `testZotConnection()` +
   `isSchemaAdded()` once on open, ticks the nav, and lands on the first
-  incomplete *gating* section (`GATING = ['connect', 'library']`; Formats and
-  Tag rules are never "incomplete"). A "Next: …" cue points at the next gating
-  gap. A deep-link (`initialSection`) skips the wait.
+  incomplete *gating* section (`GATING = ['connect', 'schema']`; Formats, Tag
+  rules, and Web references are never "incomplete"). A "Next: …" cue points at
+  the next gating gap. A deep-link (`initialSection`) skips the wait.
 - **Deep-link (capability).** `SetupContainer` / `SetupApp` accept an optional
   `initialSection` to open straight to a section. No command passes it today —
   the former `Zotero: Edit tag rules` deep-link was retired with that command —
@@ -82,16 +102,18 @@ src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
 - **Save model.**
   - Simple controls **autosave** on change (`updateSettings`) — the
     Logseq-native feel.
-  - Two heavy ops are **explicit**: Library's **Apply schema** (runs
-    `setLogseqDbSchema`, then re-checks `isSchemaAdded`) and Tag rules' **Save
-    rules** (validates the draft, then writes `tagRules`). Both sit next to what
-    they affect — which is why there's no longer a "you changed a schema
-    setting, go re-run a command" nag (the old `watch-schema-settings.ts`).
-  - A schema-affecting change (tag, preset, custom properties, or Import
+  - Three heavy ops are **explicit**: Schema's **Apply schema** (runs
+    `setLogseqDbSchema`, then re-checks `isSchemaAdded`), Tag rules' **Save
+    rules** (validates the draft, then writes `tagRules`), and Web references'
+    **Set up web tag** (`ensureWebTagExtendsBase`). Each sits next to what it
+    affects — which is why there's no longer a "you changed a schema setting, go
+    re-run a command" nag (the old `watch-schema-settings.ts`).
+  - A schema-affecting change (base tag, preset, custom properties, or Import
     formats' `creatorsAsNodes`) sets a `schemaDirty` flag — lifted to `SetupApp`
     so it's shared across sections and survives section navigation — surfacing a
-    quiet "re-apply to update your graph" line in Library's footer until the
-    next Apply.
+    quiet "re-apply to update your graph" line in Schema's footer until the next
+    Apply. (Editing `webTag` is tracked separately, in the Web references
+    section's own local dirty state, not this flag.)
 
 ## Adding or changing a setting
 
@@ -124,11 +146,17 @@ settings.
 
 Properties and the tag only reach the graph when **Apply schema** runs
 `services/set-logseqdb-schema.ts`, which reads `zotTag` / `propertyPreset` /
-`pageProps` / `creatorsAsNodes` from `logseq.settings`. `LibrarySection` flushes
+`pageProps` / `creatorsAsNodes` from `logseq.settings`. `SchemaSection` flushes
 its own values (`zotTag`, `propertyPreset`) via `updateSettings` *before* calling
 it, since its change handlers are fire-and-forget; `pageProps` and
 `creatorsAsNodes` are autosaved by the `PropertyPicker` and the Import-formats
 section respectively, so they're already persisted by then.
+
+After the base tag + properties, `setLogseqDbSchema` wires the web tag —
+`ensureWebTagExtendsBase` (`services/set-web-schema.ts`), reading `webTag` — so
+the Web class `extends` the base and inherits the same property idents (no
+per-property re-association). The Web references section runs the same wiring
+from its own **Set up web tag** button, gated on `isSchemaAdded`.
 
 **Per-property visibility.** Every created property gets
 `:logseq.property/hide-empty-value` (a nil value collapses).
@@ -143,10 +171,10 @@ props, empties included (the expand path skips the empty-value check); and
 `hide?`=true also blocks property deletion (which `delete-zotero-schema` works
 around by stripping it first).
 
-The Library **Danger zone** (`services/delete-zotero-schema.ts`)
+The Schema **Danger zone** (`services/delete-zotero-schema.ts`)
 removes every property in the `ZOTERO_PROP` ident namespace via `removeProperty`
-(never the user's own). The tag/class page is deliberately left intact —
-deleting it would clear its backlinks, so that's a manual op. Note
+(never the user's own). The tag/class pages (base + web) are deliberately left
+intact — deleting them would clear their backlinks, so that's a manual op. Note
 `removeProperty`, not `deletePage(title)`, which silently no-ops on a property
 entity (the bug behind the old command's false-success).
 

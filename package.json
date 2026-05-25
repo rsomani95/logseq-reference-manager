@@ -22,7 +22,7 @@
   ],
   "logseq": {
     "id": "logseq-zotero",
-    "title": "Zotero (Local)",
+    "title": "Reference Manager",
     "icon": "./icon.svg",
     "main": "dist/index.html"
   },

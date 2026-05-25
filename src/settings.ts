@@ -64,6 +64,12 @@ const HIDDEN_KEYS = [
   'creatorNameTemplate',
   'pagenameTemplate',
   'openAttachmentInline',
+  'webTag',
+  'webCapturePageContent',
+  'webPageContentBlockName',
+  'webHighlightsBlockName',
+  'webUseHeadingMarkers',
+  'webPopulatePageTags',
 ]
 
 const applySettingsStyles = () => {
@@ -83,9 +89,9 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
     {
       key: 'openSetup',
       type: 'heading',
-      title: 'Zotero (Local)',
+      title: 'Reference Manager',
       description:
-        'All settings live in the setup window. Open the command palette and run “Zotero: Settings” to configure the connection, library, import formats, and tag rules.',
+        'All settings live in the setup window. Open the command palette and run “Reference Manager: Settings” to configure the shared schema, Zotero (connection, import formats, tag rules), and Web references.',
       default: '',
     },
     {
@@ -101,8 +107,9 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
     {
       key: 'zotTag',
       type: 'string',
-      title: 'Zotero Tag Name',
-      description: 'The tag name used for Zotero imports.',
+      title: 'Base reference tag',
+      description:
+        'The shared base tag every reference page carries. Web clips extend it, so it owns the schema.',
       default: 'Reference',
     },
     {
@@ -150,6 +157,53 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       title: 'Open Attachment in Logseq',
       description: '',
       default: true,
+    },
+    // ─── Web references ────────────────────────────────────────────────────
+    // Read over the HTTP API by the companion web-clipper extension (it reads
+    // the live store; it cannot write these). Edited in the hub's Web
+    // references section. The keys/types/defaults are a contract with the
+    // extension — see WEB references in settings.md before renaming any.
+    {
+      key: 'webTag',
+      type: 'string',
+      title: 'Web Tag',
+      description: '',
+      default: 'Web',
+    },
+    {
+      key: 'webCapturePageContent',
+      type: 'boolean',
+      title: 'Capture Page Content',
+      description: '',
+      default: true,
+    },
+    {
+      key: 'webPageContentBlockName',
+      type: 'string',
+      title: 'Page Content Block Name',
+      description: '',
+      default: 'Page Content',
+    },
+    {
+      key: 'webHighlightsBlockName',
+      type: 'string',
+      title: 'Highlights Block Name',
+      description: '',
+      default: 'Highlights',
+    },
+    {
+      key: 'webUseHeadingMarkers',
+      type: 'boolean',
+      title: 'Use Heading Markers',
+      description: '',
+      default: false,
+    },
+    {
+      key: 'webPopulatePageTags',
+      type: 'boolean',
+      title: 'Populate Page Tags',
+      description: '',
+      default: false,
     },
   ]
 

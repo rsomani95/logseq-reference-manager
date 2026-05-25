@@ -12,6 +12,7 @@ import {
 import { PropertyPreset } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
 import { parsePagePropChoice } from './page-props-choice'
+import { ensureWebTagExtendsBase } from './set-web-schema'
 
 // TODO: Add docstring
 // NOTE: This seems to be adding properties at the global level
@@ -203,6 +204,15 @@ export const setLogseqDbSchema = async () => {
       convertPropToKebabCase(originalProp),
     )
   }
+
+  // Wire the web-clip tag to inherit the shared schema (extends the base tag).
+  // The companion web-clipper extension tags clipped pages with this and
+  // discovers properties through inheritance, so the base + web setup happen
+  // together in one Apply. No-op when `webTag` is unset or equals the base.
+  await ensureWebTagExtendsBase(
+    (logseq.settings?.webTag as string) ?? '',
+    zotTag,
+  )
 
   logseq.UI.closeMsg(addingTagMsg)
 

@@ -17,7 +17,7 @@ import { ZotContainer } from './ZotContainer'
 
 const main = async () => {
   await logseq.UI.showMsg(
-    `Zotero (Local) loaded. Run "Zotero: Settings" from the command palette to set up.`,
+    `Reference Manager loaded. Run "Reference Manager: Settings" from the command palette to set up.`,
     'warning',
   )
 
@@ -60,8 +60,12 @@ const main = async () => {
       label: 'Zotero: Sync all annotations',
     },
     async () => {
-      const allZoteroPages: BlockEntity[][] =
-        await logseq.DB.datascriptQuery(QUERY_ALL_ZOT_PAGES)
+      // Track the configured base tag, not a hardcoded name (see queries.ts).
+      const zotTag = (logseq.settings?.zotTag as string) ?? 'Reference'
+      const allZoteroPages: BlockEntity[][] = await logseq.DB.datascriptQuery(
+        QUERY_ALL_ZOT_PAGES,
+        JSON.stringify(zotTag),
+      )
       const flattenedPages = allZoteroPages.flat()
 
       for (const page of flattenedPages) {
@@ -169,11 +173,12 @@ const main = async () => {
   ///////////////////////////////////
   //////////////  SETUP  ////////////
   ///////////////////////////////////
-  // The single hub for all configuration — connection test, library mapping
-  // (+ schema apply / delete), import formats, and tag rules. Keyed remount per
-  // open re-reads settings fresh; the hub lands on the first incomplete step.
+  // The single hub for all configuration — the shared schema (apply / delete),
+  // Zotero (connection, import formats, tag rules), and Web references. Keyed
+  // remount per open re-reads settings fresh; the hub lands on the first
+  // incomplete step.
   logseq.App.registerCommandPalette(
-    { key: `${PLUGIN_ID}-settings`, label: 'Zotero: Settings' },
+    { key: `${PLUGIN_ID}-settings`, label: 'Reference Manager: Settings' },
     async () => {
       root.render(<SetupContainer key={`setup-${Date.now()}`} />)
       await logseq.showMainUI()

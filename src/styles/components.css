@@ -1805,8 +1805,10 @@ html[data-theme="dark"] input[type="checkbox"] {
   color: var(--zot-color-success);
 }
 
-/* "Advanced" divider above the Tag rules entry. */
-.setup-nav-divider {
+/* Group label above each nav cluster (Schema / Zotero / Web references). The
+   top border separates groups; the first label sits flush so there's no stray
+   rule under the rail's top padding. */
+.setup-nav-group {
   margin: 0.5rem 0.55rem 0.25rem;
   padding-top: 0.5rem;
   border-top: 1px solid var(--zot-color-divider);
@@ -1814,6 +1816,12 @@ html[data-theme="dark"] input[type="checkbox"] {
   text-transform: uppercase;
   letter-spacing: var(--zot-tracking-caps);
   color: var(--zot-color-text-muted);
+}
+
+.setup-nav-group:first-child {
+  margin-top: 0;
+  padding-top: 0.15rem;
+  border-top: none;
 }
 
 /* Guidance cue — quiet link to the next incomplete step, pinned to the rail's
