@@ -10,7 +10,6 @@ interface SelectableResultCardProps {
   index: number
   selected: boolean
   isActive: boolean
-  locked: boolean
   onToggle: (index: number, shiftKey: boolean) => void
 }
 
@@ -22,7 +21,6 @@ export const SelectableResultCard = memo(
     index,
     selected,
     isActive,
-    locked,
     onToggle,
   }: SelectableResultCardProps) => {
     const disabled = item.inGraph
@@ -38,6 +36,8 @@ export const SelectableResultCard = memo(
       .filter(Boolean)
       .join(' ')
 
+    // Not individually focusable: the listbox owns focus and points here via
+    // aria-activedescendant, so keyboard nav never moves DOM focus per-card.
     return (
       <div
         className={className}
@@ -45,7 +45,6 @@ export const SelectableResultCard = memo(
         role="option"
         aria-selected={selected}
         aria-disabled={disabled}
-        tabIndex={!locked && isActive ? 0 : -1}
         onClick={disabled ? undefined : (e) => onToggle(index, e.shiftKey)}
       >
         <input

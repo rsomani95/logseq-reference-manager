@@ -420,17 +420,21 @@ html[data-theme="dark"] input[type="checkbox"] {
   }
 }
 
-/* Keyboard highlight. Two distinct cases share the fill:
-   .result-card-active — the search popup's active descendant; the input
-   keeps real focus (and its wrapper ring), the row is only highlighted.
-   :focus-visible — a genuinely focused option in the batch list, which
-   also gets a 2px inset ring since it owns DOM focus. */
-.result-card-active,
-.result-card:focus-visible {
+/* Keyboard highlight. Both UIs track one active row via .result-card-active
+   (aria-activedescendant) — the controlling element keeps real focus, the row
+   is only highlighted. The search popup and the batch search input keep their
+   own ring, so their active row needs just the fill. The batch list (container
+   sources) owns focus itself, so when keyboard-focused its active row also gets
+   a 2px inset ring to show nav is live; the listbox hides its own outline. */
+.result-card-active {
   background-color: var(--zot-color-hover);
 }
 
-.result-card:focus-visible {
+.batch-results:focus {
+  outline: none;
+}
+
+.batch-results:focus-visible .result-card-active {
   outline: 2px solid var(--zot-color-accent-host);
   outline-offset: -2px;
 }

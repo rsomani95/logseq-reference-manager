@@ -13,6 +13,7 @@ import {
 import { ResultCard } from '../../components/ResultCard'
 import { useSearchItems } from '../../hooks/use-items'
 import { ZotData } from '../../interfaces'
+import { listNavIntent } from '../../keyboard'
 import { insertZotIntoGraph } from '../../services/insert-zot-into-graph'
 
 type Bucket = 'Today' | 'Last 7 days' | 'Last 30 days' | 'Earlier'
@@ -172,14 +173,16 @@ export const SearchItem = ({
   }
 
   // aria-activedescendant combobox: input keeps focus, highlight moves.
+  // ArrowUp/Down and the emacs Ctrl-P/Ctrl-N both drive the highlight.
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (flatResults.length === 0) return
-    if (e.key === 'ArrowDown') {
+    const nav = listNavIntent(e)
+    if (nav === 'down') {
       e.preventDefault()
       const next = Math.min(activeIndex + 1, flatResults.length - 1)
       setActiveIndex(next)
       scrollOptionIntoView(next)
-    } else if (e.key === 'ArrowUp') {
+    } else if (nav === 'up') {
       e.preventDefault()
       const next = Math.max(activeIndex - 1, 0)
       setActiveIndex(next)

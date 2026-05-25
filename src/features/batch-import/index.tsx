@@ -11,6 +11,7 @@ import {
 import { useBatchSources, useContainerItems } from '../../hooks/use-batch'
 import { useSearchItems } from '../../hooks/use-items'
 import { BatchSource, ZotData } from '../../interfaces'
+import { listNavIntent } from '../../keyboard'
 import {
   BatchProgress,
   BatchResult,
@@ -48,6 +49,10 @@ export const BatchView = () => {
   const cancelledRef = useRef(false)
   const lastIndexRef = useRef<number | null>(null)
   const selectAllRef = useRef<HTMLInputElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  // Latches the one-time focus hand-off to the list for container sources.
+  const listAutoFocusedRef = useRef(false)
 
   const {
     collections,
@@ -88,13 +93,37 @@ export const BatchView = () => {
   const someSelected = selectedVisibleCount > 0 && !allSelected
   const locked = phase !== 'select'
 
-  // Source switches reset shift-anchor and roving cursor (their positions are
-  // tied to the current list). Streaming chunks within a source must NOT —
-  // they'd yank the cursor back to 0 every time a container chunk arrives.
+  // Source switches reset shift-anchor and active cursor (their positions are
+  // tied to the current list), and re-arm the list focus hand-off. Streaming
+  // chunks within a source must NOT — they'd yank the cursor back to 0 every
+  // time a container chunk arrives.
   useEffect(() => {
     lastIndexRef.current = null
+    listAutoFocusedRef.current = false
     setActiveIndex(0)
   }, [source, collectionKey, savedSearchKey])
+
+  // A new search query swaps the result set wholesale, so reset the cursor —
+  // unlike container streaming, which only appends.
+  useEffect(() => {
+    if (source === 'search') setActiveIndex(0)
+  }, [deferredQuery, source])
+
+  // Keep the cursor in range if the list shrinks; never pull it back while a
+  // growing (streamed) list appends.
+  useEffect(() => {
+    setActiveIndex((i) => Math.min(i, Math.max(0, items.length - 1)))
+  }, [items.length])
+
+  // Container sources have no text input to host focus, so once their first
+  // items arrive, hand focus to the list — arrows already work from anywhere
+  // in the modal, but this lets Space/Enter toggle without a manual Tab.
+  useEffect(() => {
+    if (source === 'search' || locked) return
+    if (items.length === 0 || listAutoFocusedRef.current) return
+    listRef.current?.focus()
+    listAutoFocusedRef.current = true
+  }, [source, items.length, locked])
 
   // `indeterminate` is a DOM property, not a React prop.
   useEffect(() => {
@@ -142,26 +171,38 @@ export const BatchView = () => {
     })
   }
 
-  const focusCard = (index: number) => {
+  const scrollActiveIntoView = (index: number) => {
     const item = items[index]
     if (!item) return
-    // .focus() on the option scrolls it into view — no separate call needed.
-    document.getElementById(batchOptionId(item.key))?.focus()
+    document
+      .getElementById(batchOptionId(item.key))
+      ?.scrollIntoView({ block: 'nearest' })
   }
 
-  const handleListKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const moveActive = (delta: 1 | -1) => {
+    const next = Math.min(Math.max(activeIndex + delta, 0), items.length - 1)
+    setActiveIndex(next)
+    scrollActiveIntoView(next)
+  }
+
+  // One handler on the modal root: arrows + emacs Ctrl-N/Ctrl-P move the active
+  // item regardless of where focus sits (search input, source chip, the list).
+  // Space/Enter toggle the active item, but only from the search input or the
+  // list — so they don't eat a space mid-query or hijack Enter/Space on the
+  // source tabs, chips, select-all checkbox, or import buttons.
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (locked || items.length === 0) return
-    if (e.key === 'ArrowDown') {
+    const nav = listNavIntent(e)
+    if (nav) {
       e.preventDefault()
-      const next = Math.min(activeIndex + 1, items.length - 1)
-      setActiveIndex(next)
-      focusCard(next)
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      const next = Math.max(activeIndex - 1, 0)
-      setActiveIndex(next)
-      focusCard(next)
-    } else if (e.key === ' ' || e.key === 'Enter') {
+      moveActive(nav === 'down' ? 1 : -1)
+      return
+    }
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    const target = e.target as HTMLElement
+    const inSearchInput = target === searchInputRef.current
+    const inList = target.closest('.batch-results') !== null
+    if (e.key === 'Enter' ? inSearchInput || inList : inList) {
       e.preventDefault()
       handleToggle(activeIndex, e.shiftKey)
     }
@@ -231,7 +272,6 @@ export const BatchView = () => {
             index={index}
             selected={selected.has(item.key)}
             isActive={index === activeIndex}
-            locked={locked}
             onToggle={handleToggle}
           />
         ))}
@@ -248,8 +288,11 @@ export const BatchView = () => {
       : base
   }
 
+  const activeItem = items[activeIndex]
+  const activeId = activeItem ? batchOptionId(activeItem.key) : undefined
+
   return (
-    <div className="batch-container">
+    <div className="batch-container" onKeyDown={handleKeyDown}>
       <div className="batch-source-tabs">
         {TABS.map((tab) => {
           const TabIcon = tab.icon
@@ -273,10 +316,16 @@ export const BatchView = () => {
       <div className="batch-source-input">
         {source === 'search' && (
           <input
+            ref={searchInputRef}
             type="text"
             className="search-input"
             placeholder="Search your library, or browse recently added"
             aria-label="Search your Zotero library"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={items.length > 0}
+            aria-controls="batch-results-list"
+            aria-activedescendant={activeId}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             disabled={locked}
@@ -327,13 +376,16 @@ export const BatchView = () => {
             <span className="batch-list-header-status">{listStatus()}</span>
           </div>
           <div
+            ref={listRef}
+            id="batch-results-list"
             className={`batch-results${
               phase === 'importing' ? ' is-disabled' : ''
             }${isStale ? ' is-stale' : ''}`}
             role="listbox"
             aria-multiselectable="true"
             aria-label="Zotero items to import"
-            onKeyDown={handleListKeyDown}
+            aria-activedescendant={activeId}
+            tabIndex={locked ? -1 : 0}
           >
             {renderList()}
           </div>
