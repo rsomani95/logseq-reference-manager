@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  PLUGIN_NAME: logseq-zotero
+  PLUGIN_NAME: logseq-reference-manager
 
 jobs:
   build:

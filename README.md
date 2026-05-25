@@ -68,7 +68,7 @@ For the Page Name template, use only the stated placeholders. Refer to the plugi
 
 ## Issues and Contributions
 
-For bug reports, feature requests, or contributions, please visit the [GitHub repository](https://github.com/rsomani95/logseq-zotero).
+For bug reports, feature requests, or contributions, please visit the [GitHub repository](https://github.com/rsomani95/logseq-reference-manager).
 
 ## License
 

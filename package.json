@@ -1,15 +1,15 @@
 {
-  "name": "logseq-zotero",
+  "name": "logseq-reference-manager",
   "author": "Rahul Somani",
   "description": "Connect to a running Zotero 7+ instance over its local API and import items into your Logseq graph — no Zotero Cloud sync required.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rsomani95/logseq-zotero.git"
+    "url": "git+https://github.com/rsomani95/logseq-reference-manager.git"
   },
-  "homepage": "https://github.com/rsomani95/logseq-zotero#readme",
+  "homepage": "https://github.com/rsomani95/logseq-reference-manager#readme",
   "bugs": {
-    "url": "https://github.com/rsomani95/logseq-zotero/issues"
+    "url": "https://github.com/rsomani95/logseq-reference-manager/issues"
   },
   "keywords": [
     "logseq",
@@ -21,7 +21,7 @@
     "pkm"
   ],
   "logseq": {
-    "id": "logseq-zotero",
+    "id": "logseq-reference-manager",
     "title": "Reference Manager",
     "icon": "./icon.svg",
     "main": "dist/index.html"
@@ -42,7 +42,7 @@
         "@semantic-release/github",
         {
           "assets": [
-            "logseq-zotero.zip"
+            "logseq-reference-manager.zip"
           ],
           "options": {
             "successComment": false
