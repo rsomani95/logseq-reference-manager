@@ -54,6 +54,11 @@ export const SetupApp = ({
   )
   const [conn, setConn] = useState<ConnResult | null>(null)
   const [schemaReady, setSchemaReady] = useState<boolean | null>(null)
+  // Lifted out of LibrarySection so a schema-affecting change made in the
+  // Import-formats section (store creators as page references) still nudges
+  // Library to re-apply, and so the flag survives section navigation (which
+  // remounts the section components).
+  const [schemaDirty, setSchemaDirty] = useState(false)
 
   // One probe on open: seeds the nav ticks, hands the connection result to the
   // Connect section (so it doesn't re-probe), and lands the user on the first
@@ -97,9 +102,15 @@ export const SetupApp = ({
       case 'connect':
         return <ConnectSection initial={conn} onResult={setConn} />
       case 'library':
-        return <LibrarySection onSchemaChange={setSchemaReady} />
+        return (
+          <LibrarySection
+            onSchemaChange={setSchemaReady}
+            schemaDirty={schemaDirty}
+            onSchemaDirty={setSchemaDirty}
+          />
+        )
       case 'formats':
-        return <FormatsSection />
+        return <FormatsSection onSchemaDirty={() => setSchemaDirty(true)} />
       case 'tagRules':
         return <TagRulesSection />
       default:

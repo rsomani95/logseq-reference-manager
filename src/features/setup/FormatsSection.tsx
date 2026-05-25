@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
+import type { CreatorItem, ZotData } from '../../interfaces'
+import { getSampleParents } from '../../services/get-zot-items'
 import {
   applyCreatorTemplate,
   applyPageNameTemplate,
@@ -10,11 +12,26 @@ interface FmtPreset {
   label: string
 }
 
-const SAMPLE_PAGE = {
-  title: 'Attention Is All You Need',
-  citeKey: 'vaswani2017',
+interface FmtSample {
+  title: string
+  citeKey: string
+  authors: CreatorItem[]
+  fromLibrary: boolean
 }
-const SAMPLE_CREATOR = { firstName: 'Ada', lastName: 'Lovelace' }
+
+// Shown until a real library item loads — and as the permanent fallback when
+// the library is empty or unreachable. A real two-author item (from the dev's
+// own library) so the preview demonstrates multi-author formatting and the
+// `@citeKey` page name out of the box.
+const FALLBACK_SAMPLE: FmtSample = {
+  title: 'Searching for Computer Vision North Stars',
+  citeKey: 'fei-fei_2022_searching_computer_vision',
+  authors: [
+    { firstName: 'Li', lastName: 'Fei-Fei', creatorType: 'author' },
+    { firstName: 'Ranjay', lastName: 'Krishna', creatorType: 'author' },
+  ],
+  fromLibrary: false,
+}
 
 const PAGE_PRESETS: FmtPreset[] = [
   { value: '@<% citeKey %>', label: 'Citekey, @-prefixed' },
@@ -37,7 +54,37 @@ const withCurrent = (presets: FmtPreset[], current: string): FmtPreset[] =>
     ? presets
     : [...presets, { value: current, label: 'Custom (current)' }]
 
-export const FormatsSection = () => {
+// Pick the richest real item for the preview: prefer a real citeKey (so the
+// `@citeKey` format reads naturally) and 2+ authors (so multi-author formatting
+// shows), but accept any item that has at least one author. Recents come back
+// dateAdded-desc, so ties resolve to the most recent.
+const pickSample = (items: ZotData[]): FmtSample | null => {
+  const best = items
+    .filter((i) => (i.authors?.length ?? 0) > 0)
+    .map((i) => ({
+      item: i,
+      score:
+        (i.citeKey && i.citeKey !== 'N/A' ? 2 : 0) +
+        ((i.authors?.length ?? 0) >= 2 ? 1 : 0),
+    }))
+    .sort((a, b) => b.score - a.score)[0]?.item
+  if (!best) return null
+  return {
+    title: best.title,
+    citeKey: best.citeKey,
+    authors: best.authors ?? [],
+    fromLibrary: true,
+  }
+}
+
+export const FormatsSection = ({
+  onSchemaDirty,
+}: {
+  // "Store creators as page references" lives here now — it's a formatting
+  // choice — but it sets the authors/creators property's schema type, so
+  // changing it marks the schema dirty, nudging Library to re-apply.
+  onSchemaDirty: () => void
+}) => {
   const [pageTpl, setPageTpl] = useState<string>(
     (logseq.settings?.pagenameTemplate as string) ?? '@<% citeKey %>',
   )
@@ -45,9 +92,27 @@ export const FormatsSection = () => {
     (logseq.settings?.creatorNameTemplate as string) ??
       '<% firstName %> <% lastName %>',
   )
+  const [asNodes, setAsNodes] = useState<boolean>(
+    (logseq.settings?.creatorsAsNodes as boolean) ?? true,
+  )
   const [inline, setInline] = useState<boolean>(
     (logseq.settings?.openAttachmentInline as boolean) ?? true,
   )
+  const [sample, setSample] = useState<FmtSample>(FALLBACK_SAMPLE)
+
+  // Swap in a real item from the library once it loads. Silent on failure —
+  // the fallback sample stays, and the Connect section owns connection errors.
+  useEffect(() => {
+    let cancelled = false
+    void getSampleParents().then((items) => {
+      if (cancelled) return
+      const picked = pickSample(items)
+      if (picked) setSample(picked)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const onPage = (v: string) => {
     setPageTpl(v)
@@ -57,18 +122,35 @@ export const FormatsSection = () => {
     setCreatorTpl(v)
     void logseq.updateSettings({ creatorNameTemplate: v })
   }
+  const onAsNodes = (v: boolean) => {
+    setAsNodes(v)
+    void logseq.updateSettings({ creatorsAsNodes: v })
+    onSchemaDirty()
+  }
   const onInline = (v: boolean) => {
     setInline(v)
     void logseq.updateSettings({ openAttachmentInline: v })
   }
+
+  const pagePreview = applyPageNameTemplate(pageTpl, {
+    title: sample.title,
+    citeKey: sample.citeKey,
+  })
+  // Mirror the import: text mode joins formatted names with ", "; node mode
+  // creates a page per author — shown here as `[[…]]` links.
+  const authorPreview = sample.authors
+    .map((c) => applyCreatorTemplate(creatorTpl, c))
+    .map((name) => (asNodes ? `[[${name}]]` : name))
+    .join(', ')
 
   return (
     <>
       <div className="setup-section-head">
         <h3 className="setup-section-title">Import formats</h3>
         <p className="setup-section-desc">
-          How imported pages and authors are named. The preview shows a real
-          example.
+          {sample.fromLibrary
+            ? `How imported pages and authors are named — previewed with “${sample.title}” from your library.`
+            : 'How imported pages and authors are named. The preview uses a sample item until your library loads.'}
         </p>
       </div>
 
@@ -91,9 +173,7 @@ export const FormatsSection = () => {
           </select>
           <div className="setup-preview">
             <span className="setup-preview-label">Preview</span>
-            <span className="setup-preview-value">
-              {applyPageNameTemplate(pageTpl, SAMPLE_PAGE)}
-            </span>
+            <span className="setup-preview-value">{pagePreview}</span>
           </div>
         </div>
 
@@ -115,10 +195,24 @@ export const FormatsSection = () => {
           </select>
           <div className="setup-preview">
             <span className="setup-preview-label">Preview</span>
-            <span className="setup-preview-value">
-              {applyCreatorTemplate(creatorTpl, SAMPLE_CREATOR)}
-            </span>
+            <span className="setup-preview-value">{authorPreview}</span>
           </div>
+        </div>
+
+        <div className="setup-field">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={asNodes}
+              onChange={(e) => onAsNodes(e.target.checked)}
+            />
+            Store creators as page references
+          </label>
+          <p className="setup-field-hint">
+            Each author becomes its own page — shown as [[links]] above — so you
+            can jump to all their works. Off = plain text. This sets a property
+            type, so re-apply the schema in Library after changing it.
+          </p>
         </div>
 
         <div className="setup-field">

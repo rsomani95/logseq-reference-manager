@@ -109,6 +109,26 @@ Response: ${await error.response.text()}`,
 }
 
 /**
+ * Fetches a small batch of recent parent items for UI previews (the Import
+ * formats sample). Silent on failure — returns `[]` rather than toasting,
+ * because the preview falls back to a built-in sample and the setup hub already
+ * surfaces connection problems in the Connect section.
+ */
+export const getSampleParents = async (limit = 25): Promise<ZotData[]> => {
+  try {
+    const parents = await api
+      .url('/items/top')
+      .addon(QueryAddon)
+      .query({ ...BASE_QUERY, limit })
+      .get()
+      .json<ZotItem[]>()
+    return await mapItems(parents, [])
+  } catch {
+    return []
+  }
+}
+
+/**
  * Fetches notes + attachments (with their annotation grandchildren) for a
  * single Zotero parent item. Called by the insert paths right before
  * `handleZotInDb`, so the list paths can stay parents-only.

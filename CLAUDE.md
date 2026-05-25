@@ -59,8 +59,8 @@ All UIs render into the `#app` div and toggle via `logseq.showMainUI()` / `hideM
 
 `Zotero: Settings` opens `SetupContainer` → `SetupApp` (`src/features/setup/`), the single surface for all configuration. The native settings panel is reduced to a launcher heading + a live connection-status line; its real keys stay in the schema (their rows hidden via injected CSS — see `HIDDEN_KEYS` in `settings.ts`) only so Logseq populates defaults on a fresh install. Sections:
 - **Connect** (`ConnectSection`) — live connection test (`testZotConnection`).
-- **Library** (`LibrarySection`) — `zotTag`, `propertyPreset`, the searchable custom-property `PropertyPicker`, `creatorsAsNodes`, an explicit **Apply schema** button (`setLogseqDbSchema`), and a **Danger zone** that deletes the created schema (`services/delete-zotero-schema.ts`).
-- **Import formats** (`FormatsSection`) — `pagenameTemplate` / `creatorNameTemplate` as dropdown presets with a live preview, plus `openAttachmentInline`.
+- **Library** (`LibrarySection`) — `zotTag`, `propertyPreset` (with a read-only `PresetFieldList` disclosure of what Essentials/Full include), the searchable custom-property `PropertyPicker` (Custom only), an explicit **Apply schema** button (`setLogseqDbSchema`), and a **Danger zone** that deletes the created schema (`services/delete-zotero-schema.ts`).
+- **Import formats** (`FormatsSection`) — `pagenameTemplate` / `creatorNameTemplate` as dropdown presets with a live preview rendered from a real library item (`getSampleParents`, falling back to a built-in sample), `creatorsAsNodes` (authors shown as `[[links]]` in the preview when on), plus `openAttachmentInline`.
 - **Tag rules** (`TagRulesSection`) — the rule builder (see **Extended tags**), set apart as advanced.
 
 Simple controls autosave (`updateSettings`); the heavy ops — Apply schema, schema delete, and Tag rules' Save — are explicit. `SetupApp` probes connection + `isSchemaAdded` on open, ticks the completed sections, and lands on the first incomplete one. The dev-facing reference (every settings key, how to add a setting, the hidden-keys mechanism) lives in [`settings.md`](./settings.md).

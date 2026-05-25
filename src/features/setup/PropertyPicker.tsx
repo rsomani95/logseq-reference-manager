@@ -6,7 +6,13 @@ import {
   parsePagePropChoice,
 } from '../../services/page-props-choice'
 
-export const PropertyPicker = () => {
+export const PropertyPicker = ({
+  onSchemaDirty,
+}: {
+  // Toggling a custom property changes the schema, so nudge Library to
+  // re-apply (same signal the tag / preset controls raise).
+  onSchemaDirty?: () => void
+}) => {
   const options = useMemo(() => buildPropertyOptions(), [])
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Set<string>>(() => {
@@ -25,6 +31,7 @@ export const PropertyPicker = () => {
       .filter((o) => next.has(o.key))
       .map((o) => formatPagePropChoice(o.key))
     void logseq.updateSettings({ pageProps: ordered })
+    onSchemaDirty?.()
   }
 
   const toggle = (key: string) => {

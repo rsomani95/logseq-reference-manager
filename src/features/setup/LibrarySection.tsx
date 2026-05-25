@@ -4,6 +4,7 @@ import type { PropertyPreset } from '../../interfaces'
 import { deleteZoteroSchema } from '../../services/delete-zotero-schema'
 import { isSchemaAdded } from '../../services/is-schema-added'
 import { setLogseqDbSchema } from '../../services/set-logseqdb-schema'
+import { PresetFieldList } from './PresetFieldList'
 import { PropertyPicker } from './PropertyPicker'
 
 const PRESETS: { id: PropertyPreset; label: string; desc: string }[] = [
@@ -18,8 +19,16 @@ const PRESETS: { id: PropertyPreset; label: string; desc: string }[] = [
 
 export const LibrarySection = ({
   onSchemaChange,
+  schemaDirty,
+  onSchemaDirty,
 }: {
   onSchemaChange: (ready: boolean) => void
+  // `schemaDirty` is lifted to SetupApp: a schema-affecting change in another
+  // section (Import formats' "store creators as page references") still raises
+  // this section's quiet "re-apply" nudge, and the flag survives navigating
+  // away and back (a section remount would otherwise reset a local flag).
+  schemaDirty: boolean
+  onSchemaDirty: (dirty: boolean) => void
 }) => {
   const [zotTag, setZotTag] = useState<string>(
     (logseq.settings?.zotTag as string) ?? 'Reference',
@@ -27,15 +36,8 @@ export const LibrarySection = ({
   const [preset, setPreset] = useState<PropertyPreset>(
     (logseq.settings?.propertyPreset as PropertyPreset) ?? 'Essentials',
   )
-  const [asNodes, setAsNodes] = useState<boolean>(
-    (logseq.settings?.creatorsAsNodes as boolean) ?? true,
-  )
   const [applying, setApplying] = useState(false)
   const [applied, setApplied] = useState<boolean | null>(null)
-  // Tracks edits made since the last apply — schema changes only land in the
-  // graph when the user clicks Apply, so we surface a quiet "re-apply" nudge
-  // instead of the old global toast.
-  const [dirty, setDirty] = useState(false)
   // Two-click guard for the destructive delete (the former Delete schema cmd).
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -46,18 +48,13 @@ export const LibrarySection = ({
 
   const onTag = (v: string) => {
     setZotTag(v)
-    setDirty(true)
+    onSchemaDirty(true)
     void logseq.updateSettings({ zotTag: v })
   }
   const onPreset = (v: PropertyPreset) => {
     setPreset(v)
-    setDirty(true)
+    onSchemaDirty(true)
     void logseq.updateSettings({ propertyPreset: v })
-  }
-  const onAsNodes = (v: boolean) => {
-    setAsNodes(v)
-    setDirty(true)
-    void logseq.updateSettings({ creatorsAsNodes: v })
   }
 
   const apply = async () => {
@@ -70,16 +67,15 @@ export const LibrarySection = ({
       // The change handlers fire-and-forget updateSettings; flush this
       // section's values before setLogseqDbSchema reads them back, so a quick
       // change-then-apply can't race the persist. (pageProps is flushed by the
-      // PropertyPicker on toggle.)
+      // PropertyPicker, creatorsAsNodes by the Import-formats section.)
       await logseq.updateSettings({
         zotTag,
         propertyPreset: preset,
-        creatorsAsNodes: asNodes,
       })
       await setLogseqDbSchema()
       const ready = await isSchemaAdded()
       setApplied(ready)
-      setDirty(false)
+      onSchemaDirty(false)
       onSchemaChange(ready)
     } catch (e) {
       await logseq.UI.showMsg(
@@ -98,7 +94,7 @@ export const LibrarySection = ({
       // Re-derive applied state from the graph rather than assuming success.
       const stillThere = await isSchemaAdded()
       setApplied(stillThere)
-      setDirty(false)
+      onSchemaDirty(false)
       onSchemaChange(stillThere)
       if (stillThere) {
         await logseq.UI.showMsg(
@@ -129,7 +125,7 @@ export const LibrarySection = ({
   const status =
     applied === null
       ? ''
-      : dirty && applied
+      : schemaDirty && applied
         ? 'Settings changed — re-apply to update your graph.'
         : applied
           ? 'Schema applied to your graph.'
@@ -181,22 +177,11 @@ export const LibrarySection = ({
               </label>
             ))}
           </div>
-          {preset === 'Custom' && <PropertyPicker />}
-        </div>
-
-        <div className="setup-field">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={asNodes}
-              onChange={(e) => onAsNodes(e.target.checked)}
-            />
-            Store creators as page references
-          </label>
-          <p className="setup-field-hint">
-            Each author becomes its own page, so you can jump from an author to
-            all their works. Off = store them as plain text.
-          </p>
+          {preset === 'Custom' ? (
+            <PropertyPicker onSchemaDirty={() => onSchemaDirty(true)} />
+          ) : (
+            <PresetFieldList preset={preset} />
+          )}
         </div>
 
         <div className="setup-danger">

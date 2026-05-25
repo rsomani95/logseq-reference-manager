@@ -36,7 +36,7 @@ all real configuration lives in the plugin's own modal.
 | `zotTag` | string | `Reference` | Library | `set-logseqdb-schema`, `handle-zot-db` (page tag) |
 | `propertyPreset` | enum `Essentials\|Full\|Custom` | `Essentials` | Library | `set-logseqdb-schema`, `handle-zot-db` |
 | `pageProps` | `string[]` (`formatPagePropChoice` labels) | essentials | Library → `PropertyPicker` (Custom only) | both, via `parsePagePropChoice` |
-| `creatorsAsNodes` | boolean | `true` | Library | `set-logseqdb-schema` (property type), `handle-zot-db` (render) |
+| `creatorsAsNodes` | boolean | `true` | Import formats | `set-logseqdb-schema` (property type), `handle-zot-db` (render) |
 | `creatorNameTemplate` | string template | `<% firstName %> <% lastName %>` | Import formats | `resolveCreatorName` → `applyCreatorTemplate` |
 | `pagenameTemplate` | string template | `@<% citeKey %>` | Import formats | `resolvePageName` → `applyPageNameTemplate` |
 | `openAttachmentInline` | boolean | `true` | Import formats | `handle-zot-db` (attachment link) |
@@ -57,10 +57,12 @@ src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
   └─ src/features/setup/index.tsx → SetupApp (shell: header · nav rail · panel)
        sections (src/features/setup/):
          ConnectSection.tsx   — live connection test (testZotConnection)
-         LibrarySection.tsx   — tag, preset, PropertyPicker, Apply schema,
-                                Danger zone (deleteZoteroSchema)
-           └─ PropertyPicker.tsx — searchable custom-property selector
-         FormatsSection.tsx   — page/author dropdowns + live preview
+         LibrarySection.tsx   — tag, preset, Apply schema, Danger zone
+                                (deleteZoteroSchema)
+           ├─ PropertyPicker.tsx  — searchable custom-property selector (Custom)
+           └─ PresetFieldList.tsx — read-only Essentials / Full field list
+         FormatsSection.tsx   — page/author dropdowns + live preview from a
+                                real library item, creatorsAsNodes
          TagRulesSection.tsx  — rule builder (reuses ../tag-rules/RuleCard)
 ```
 
@@ -85,6 +87,11 @@ src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
     rules** (validates the draft, then writes `tagRules`). Both sit next to what
     they affect — which is why there's no longer a "you changed a schema
     setting, go re-run a command" nag (the old `watch-schema-settings.ts`).
+  - A schema-affecting change (tag, preset, custom properties, or Import
+    formats' `creatorsAsNodes`) sets a `schemaDirty` flag — lifted to `SetupApp`
+    so it's shared across sections and survives section navigation — surfacing a
+    quiet "re-apply to update your graph" line in Library's footer until the
+    next Apply.
 
 ## Adding or changing a setting
 
@@ -118,8 +125,10 @@ settings.
 Properties and the tag only reach the graph when **Apply schema** runs
 `services/set-logseqdb-schema.ts`, which reads `zotTag` / `propertyPreset` /
 `pageProps` / `creatorsAsNodes` from `logseq.settings`. `LibrarySection` flushes
-its own values via `updateSettings` *before* calling it (the change handlers are
-fire-and-forget).
+its own values (`zotTag`, `propertyPreset`) via `updateSettings` *before* calling
+it, since its change handlers are fire-and-forget; `pageProps` and
+`creatorsAsNodes` are autosaved by the `PropertyPicker` and the Import-formats
+section respectively, so they're already persisted by then.
 
 **Per-property visibility.** Every created property gets
 `:logseq.property/hide-empty-value` (a nil value collapses).

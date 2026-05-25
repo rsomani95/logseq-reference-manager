@@ -2128,6 +2128,57 @@ html[data-theme="dark"] input[type="checkbox"] {
   color: var(--zot-color-text-muted);
 }
 
+/* Read-only preset field list (Essentials / Full) — a disclosure that reveals
+   the included fields without switching to Custom. Rows reuse the picker's
+   styling, minus the checkbox affordance. */
+.setup-fieldlist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.setup-disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  align-self: flex-start;
+  padding: 0.1rem 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--zot-text-sm);
+  color: var(--zot-color-text-muted);
+}
+
+.setup-disclosure:hover {
+  color: var(--zot-color-text);
+}
+
+.setup-disclosure:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.setup-disclosure-chevron {
+  flex-shrink: 0;
+  transition: transform var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.setup-disclosure-chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.setup-picker-item.is-readonly {
+  cursor: default;
+}
+
+.setup-picker-item.is-readonly:hover {
+  background: none;
+}
+
 /* Format preview — the rendered example, monospace so it reads as output. */
 .setup-preview {
   display: flex;
