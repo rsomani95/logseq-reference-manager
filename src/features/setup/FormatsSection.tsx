@@ -6,6 +6,7 @@ import {
   applyCreatorTemplate,
   applyPageNameTemplate,
 } from '../../services/resolve-templates'
+import type { SchemaSnapshot } from '../../services/schema-snapshot'
 
 interface FmtPreset {
   value: string
@@ -78,12 +79,25 @@ const pickSample = (items: ZotData[]): FmtSample | null => {
 }
 
 export const FormatsSection = ({
-  onSchemaDirty,
+  creatorsAsNodes,
+  schemaReady,
+  baseDirty,
+  applying,
+  onConfigChange,
+  onApply,
 }: {
   // "Store creators as page references" lives here now — it's a formatting
-  // choice — but it sets the authors/creators property's schema type, so
-  // changing it marks the schema dirty, nudging Schema to re-apply.
-  onSchemaDirty: () => void
+  // choice — but it sets the authors/creators property's schema *type*, so it's
+  // owned by the lifted schema state and surfaces a re-apply footer right here
+  // (so the user needn't bounce to the Schema section). Everything else in this
+  // section is cosmetic (templates, separators, attachment open mode) and stays
+  // self-persisted local state.
+  creatorsAsNodes: boolean
+  schemaReady: boolean | null
+  baseDirty: boolean
+  applying: boolean
+  onConfigChange: (patch: Partial<SchemaSnapshot>) => void
+  onApply: () => void
 }) => {
   const [pageTpl, setPageTpl] = useState<string>(
     (logseq.settings?.pagenameTemplate as string) ?? '<% citeKey %>',
@@ -97,9 +111,6 @@ export const FormatsSection = ({
   )
   const [separator, setSeparator] = useState<string>(
     (logseq.settings?.creatorSeparator as string) ?? ', ',
-  )
-  const [asNodes, setAsNodes] = useState<boolean>(
-    (logseq.settings?.creatorsAsNodes as boolean) ?? true,
   )
   const [inline, setInline] = useState<boolean>(
     (logseq.settings?.openAttachmentInline as boolean) ?? true,
@@ -136,11 +147,6 @@ export const FormatsSection = ({
     setSeparator(v)
     void logseq.updateSettings({ creatorSeparator: v })
   }
-  const onAsNodes = (v: boolean) => {
-    setAsNodes(v)
-    void logseq.updateSettings({ creatorsAsNodes: v })
-    onSchemaDirty()
-  }
   const onInline = (v: boolean) => {
     setInline(v)
     void logseq.updateSettings({ openAttachmentInline: v })
@@ -157,7 +163,7 @@ export const FormatsSection = ({
   // controls the plain-text join exactly.)
   const authorPreview = sample.authors
     .map((c) => applyCreatorTemplate(creatorTpl, c))
-    .map((name) => (asNodes ? `[[${name}]]` : name))
+    .map((name) => (creatorsAsNodes ? `[[${name}]]` : name))
     .join(separator)
 
   return (
@@ -250,8 +256,10 @@ export const FormatsSection = ({
           <label className="checkbox-label">
             <input
               type="checkbox"
-              checked={asNodes}
-              onChange={(e) => onAsNodes(e.target.checked)}
+              checked={creatorsAsNodes}
+              onChange={(e) =>
+                onConfigChange({ creatorsAsNodes: e.target.checked })
+              }
             />
             Store creators as page references
           </label>
@@ -275,6 +283,30 @@ export const FormatsSection = ({
           </p>
         </div>
       </div>
+
+      {/* Only "store creators as page references" here is schema-relevant, but
+          the footer mirrors the Schema section: Apply applies the whole schema,
+          and it's enabled only when the live config differs from what's applied
+          (`baseDirty`) — so it lights up after toggling creators (or after any
+          base-schema change made elsewhere). Hidden until a schema exists; the
+          first Apply happens from the Schema section. */}
+      {schemaReady === true && (
+        <div className="setup-section-footer">
+          <span className="setup-footer-status">
+            {baseDirty
+              ? 'Schema settings changed — re-apply to update your graph.'
+              : 'Schema is up to date.'}
+          </span>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onApply}
+            disabled={applying || !baseDirty}
+          >
+            {applying ? 'Applying…' : 'Re-apply schema'}
+          </button>
+        </div>
+      )}
     </>
   )
 }

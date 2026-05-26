@@ -7,11 +7,12 @@ import {
 } from '../../services/page-props-choice'
 
 export const PropertyPicker = ({
-  onSchemaDirty,
+  onChange,
 }: {
-  // Toggling a custom property changes the schema, so nudge the Schema section
-  // to re-apply (same signal the tag / preset controls raise).
-  onSchemaDirty?: () => void
+  // Toggling a custom property changes the schema. Report the new (canonically
+  // ordered) list up — the lifted schema state persists it and recomputes the
+  // dirty flag the Apply button keys off.
+  onChange?: (pageProps: string[]) => void
 }) => {
   const options = useMemo(() => buildPropertyOptions(), [])
   const [query, setQuery] = useState('')
@@ -23,15 +24,14 @@ export const PropertyPicker = ({
     return new Set(keys)
   })
 
-  // Persist in the canonical option order so the stored list is stable, as
+  // Emit in the canonical option order so the stored list is stable, as
   // `formatPagePropChoice` strings — the format set-logseqdb-schema.ts and
   // handle-zot-db.ts both read back via parsePagePropChoice.
   const persist = (next: Set<string>) => {
     const ordered = options
       .filter((o) => next.has(o.key))
       .map((o) => formatPagePropChoice(o.key))
-    void logseq.updateSettings({ pageProps: ordered })
-    onSchemaDirty?.()
+    onChange?.(ordered)
   }
 
   const toggle = (key: string) => {

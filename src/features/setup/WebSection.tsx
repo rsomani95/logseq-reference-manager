@@ -22,8 +22,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { AlertTriangle, CheckCircle2, GripVertical, Link2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-import { isSchemaAdded } from '../../services/is-schema-added'
-import { ensureWebTagExtendsBase } from '../../services/set-web-schema'
+import type { SchemaSnapshot } from '../../services/schema-snapshot'
 import {
   parseSectionOrder,
   serializeSectionOrder,
@@ -144,18 +143,36 @@ const SortableSectionCard = ({
 // for a *consumer that lives in another process*, plus a button to wire the Web
 // tag into the shared schema. The keys are a contract — see settings.md.
 export const WebSection = ({
+  webTag,
+  baseTag,
+  baseReady,
+  webDirty,
+  webApplied,
+  linking,
+  onConfigChange,
+  onSetUpWebTag,
   onGoToSchema,
 }: {
+  // The Web tag is the one schema-relevant control here (it extends the base),
+  // so it's owned by the lifted schema state: `webTag` is the controlled value,
+  // `webDirty` is a real diff against the last-wired tag (so re-typing it back
+  // disables the button), and `onSetUpWebTag` does the wiring. The page-template
+  // controls below are consumed by the extension at clip time, not schema, so
+  // they stay self-persisted local state.
+  webTag: string
+  baseTag: string
+  // Is the base schema applied? Wiring the Web tag needs the base class to exist.
+  baseReady: boolean | null
+  webDirty: boolean
+  // Has a web tag ever been wired (distinguishes "set it up" from "changed")?
+  webApplied: boolean
+  linking: boolean
+  onConfigChange: (patch: Partial<SchemaSnapshot>) => void
+  onSetUpWebTag: () => void
   // Jump to the Schema section — used by the "base schema not set up" gate so
   // the user can fix the precondition without hunting for the right nav item.
   onGoToSchema?: () => void
 }) => {
-  const baseTag = (logseq.settings?.zotTag as string) ?? 'Reference'
-
-  const [webTag, setWebTag] = useState<string>(
-    (logseq.settings?.webTag as string) ?? 'Web',
-  )
-
   // Page-template state: each section's heading name / fold / enable, plus the
   // order the extension writes them in.
   const [sections, setSections] =
@@ -170,19 +187,6 @@ export const WebSection = ({
   const [pageTags, setPageTags] = useState<boolean>(
     (logseq.settings?.webPopulatePageTags as boolean) ?? false,
   )
-
-  // Wiring the Web tag needs the base class to already exist (Schema → Apply
-  // creates it). Probe once so we can gate the button + explain why.
-  const [baseReady, setBaseReady] = useState<boolean | null>(null)
-  const [linking, setLinking] = useState(false)
-  const [linked, setLinked] = useState(false)
-  // Web tag edited since the last wiring → the extension's tag won't carry the
-  // schema until it's set up again.
-  const [dirty, setDirty] = useState(false)
-
-  useEffect(() => {
-    void isSchemaAdded().then(setBaseReady)
-  }, [])
 
   // If the stored order was missing or malformed, write the normalised value
   // back so the extension always reads a complete, valid list.
@@ -203,12 +207,7 @@ export const WebSection = ({
     }),
   )
 
-  const onWebTag = (v: string) => {
-    setWebTag(v)
-    setDirty(true)
-    setLinked(false)
-    void logseq.updateSettings({ webTag: v })
-  }
+  const onWebTag = (v: string) => onConfigChange({ webTag: v })
   const onHeadingMarkers = (v: boolean) => {
     setHeadingMarkers(v)
     void logseq.updateSettings({ webUseHeadingMarkers: v })
@@ -244,47 +243,17 @@ export const WebSection = ({
     })
   }
 
-  const setUpWebTag = async () => {
-    if (!webTag.trim()) {
-      await logseq.UI.showMsg('Enter a web tag name first.', 'warning')
-      return
-    }
-    if (!baseReady) {
-      await logseq.UI.showMsg(
-        'Apply the shared schema first (Schema section).',
-        'warning',
-      )
-      return
-    }
-    setLinking(true)
-    try {
-      // Flush before wiring, in case the change handler's persist is still in
-      // flight, then make the tag extend the base so it inherits the schema.
-      await logseq.updateSettings({ webTag })
-      await ensureWebTagExtendsBase(webTag, baseTag)
-      setLinked(true)
-      setDirty(false)
-      await logseq.UI.showMsg(
-        `“#${webTag.trim()}” now extends “${baseTag}” — web clips inherit the schema.`,
-        'success',
-      )
-    } catch (e) {
-      await logseq.UI.showMsg(
-        `Couldn’t set up the web tag: ${e instanceof Error ? e.message : String(e)}`,
-        'error',
-      )
-    } finally {
-      setLinking(false)
-    }
-  }
-
+  // Derived entirely from the lifted state — no session-only "linked" flag.
+  // `!webDirty` (with the base applied) means the live tag matches the one
+  // currently wired to extend the base, so it's set up.
+  const isSetUp = baseReady === true && !webDirty
   const status =
     baseReady === false
       ? 'Apply the shared schema first (Schema section), then set up the web tag.'
-      : dirty
-        ? 'Web tag changed — set it up so clips inherit the schema.'
-        : linked
-          ? `“#${webTag.trim()}” extends “${baseTag}”.`
+      : isSetUp
+        ? `“#${webTag.trim()}” extends “${baseTag.trim()}”.`
+        : webApplied
+          ? 'Web tag changed — set it up so clips inherit the schema.'
           : 'Set up the web tag so clipped pages inherit the shared schema.'
 
   return (
@@ -405,7 +374,7 @@ export const WebSection = ({
 
       <div className="setup-section-footer">
         <span className="setup-footer-status">
-          {linked && !dirty ? (
+          {isSetUp ? (
             <span className="setup-status is-ok">
               <CheckCircle2 size={15} aria-hidden /> {status}
             </span>
@@ -416,8 +385,8 @@ export const WebSection = ({
         <button
           type="button"
           className="btn btn-primary"
-          onClick={setUpWebTag}
-          disabled={linking || baseReady !== true}
+          onClick={onSetUpWebTag}
+          disabled={linking || baseReady !== true || !webDirty}
         >
           <Link2 size={14} aria-hidden />
           {linking ? 'Setting up…' : 'Set up web tag'}

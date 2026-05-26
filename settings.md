@@ -41,6 +41,7 @@ all real configuration lives in the plugin's own modal.
 | `pagenameTemplate` | string template | `@<% citeKey %>` | Import formats | `resolvePageName` → `applyPageNameTemplate` |
 | `openAttachmentInline` | boolean | `true` | Import formats | `handle-zot-db` (attachment link) |
 | `tagRules` | JSON string (array of `TagRule`) | empty | Tag rules | `getConfiguredTagRules`; watched by `watch-tag-rules` |
+| `appliedSchema` | JSON string (`SchemaSnapshot`) | empty | (internal — written by Apply / Set up web tag) | `use-schema-state` for the dirty diff (`schema-snapshot.ts`) |
 | `webTag` | string | `Web` | Web references | `set-web-schema` (extends base); **web-clipper extension** (clip tag) |
 | `webCapturePageContent` | boolean | `true` | Web references | **web-clipper extension** |
 | `webPageContentBlockName` | string | `Page Content` | Web references → Page template | **web-clipper extension** |
@@ -56,9 +57,12 @@ all real configuration lives in the plugin's own modal.
 | `testConnection` | heading | — | — | display-only (native panel status line) |
 | `openSetup` | heading | — | — | launcher copy (native panel) |
 
-`tagRules` is intentionally **not** in the schema — it's written by the hub and
-read directly; `watch-tag-rules.ts` toasts parse errors as a safety net for
-externally hand-edited JSON.
+`tagRules` and `appliedSchema` are intentionally **not** in the schema — they're
+written by the hub and read directly (undeclared keys survive `useSettingsSchema`
+re-registration). `watch-tag-rules.ts` toasts parse errors on `tagRules` as a
+safety net for externally hand-edited JSON. `appliedSchema` is internal state, not
+user-facing: it records the schema-relevant config as of the last Apply so the hub
+can tell a real schema change from a no-op edit (see Save model below).
 
 The `web*` keys are a **contract** with the companion web-clipper extension: it
 reads them over the HTTP API (`getStateFromStore`) but can't write them, so this
@@ -108,7 +112,8 @@ src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
          Zotero:
            ConnectSection.tsx — live connection test (testZotConnection)
            FormatsSection.tsx — page/author dropdowns + live preview from a
-                                real library item, creatorsAsNodes
+                                real library item, creatorsAsNodes (+ its own
+                                Apply-schema footer, gated on baseDirty)
            TagRulesSection.tsx — rule builder (reuses ../tag-rules/RuleCard)
          Web references:
            WebSection.tsx     — webTag + Page template (a @dnd-kit reorderable
@@ -120,6 +125,13 @@ src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
 
 The nav is grouped: `NAV` in `index.tsx` tags each item with a `group`, and a
 `.setup-nav-group` label renders whenever the group changes.
+
+Schema state spans the sections (base tag/preset/list in Schema, `creatorsAsNodes`
+in Import formats, `webTag` in Web references) yet shares one Apply and one notion
+of "dirty", so it's all owned by **`useSchemaState`** (`features/setup/use-schema-state.ts`)
+in `SetupApp` and threaded down; the diff logic is in `services/schema-snapshot.ts`.
+The sections render the controls as controlled inputs and delegate Apply / Delete /
+Set-up upward (see Save model).
 
 - **Section model.** Each section renders a `setup-section-head` /
   `setup-section-body` / `setup-section-footer` trio (CSS in `components.css`,
@@ -143,12 +155,27 @@ The nav is grouped: `NAV` in `index.tsx` tags each item with a `group`, and a
     **Set up web tag** (`ensureWebTagExtendsBase`). Each sits next to what it
     affects — which is why there's no longer a "you changed a schema setting, go
     re-run a command" nag (the old `watch-schema-settings.ts`).
-  - A schema-affecting change (base tag, preset, custom properties, or Import
-    formats' `creatorsAsNodes`) sets a `schemaDirty` flag — lifted to `SetupApp`
-    so it's shared across sections and survives section navigation — surfacing a
-    quiet "re-apply to update your graph" line in Schema's footer until the next
-    Apply. (Editing `webTag` is tracked separately, in the Web references
-    section's own local dirty state, not this flag.)
+  - **Dirty = a real diff, not a sticky flag.** All schema state is lifted into
+    `useSchemaState` (in `SetupApp`): it persists a snapshot of the last-*applied*
+    schema-relevant config (`appliedSchema`) and compares the live config against
+    it (`services/schema-snapshot.ts`, **trim-insensitive**). The schema-relevant
+    set is fully enumerated — base tag, preset, custom property list (Custom only,
+    order-insensitive), `creatorsAsNodes`, and `webTag`; everything else in the hub
+    is cosmetic. **Apply schema** and **Set up web tag** are enabled *only* when
+    their side of that diff is non-empty (`baseDirty` / `webDirty`), so re-typing a
+    value back to what's applied — or reordering a custom list — re-disables the
+    button. Schema's footer status reads off the same diff.
+  - Because `creatorsAsNodes` is schema-relevant but lives in **Import formats**,
+    that section shows its **own** Apply-schema footer (same `baseDirty` gate;
+    hidden until a schema exists) so a creators change can be applied without
+    bouncing back to Schema. `applySchema` itself lives in `useSchemaState`, shared
+    by both footers. This also consolidated the three separate `isSchemaAdded`
+    probes the sections used to each run into one.
+  - **Migration:** a pre-snapshot install (schema applied by an older version)
+    seeds `appliedSchema` from current settings on open — base fields assumed
+    already-applied (button starts disabled), but `webTag` seeded empty (the base
+    probe can't confirm the web tag was actually wired, so the idempotent "Set up
+    web tag" is offered once). Both self-heal on the next Apply.
 
 ## Adding or changing a setting
 

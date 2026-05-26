@@ -11,11 +11,11 @@ import {
 import { Fragment, useEffect, useState } from 'react'
 
 import { testZotConnection } from '../../services/get-zot-items'
-import { isSchemaAdded } from '../../services/is-schema-added'
 import { ConnectSection } from './ConnectSection'
 import { FormatsSection } from './FormatsSection'
 import { SchemaSection } from './SchemaSection'
 import { TagRulesSection } from './TagRulesSection'
+import { useSchemaState } from './use-schema-state'
 import { WebSection } from './WebSection'
 
 export type SetupSection = 'schema' | 'connect' | 'formats' | 'tagRules' | 'web'
@@ -59,43 +59,34 @@ export const SetupApp = ({
     initialSection ?? null,
   )
   const [conn, setConn] = useState<ConnResult | null>(null)
-  const [schemaReady, setSchemaReady] = useState<boolean | null>(null)
-  // Lifted out of SchemaSection so a schema-affecting change made in the
-  // Import-formats section (store creators as page references) still nudges
-  // Schema to re-apply, and so the flag survives section navigation (which
-  // remounts the section components).
-  const [schemaDirty, setSchemaDirty] = useState(false)
+  // All schema state (live config, applied snapshot, dirty flags, the apply /
+  // delete / web-setup handlers, and the one isSchemaAdded probe) lives here.
+  const schema = useSchemaState()
 
-  // One probe on open: seeds the nav ticks, hands the connection result to the
-  // Connect section (so it doesn't re-probe), and lands the user on the first
-  // incomplete step. Fast — both calls hit local APIs.
+  // Connection probe on open — the schema probe runs inside useSchemaState. A
+  // thrown probe falls back to "error" so the hub can't strand on its spinner.
   useEffect(() => {
     let alive = true
-    void (async () => {
-      // A thrown probe (e.g. getAllProperties failing) must not strand the hub
-      // on its loading spinner — fall back to "not set up" so the user lands on
-      // Connect and can still navigate.
-      const [c, s] = await Promise.all([
-        testZotConnection(),
-        isSchemaAdded(),
-      ]).catch((): [ConnResult, boolean] => [{ code: 'error', msg: '' }, false])
-      if (!alive) return
-      setConn(c)
-      setSchemaReady(s)
-      setActive((prev) => {
-        if (prev) return prev
-        if (c.code !== 'success') return 'connect'
-        if (!s) return 'schema'
-        return 'connect'
-      })
-    })()
+    void testZotConnection()
+      .then((c) => alive && setConn(c))
+      .catch(() => alive && setConn({ code: 'error', msg: '' }))
     return () => {
       alive = false
     }
   }, [])
 
+  // Land on the first incomplete step once both probes resolve. A deep-link
+  // (initialSection) sets `active` up front, so this no-ops then.
+  useEffect(() => {
+    if (active !== null) return
+    if (conn === null || schema.schemaReady === null) return
+    if (conn.code !== 'success') setActive('connect')
+    else if (!schema.schemaReady) setActive('schema')
+    else setActive('connect')
+  }, [active, conn, schema.schemaReady])
+
   const complete: Record<SetupSection, boolean | null> = {
-    schema: schemaReady,
+    schema: schema.schemaReady,
     connect: conn ? conn.code === 'success' : null,
     formats: true,
     tagRules: true,
@@ -109,19 +100,45 @@ export const SetupApp = ({
       case 'schema':
         return (
           <SchemaSection
-            onSchemaChange={setSchemaReady}
-            schemaDirty={schemaDirty}
-            onSchemaDirty={setSchemaDirty}
+            config={schema.config}
+            schemaReady={schema.schemaReady}
+            baseDirty={schema.baseDirty}
+            applying={schema.applying}
+            deleting={schema.deleting}
+            onConfigChange={schema.updateConfig}
+            onApply={schema.applySchema}
+            onDelete={schema.deleteSchema}
           />
         )
       case 'connect':
         return <ConnectSection initial={conn} onResult={setConn} />
       case 'formats':
-        return <FormatsSection onSchemaDirty={() => setSchemaDirty(true)} />
+        return (
+          <FormatsSection
+            creatorsAsNodes={schema.config.creatorsAsNodes}
+            schemaReady={schema.schemaReady}
+            baseDirty={schema.baseDirty}
+            applying={schema.applying}
+            onConfigChange={schema.updateConfig}
+            onApply={schema.applySchema}
+          />
+        )
       case 'tagRules':
         return <TagRulesSection />
       case 'web':
-        return <WebSection onGoToSchema={() => setActive('schema')} />
+        return (
+          <WebSection
+            webTag={schema.config.webTag}
+            baseTag={schema.config.zotTag}
+            baseReady={schema.schemaReady}
+            webDirty={schema.webDirty}
+            webApplied={schema.webApplied}
+            linking={schema.linking}
+            onConfigChange={schema.updateConfig}
+            onSetUpWebTag={schema.setUpWebTag}
+            onGoToSchema={() => setActive('schema')}
+          />
+        )
       default:
         return (
           <div className="setup-loading">
