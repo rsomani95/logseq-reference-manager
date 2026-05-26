@@ -153,7 +153,12 @@
   --zot-shadow-modal:
     0 40px 80px -20px rgba(15, 23, 42, 0.26),
     0 16px 36px -16px rgba(15, 23, 42, 0.18);
-  --zot-color-backdrop: rgba(15, 23, 42, 0.3);
+  /* Backdrop scrim — deliberately light. Logseq dims the app only gently behind
+     its own modals (the content stays sharp, just faded), so a heavy curtain
+     reads as foreign; kept a hair more present than the host so our overlays
+     still feel owned. Cool navy here; the dark block drops to a plain low-alpha
+     black, since navy-on-navy wouldn't register. */
+  --zot-color-backdrop: rgba(15, 23, 42, 0.2);
 }
 
 /* Dark theme — overrides only the Layer 2 base hues + Layer 3 elevation;
@@ -168,7 +173,7 @@ html[data-theme="dark"] {
   --zot-color-mark-text: var(--ls-page-mark-color, #f3ead0);
   --zot-shadow-modal:
     0 40px 80px -20px rgba(0, 0, 0, 0.72), 0 16px 36px -16px rgba(0, 0, 0, 0.6);
-  --zot-color-backdrop: rgba(0, 0, 0, 0.3);
+  --zot-color-backdrop: rgba(0, 0, 0, 0.15);
 }
 
 /* Native controls (<select> dropdown popups, checkboxes) are browser-drawn; this
@@ -982,17 +987,19 @@ html[data-theme="dark"] input[type="checkbox"] {
   border-bottom: 1px solid var(--zot-color-border);
 }
 
+/* Borderless, flush in the row — matches the single-item popup's
+   .search-input-wrapper and Logseq's own borderless search box. */
 .batch-source-input .search-input {
-  padding: 0.35rem 0.5rem;
-  border: 1px solid var(--zot-color-border);
-  border-radius: 4px;
+  padding: 0.35rem 0;
 }
 
-/* This input isn't wrapped in .search-input-wrapper, so it carries its own
-   ring (the shared .search-input rule zeroes the default outline). */
-.batch-source-input .search-input:focus-visible {
-  outline: 2px solid var(--zot-color-accent-host);
-  outline-offset: 1px;
+/* Focus mirrors the single-item popup: the row's existing bottom divider turns
+   accent rather than ringing the input — a box + ring reads as a foreign form
+   field beside Logseq's borderless search. :has scopes it to the search input,
+   so focusing a picker chip (Collection / Saved search share this row) doesn't
+   trip it. */
+.batch-source-input:has(.search-input:focus) {
+  border-bottom-color: var(--zot-color-accent-host);
 }
 
 /* The source row swaps controls when the tab changes — fade the incoming
