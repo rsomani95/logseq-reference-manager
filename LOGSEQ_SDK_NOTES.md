@@ -14,7 +14,7 @@ documented wrong, undocumented, or only discoverable by trial and error.
 > differ in caller identity, which matters for properties.
 
 **Versions / last verified.** `@logseq/libs` pinned at **0.3.3**. Empirically
-re-verified against a running graph on **2026-05-25**.
+re-verified against a running graph on **2026-05-26**.
 
 ---
 
@@ -44,11 +44,12 @@ ident (`:plugin.property.<id>/<name>`), so value reads/writes need the full form
 
 ---
 
-## Deleting a property: clear `:logseq.property/hide?` first ⚠️
+## Deleting a property: clear `:logseq.property/hide?`, then **let it settle** ⚠️
 
-**`removeProperty(ident)` and `removeBlock(uuid)` silently no-op on a property
-whose block has `:logseq.property/hide?` = true.** They return without error, no
-console output — the entity stays. This is the single biggest property gotcha.
+**`removeProperty(ident)` / `removeBlock(uuid)` silently no-op on a property whose
+block has `:logseq.property/hide?` = true.** They return without error, no console
+output — the entity stays. This is the single biggest property gotcha, and it has
+a second, subtler half (the settle race) that hid behind it.
 
 Verified with an isolated controlled matrix against a running graph:
 
@@ -58,31 +59,50 @@ Verified with an isolated controlled matrix against a running graph:
 | `:logseq.property/hide-empty-value` only | ✅ deleted |
 | **`:logseq.property/hide?` only** | ❌ **survives (silent)** |
 | both | ❌ survives |
-| `hide?` → *stripped first* → remove | ✅ deleted |
+| `hide?` → *cleared + settled* → remove | ✅ deleted |
 
-**Fix:** `removeBlockProperty(uuid, 'logseq.property/hide?')`, then
-`removeProperty(ident)`. `hide-empty-value` does **not** block — only `hide?`.
-`getAllProperties()` is **fresh** (reflects a deletion immediately), so use it to
-verify a removal really happened — a no-op is genuine, not a stale read. See
-`services/delete-zotero-schema.ts`.
+Things that do **not** block (re-confirmed 2026-05-26): a **`node`-type** property,
+and a property that **holds values** — both delete fine once `hide?` is clear.
+`hide-empty-value` doesn't block either. **Only `hide?` blocks.**
 
-> ⚠️ **Settling IS required between the clear and the remove — earlier note was
-> wrong.** Clearing `hide?` and calling `removeProperty` back-to-back in the same
-> tick RACES the uncommitted write: `removeProperty` reads a `hide?` that's still
-> `true` and no-ops, so the property survives despite the clear. Re-verified
-> against a live graph (2026-05-26): `removeProperty` with `hide?` still set →
-> survives; after the clear commits → deletes. The earlier "no settling needed"
-> claim only held because it was checked over the **HTTP API**, whose inter-call
-> latency let the write commit; **in-plugin the awaits resolve fast enough to lose
-> the race.** This was a real shipped bug — "delete + re-apply" removed nothing,
-> so a re-apply hit the type-lock and kept the old property type. So: clear `hide?`
-> on the whole batch first, **let it settle** (a short delay / poll), then remove;
-> retry-with-re-clear as a backstop. (General pattern — the HTTP-API section's
-> "race uncommitted writes — let it settle" warning applies to in-plugin awaits
-> too, not just freshly-created entities.)
+**The settle race ⚠️ — the part that actually bit us.** Clearing `hide?` and
+calling `removeProperty` **back-to-back in the same tick races the uncommitted
+write**: `removeProperty` reads a `hide?` that's still `true` and no-ops, so the
+property survives *despite* the clear. The awaits resolve, but the DB index hasn't
+committed the clear yet. Confirmed against a live graph: `removeProperty` with
+`hide?` still set → survives; once the clear commits → deletes.
+
+> This was a **real shipped bug**. In-plugin the `removeBlockProperty` →
+> `removeProperty` awaits resolve fast enough to lose the race, so "delete schema"
+> removed *nothing*; the follow-up "re-apply" then hit the type-lock (Logseq won't
+> change a type once data exists — see "`upsertProperty` HANGS") and kept every
+> property at its **old type**. The original verification "passed" only because it
+> was done over the **HTTP API**, whose inter-call latency happened to let the
+> clear commit. (An earlier revision of this very note claimed "no settling
+> needed" — wrong; the HTTP-API section's "race uncommitted writes — let it
+> settle" warning applies to in-plugin awaits too, not just fresh entities.)
+
+**Canonical procedure** (`services/delete-zotero-schema.ts`):
+
+1. Clear `hide?` on the **whole batch** first — `removeBlockProperty(uuid,
+   'logseq.property/hide?')` for each.
+2. **Settle** (a short delay, ~200 ms, or poll until the clear is observable) so
+   the writes commit.
+3. `removeProperty(ident)` (full `:db/ident`, never a bare name) for each, falling
+   back to `removeBlock(uuid)`.
+4. **Backstop:** if a property survives, re-clear `hide?`, wait, retry (slow commit).
+5. Verify with `getAllProperties()` — it's **fresh** (reflects a deletion
+   immediately), so a still-present result is genuine, not a stale read.
 
 > `deletePage(title)` silently no-ops on a property entity — it's not a page in
 > that sense. Use `removeProperty`, not `deletePage`.
+
+> **Knock-on for re-apply / "applied" state.** If a delete silently leaves a
+> property behind, a later re-apply takes the type-lock skip and keeps the old
+> type — and if the app records its "applied" snapshot from the *intended* config,
+> the UI reads "up to date" while the graph type is stale, hiding the failure.
+> Snapshot what's **actually in the graph**, not the intent (see
+> `use-schema-state.ts` + `readCreatorsAreNodes` in `set-logseqdb-schema.ts`).
 
 ---
 
