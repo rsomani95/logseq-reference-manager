@@ -1,7 +1,7 @@
 {
   "name": "logseq-reference-manager",
   "author": "Rahul Somani",
-  "description": "Connect to a running Zotero 7+ instance over its local API and import items into your Logseq graph — no Zotero Cloud sync required.",
+  "description": "Reference manager for importing from Zotero locally and from the Web clipper",
   "license": "MIT",
   "repository": {
     "type": "git",
