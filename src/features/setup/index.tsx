@@ -145,6 +145,7 @@ export const SetupApp = ({
             baseTag={schema.config.zotTag}
             baseReady={schema.schemaReady}
             webDirty={schema.webDirty}
+            webLinked={schema.webLinked}
             webApplied={schema.webApplied}
             linking={schema.linking}
             onConfigChange={schema.updateConfig}

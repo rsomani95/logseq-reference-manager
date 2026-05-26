@@ -147,6 +147,7 @@ export const WebSection = ({
   baseTag,
   baseReady,
   webDirty,
+  webLinked,
   webApplied,
   linking,
   onConfigChange,
@@ -164,6 +165,10 @@ export const WebSection = ({
   // Is the base schema applied? Wiring the Web tag needs the base class to exist.
   baseReady: boolean | null
   webDirty: boolean
+  // Does the graph actually have the tag extending the base? `null` while the
+  // probe is in flight. Catches a tag deleted in Logseq that the snapshot-based
+  // `webDirty` can't see.
+  webLinked: boolean | null
   // Has a web tag ever been wired (distinguishes "set it up" from "changed")?
   webApplied: boolean
   linking: boolean
@@ -243,16 +248,20 @@ export const WebSection = ({
     })
   }
 
-  // Derived entirely from the lifted state — no session-only "linked" flag.
-  // `!webDirty` (with the base applied) means the live tag matches the one
-  // currently wired to extend the base, so it's set up.
-  const isSetUp = baseReady === true && !webDirty
+  // Set up = base applied AND the graph actually has this tag extending the base
+  // AND the live name matches what's wired. `webLinked` (a real graph probe)
+  // catches a tag the user deleted in Logseq, which the snapshot-derived
+  // `webDirty` alone can't — re-typing the deleted tag's name leaves `webDirty`
+  // false, so without the probe the button would stay wrongly disabled.
+  const isSetUp = baseReady === true && webLinked === true && !webDirty
+  // Re-wiring is needed when the name changed (dirty) or the graph link is gone.
+  const needsLink = webDirty || webLinked === false
   const status =
     baseReady === false
       ? 'Apply the shared schema first (Schema section), then set up the web tag.'
       : isSetUp
         ? `“#${webTag.trim()}” extends “${baseTag.trim()}”.`
-        : webApplied
+        : webDirty && webApplied
           ? 'Web tag changed — set it up so clips inherit the schema.'
           : 'Set up the web tag so clipped pages inherit the shared schema.'
 
@@ -386,7 +395,9 @@ export const WebSection = ({
           type="button"
           className="btn btn-primary"
           onClick={onSetUpWebTag}
-          disabled={linking || baseReady !== true || !webDirty}
+          disabled={
+            linking || baseReady !== true || webLinked === null || !needsLink
+          }
         >
           <Link2 size={14} aria-hidden />
           {linking ? 'Setting up…' : 'Set up web tag'}

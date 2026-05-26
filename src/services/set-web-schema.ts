@@ -31,3 +31,51 @@ export const ensureWebTagExtendsBase = async (
 
   await logseq.Editor.addTagExtends(name, base)
 }
+
+/**
+ * Reads the graph to confirm the web tag actually exists and `extends` the base
+ * — the live counterpart to `ensureWebTagExtendsBase`.
+ *
+ * The setup hub's "is the web tag set up?" status used to be derived purely from
+ * the persisted `appliedSchema` snapshot, which is a *global* setting and can't
+ * see a tag the user deleted *in this graph* (a tag is a class page; deleting it
+ * in a DB graph really removes the class). The result: a stale snapshot kept the
+ * "Set up web tag" button disabled and the green "extends" message showing even
+ * though the tag was gone. So the hub probes the graph instead.
+ *
+ * A web tag equal to the base needs no link — a page tagged with the base already
+ * carries the schema — so that reads as "set up", matching the no-op in
+ * `ensureWebTagExtendsBase`. `:logseq.property.class/extends` only exists on
+ * classes, so the join restricts `?t` to a class (not a plain page sharing the
+ * title); recycled (soft-deleted) classes are excluded via `:deleted-at`.
+ */
+export const isWebTagExtendingBase = async (
+  webTag: string,
+  baseTag: string,
+): Promise<boolean> => {
+  const name = webTag.trim()
+  const base = baseTag.trim()
+  if (!name || !base) return false
+  if (name.toLowerCase() === base.toLowerCase()) return true
+
+  const query = `
+    [:find ?t
+     :in $ ?web ?base
+     :where
+     [?t :block/title ?web]
+     [?t :logseq.property.class/extends ?parent]
+     [?parent :block/title ?base]
+     (not [?t :logseq.property/deleted-at _])
+     (not [?parent :logseq.property/deleted-at _])]
+  `
+  try {
+    const result = await logseq.DB.datascriptQuery(
+      query,
+      JSON.stringify(name),
+      JSON.stringify(base),
+    )
+    return Array.isArray(result) && result.length > 0
+  } catch {
+    return false
+  }
+}

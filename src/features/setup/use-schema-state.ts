@@ -12,7 +12,10 @@ import {
   writeAppliedSnapshot,
 } from '../../services/schema-snapshot'
 import { setLogseqDbSchema } from '../../services/set-logseqdb-schema'
-import { ensureWebTagExtendsBase } from '../../services/set-web-schema'
+import {
+  ensureWebTagExtendsBase,
+  isWebTagExtendingBase,
+} from '../../services/set-web-schema'
 
 export interface SchemaState {
   // Live (raw, untrimmed) schema-relevant config — the controlled value for the
@@ -25,6 +28,10 @@ export interface SchemaState {
   // the live config actually differs from what was last applied.
   baseDirty: boolean
   webDirty: boolean
+  // Does the graph actually have the web tag extending the base right now? `null`
+  // until the open-time probe resolves. Unlike the snapshot-derived `webDirty`,
+  // this catches a tag the user deleted in Logseq (the snapshot can't see that).
+  webLinked: boolean | null
   // Has a web tag ever been wired (so "set up" copy can differ from "changed")?
   webApplied: boolean
   applying: boolean
@@ -55,6 +62,7 @@ export const useSchemaState = (): SchemaState => {
     undefined,
   )
   const [schemaReady, setSchemaReady] = useState<boolean | null>(null)
+  const [webLinked, setWebLinked] = useState<boolean | null>(null)
   const [applying, setApplying] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [linking, setLinking] = useState(false)
@@ -84,6 +92,17 @@ export const useSchemaState = (): SchemaState => {
       }
       setSchemaReady(ready)
       setApplied(snap) // null when nothing applied IN THIS GRAPH
+
+      // Probe the actual web→base link. The snapshot says nothing about whether
+      // the tag still exists in the graph (the user can delete it in Logseq),
+      // so this is what tells a wired tag apart from a stale snapshot. Only
+      // meaningful once the base exists; otherwise the section is gated anyway.
+      const cfg = currentSchemaConfig()
+      const linked = ready
+        ? await isWebTagExtendingBase(cfg.webTag, cfg.zotTag).catch(() => false)
+        : false
+      if (!alive) return
+      setWebLinked(linked)
     })()
     return () => {
       alive = false
@@ -123,6 +142,12 @@ export const useSchemaState = (): SchemaState => {
         const snap = { ...config }
         writeAppliedSnapshot(snap)
         setApplied(snap)
+        // Apply also wires the web tag; re-derive the link from the graph.
+        setWebLinked(
+          await isWebTagExtendingBase(config.webTag, config.zotTag).catch(
+            () => false,
+          ),
+        )
       }
     } catch (e) {
       await logseq.UI.showMsg(
@@ -196,6 +221,10 @@ export const useSchemaState = (): SchemaState => {
         writeAppliedSnapshot(next)
         return next
       })
+      // Re-derive the link from the graph rather than assuming it took.
+      setWebLinked(
+        await isWebTagExtendingBase(webTag, config.zotTag).catch(() => false),
+      )
       await logseq.UI.showMsg(
         `“#${webTag.trim()}” now extends “${config.zotTag.trim()}” — web clips inherit the schema.`,
         'success',
@@ -232,6 +261,7 @@ export const useSchemaState = (): SchemaState => {
     schemaReady,
     baseDirty,
     webDirty,
+    webLinked,
     webApplied,
     applying,
     deleting,
