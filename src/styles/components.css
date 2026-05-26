@@ -2422,8 +2422,8 @@ html[data-theme="dark"] .tagrule-select {
   color: var(--zot-color-text-tertiary);
 }
 
-/* Rows separate by spacing + hover, not rules — a border under each row read as
-   a spreadsheet grid. */
+/* A faint hairline between consecutive rows (below) plus hover delineates them
+   without the full grid a border on every row drew. */
 .setup-picker-item {
   display: flex;
   align-items: flex-start;
@@ -2434,6 +2434,15 @@ html[data-theme="dark"] .tagrule-select {
 
 .setup-picker-item:hover {
   background: var(--zot-color-hover);
+}
+
+/* Only between adjacent rows — not under a section header (whose following row
+   is preceded by .setup-picker-section, not an item) nor after a group's last
+   row. Fainter than --zot-color-divider, so it reads as a slight separation
+   rather than a rule. */
+.setup-picker-item + .setup-picker-item {
+  border-top: 1px solid
+    color-mix(in srgb, var(--zot-color-border) 40%, transparent);
 }
 
 .setup-picker-item input {
