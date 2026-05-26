@@ -2,6 +2,8 @@ import type { PageEntity } from '@logseq/libs/dist/LSPlugin'
 
 import { ZOTERO_PROP } from '../constants'
 
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+
 const matchZotProps = (props: PageEntity[] | null): PageEntity[] =>
   (props ?? []).filter((p) => p.ident?.includes(ZOTERO_PROP))
 
@@ -17,11 +19,21 @@ const matchZotProps = (props: PageEntity[] | null): PageEntity[] =>
  * stays. Verified against a running DB graph: hide?=true → no-op; strip it →
  * deletes; `:logseq.property/hide-empty-value` does NOT block. `set-logseqdb-
  * schema` sets hide? on every property it creates, so every Zotero prop hit
- * this. So per property we **clear `hide?` first**, then `removeProperty(ident)`
- * (full `:db/ident`, never a bare name — see LOGSEQ_API_LEARNINGS), falling back
- * to `removeBlock(uuid)`, re-checking via the (fresh) `getAllProperties` after
- * each and logging the outcome — a destructive admin action is worth a console
- * trail. Returns the count removed.
+ * this. So we **clear `hide?` first**, then `removeProperty(ident)` (full
+ * `:db/ident`, never a bare name — see LOGSEQ_API_LEARNINGS), falling back to
+ * `removeBlock(uuid)`, re-checking via the (fresh) `getAllProperties` after each.
+ *
+ * The settle race (why clearing hide? still wasn't enough): clearing hide? and
+ * calling removeProperty back-to-back in the same tick RACES the uncommitted
+ * write — removeProperty reads a hide? that's still `true` and no-ops, so the
+ * property survives anyway. (Confirmed against a live graph: removeProperty with
+ * hide? still set → no-op; after the clear settles → deletes. The original
+ * verification only "passed" because manual HTTP calls had inter-call latency
+ * that let the write commit; in-plugin the awaits resolve fast enough to lose
+ * the race — the bug behind "deleted and re-applied, but properties stayed the
+ * old type".) So we clear hide? on EVERY property first, settle, then remove —
+ * and `removeOne` re-clears + retries as a backstop for a slow commit. A
+ * destructive admin action is worth a console trail. Returns the count removed.
  */
 export const deleteZoteroSchema = async (): Promise<number> => {
   const { Editor } = logseq
@@ -42,22 +54,23 @@ export const deleteZoteroSchema = async (): Promise<number> => {
     return now.some((q) => q.ident === ident)
   }
 
+  // Clear `:logseq.property/hide?` — it pins the property against deletion
+  // (`hide-empty-value` doesn't block, so we leave it). Done up front for the
+  // whole batch so the writes commit before any removeProperty reads them (see
+  // the settle race in the docstring).
+  const clearHide = async (p: PageEntity) => {
+    if (!p.uuid) return
+    try {
+      await Editor.removeBlockProperty(p.uuid, 'logseq.property/hide?')
+    } catch (e) {
+      console.warn(`  couldn't clear hide? on ${p.ident}:`, e)
+    }
+  }
+
   const removeOne = async (p: PageEntity) => {
     const ident = p.ident
     const uuid = p.uuid
     if (!ident) return
-
-    // The actual fix: `:logseq.property/hide?` pins the property against
-    // deletion (see the docstring). Clear it before attempting removal —
-    // otherwise removeProperty/removeBlock both no-op. (`hide-empty-value`
-    // doesn't block, so we leave it.)
-    if (uuid) {
-      try {
-        await Editor.removeBlockProperty(uuid, 'logseq.property/hide?')
-      } catch (e) {
-        console.warn(`  couldn't clear hide? on ${ident}:`, e)
-      }
-    }
 
     const attempts: [string, () => Promise<unknown>][] = [
       [`removeProperty(${ident})`, () => Editor.removeProperty(ident)],
@@ -66,22 +79,34 @@ export const deleteZoteroSchema = async (): Promise<number> => {
       attempts.push([`removeBlock(${uuid})`, () => Editor.removeBlock(uuid)])
     }
 
-    for (const [label, run] of attempts) {
-      try {
-        await run()
-      } catch (e) {
-        console.warn(`  ${label} threw:`, e)
-        continue
+    // Up to 3 passes: if the property survives, its hide? clear likely hadn't
+    // committed yet — re-clear, let it settle, and try again.
+    for (let pass = 1; pass <= 3; pass++) {
+      for (const [label, run] of attempts) {
+        try {
+          await run()
+        } catch (e) {
+          console.warn(`  ${label} threw:`, e)
+          continue
+        }
+        if (!(await stillPresent(ident))) {
+          console.log(
+            `  removed via ${label}${pass > 1 ? ` (pass ${pass})` : ''}`,
+          )
+          return
+        }
+        console.log(`  ${label} → still present (pass ${pass})`)
       }
-      if (!(await stillPresent(ident))) {
-        console.log(`  removed via ${label}`)
-        return
-      }
-      console.log(`  ${label} → still present`)
+      await clearHide(p)
+      await sleep(120)
     }
     console.warn(`  could not remove ${ident}`)
   }
 
+  // Phase 1: clear hide? on every matched property, then settle so the writes
+  // are committed before phase 2 reads them. Phase 2: remove each.
+  for (const p of before) await clearHide(p)
+  await sleep(200)
   for (const p of before) await removeOne(p)
 
   const after = matchZotProps(await Editor.getAllProperties())

@@ -11,7 +11,10 @@ import {
   webTagDiffers,
   writeAppliedSnapshot,
 } from '../../services/schema-snapshot'
-import { setLogseqDbSchema } from '../../services/set-logseqdb-schema'
+import {
+  readCreatorsAreNodes,
+  setLogseqDbSchema,
+} from '../../services/set-logseqdb-schema'
 import {
   ensureWebTagExtendsBase,
   isWebTagExtendingBase,
@@ -137,9 +140,19 @@ export const useSchemaState = (): SchemaState => {
       const ready = await isSchemaAdded()
       setSchemaReady(ready)
       if (ready) {
-        // setLogseqDbSchema also wires the web tag (with config.webTag), so the
-        // whole live config is now the applied truth — snapshot it verbatim.
-        const snap = { ...config }
+        // Snapshot what ACTUALLY applied, not what we asked for. Logseq won't
+        // change a property's type once it has data, so a creators node↔text
+        // flip can silently not take (surfaced as a type-lock toast by
+        // setLogseqDbSchema). Recording the graph's real creators type — instead
+        // of `config` verbatim — keeps `baseDirty` and the "re-apply" prompt
+        // honest rather than falsely reading "up to date". (To change a stuck
+        // type: delete the schema, then re-apply.) setLogseqDbSchema also wired
+        // the web tag with config.webTag, so the rest of config is the truth.
+        const actualNodes = await readCreatorsAreNodes().catch(() => null)
+        const snap = {
+          ...config,
+          creatorsAsNodes: actualNodes ?? config.creatorsAsNodes,
+        }
         writeAppliedSnapshot(snap)
         setApplied(snap)
         // Apply also wires the web tag; re-derive the link from the graph.

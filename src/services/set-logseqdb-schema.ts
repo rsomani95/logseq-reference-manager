@@ -79,6 +79,23 @@ const readPropType = (entity: unknown): string | null => {
 }
 
 /**
+ * Whether the creators/authors property is *currently* stored as `node` (page
+ * references) vs `default` (plain text), read from the graph — or null if
+ * neither exists yet. The setup hub snapshots this (not the user's intent) after
+ * an apply: Logseq won't change a property's type once it holds data, so a
+ * re-apply can leave the creators type stale even when settings flipped it. To
+ * actually change a stuck type, delete the schema and re-apply.
+ */
+export const readCreatorsAreNodes = async (): Promise<boolean | null> => {
+  for (const name of ['authors', 'creators']) {
+    const entity = await logseq.Editor.getProperty(name).catch(() => null)
+    const type = readPropType(entity)
+    if (type) return type === 'node'
+  }
+  return null
+}
+
+/**
  * Define each property's global schema and its per-property display attributes
  * (display name, hide-by-default, hide-empty-value, description).
  *

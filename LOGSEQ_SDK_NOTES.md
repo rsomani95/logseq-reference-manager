@@ -61,10 +61,25 @@ Verified with an isolated controlled matrix against a running graph:
 | `hide?` → *stripped first* → remove | ✅ deleted |
 
 **Fix:** `removeBlockProperty(uuid, 'logseq.property/hide?')`, then
-`removeProperty(ident)`. No settling needed between the two. `hide-empty-value`
-does **not** block — only `hide?`. `getAllProperties()` is **fresh** (reflects a
-deletion immediately), so use it to verify a removal really happened — a no-op is
-genuine, not a stale read. See `services/delete-zotero-schema.ts`.
+`removeProperty(ident)`. `hide-empty-value` does **not** block — only `hide?`.
+`getAllProperties()` is **fresh** (reflects a deletion immediately), so use it to
+verify a removal really happened — a no-op is genuine, not a stale read. See
+`services/delete-zotero-schema.ts`.
+
+> ⚠️ **Settling IS required between the clear and the remove — earlier note was
+> wrong.** Clearing `hide?` and calling `removeProperty` back-to-back in the same
+> tick RACES the uncommitted write: `removeProperty` reads a `hide?` that's still
+> `true` and no-ops, so the property survives despite the clear. Re-verified
+> against a live graph (2026-05-26): `removeProperty` with `hide?` still set →
+> survives; after the clear commits → deletes. The earlier "no settling needed"
+> claim only held because it was checked over the **HTTP API**, whose inter-call
+> latency let the write commit; **in-plugin the awaits resolve fast enough to lose
+> the race.** This was a real shipped bug — "delete + re-apply" removed nothing,
+> so a re-apply hit the type-lock and kept the old property type. So: clear `hide?`
+> on the whole batch first, **let it settle** (a short delay / poll), then remove;
+> retry-with-re-clear as a backstop. (General pattern — the HTTP-API section's
+> "race uncommitted writes — let it settle" warning applies to in-plugin awaits
+> too, not just freshly-created entities.)
 
 > `deletePage(title)` silently no-ops on a property entity — it's not a page in
 > that sense. Use `removeProperty`, not `deletePage`.
