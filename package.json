@@ -1,5 +1,6 @@
 {
   "name": "logseq-reference-manager",
+  "version": "1.0.0",
   "author": "Rahul Somani",
   "description": "Reference manager for importing from Zotero locally and from the Web clipper",
   "license": "MIT",
