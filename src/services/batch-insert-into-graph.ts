@@ -49,7 +49,7 @@ export const batchInsertIntoGraph = async (
 
   if (!(await isSchemaAdded())) {
     throw new Error(
-      'Add the Zotero schema first — run "Zotero: Setup schema" from the command palette, then try again.',
+      'Apply the schema first — run "Reference Manager: Settings" from the command palette and click "Apply schema" in the Schema section, then try again.',
     )
   }
 
