@@ -130,6 +130,22 @@ the qualified `:logseq.property/hide?`). Set these directly via
 preserved, and the attribute is *not* removed). `""` and "absent" are distinct
 states. To truly unset, use `removeBlockProperty(uuid, key)` (→ `nil`).
 
+**`upsertProperty` HANGS when it would change the type of a property that
+already has values ⚠️.** Logseq won't change a property's `:logseq.property/type`
+once any block holds a value for it — but on refusal it shows a host-side toast
+(*"This property's type can't be changed because it has existing data."*) and
+**never replies to the plugin**, so the `upsertProperty` RPC never resolves. It
+sits until the SDK's deferred-call timeout, which rejects with `[deferred
+timeout] async call #N` (every SDK call is a deferred tagged with an incrementing
+id; cf. `lsplugin.user.js`). So the symptom is *"the call lags for ~the timeout,
+then throws a cryptic timeout"* — not a clean typed error — and it takes down
+whatever loop it's in. **Don't re-issue a type on a property that may already
+exist:** `getProperty(name)` first (safe existence check, above) and only
+`upsertProperty` when it's `null`; to actually change a type, `removeProperty`
+then recreate. A same-type re-upsert appears harmless — only a *type change* with
+data present trips this. (Observed on re-apply after import; fix in
+`services/set-logseqdb-schema.ts`.)
+
 **Descriptions don't render until the property is hydrated** (upstream render
 bug). After a cold load, a tag's property-schema view shows *"Add description"*
 for every row even though the descriptions are persisted — the main-thread entity
@@ -167,7 +183,7 @@ enclosing pattern, terminating at a class with no `extends`:
 A property entity looks like:
 
 ```json
-{ "ident": ":plugin.property.logseq-zotero/url", "id": 378, "name": "url",
+{ "ident": ":plugin.property.logseq-reference-manager/url", "id": 378, "name": "url",
   "title": "URL", ":logseq.property/type": "url",
   "cardinality": ":db.cardinality/one", "valueType": ":db.type/ref" }
 ```
@@ -213,6 +229,40 @@ for (const [k, v] of Object.entries(vars ?? {})) {
 ```
 
 Re-run on `logseq.App.onThemeModeChanged` to track light/dark switches.
+
+---
+
+## Plugin icon (`logseq.icon`) renders as an isolated image ⚠️
+
+The `logseq.icon` in `package.json` (`./icon.svg`, shown in the plugins list +
+marketplace) is rendered by Logseq's host app as an **image**, not inline SVG.
+(Evidence: many marketplace plugins ship full-color logos that display in color —
+only possible via `<img>`/background.) Consequences for `icon.svg`:
+
+- `stroke="currentColor"` does **not** inherit Logseq's theme text color — it
+  resolves to the SVG's own default (black) and goes invisible on dark themes.
+  (The original placeholder icon hardcoded `stroke="gray"` for this reason.)
+- An icon can't read the in-app theme. The closest "theme-adaptive" trick is a
+  self-contained `<style>` inside the SVG with `@media (prefers-color-scheme: …)`
+  swapping the stroke, plus a **mid-tone default** stroke so it stays visible if
+  the query is ignored. This tracks **OS/app appearance**, not Logseq's in-app
+  theme (usually the same; the mismatch case just falls back to the default):
+
+  ```xml
+  <svg … stroke="#7c8786">
+    <style>
+      @media (prefers-color-scheme: light) { svg { stroke: #41494a; } }
+      @media (prefers-color-scheme: dark)  { svg { stroke: #cdd8d6; } }
+    </style>
+    …paths…
+  </svg>
+  ```
+
+- The icon is read from the **plugin root** (next to `package.json`), so a
+  **plugin reload** picks up changes — no rebuild needed (unlike the iframe UI).
+
+Current icon: lucide **book-marked** (book + ribbon), monoline, via the pattern
+above (set 2026-05-25, replacing the dim off-centre "z").
 
 ---
 
@@ -287,7 +337,7 @@ of the above).
 
   ```
   upsertBlockProperty(uuid, 'url', 'A')                                # → :plugin.property._test_plugin/url  (junk)
-  upsertBlockProperty(uuid, ':plugin.property.logseq-zotero/url', 'B') # → the shared property               (ok)
+  upsertBlockProperty(uuid, ':plugin.property.logseq-reference-manager/url', 'B') # → the shared property               (ok)
   ```
 
 - **Cross-plugin rules** (caller `_test_plugin` acting on another plugin's idents):
@@ -319,7 +369,7 @@ lsq () {  # usage: lsq <method> '<json-args-array>'
 }
 
 # Inspect a property by ident:
-lsq logseq.Editor.getProperty '[":plugin.property.logseq-zotero/url"]'
+lsq logseq.Editor.getProperty '[":plugin.property.logseq-reference-manager/url"]'
 # List every property in the graph (ident + title + type):
 lsq logseq.DB.datascriptQuery '["[:find (pull ?p [:db/ident :block/title :logseq.property/type]) :where [?p :logseq.property/type _]]"]'
 # A page's stored property values:

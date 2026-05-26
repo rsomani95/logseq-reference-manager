@@ -100,6 +100,7 @@ Before importing items the user clicks **Apply schema** in the setup hub's Schem
   - `access-date`, `date-added`, `date-modified` → `date` cardinality one
   - `url`, `libraryLink` → `url` cardinality one
   - everything else → `default`
+  - The type is only set when the property is **first created** — re-apply checks `getProperty` first and skips the `upsertProperty` for any property that already exists (Logseq won't change a property's type once it has values, and the refused call *hangs* the SDK; see [`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md)). The per-property display attributes below still re-run every time. Each property is isolated so one failure can't abort the rest, and a wanted-but-blocked type change is surfaced to the user (delete schema + re-apply to change a type).
 - Associates every property with the base tag (`addTagProperty`).
 - Finally, if `webTag` is set, ensures the web tag exists and `extends` the base tag — `ensureWebTagExtendsBase` (`services/set-web-schema.ts`) — so web clips inherit the same property idents *without* re-associating each property onto the web class. The Web references section can run the same step on its own. `addTagExtends` is idempotent; a `webTag` equal to the base is a no-op.
 
