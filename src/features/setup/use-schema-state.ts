@@ -59,25 +59,31 @@ export const useSchemaState = (): SchemaState => {
   const [deleting, setDeleting] = useState(false)
   const [linking, setLinking] = useState(false)
 
-  // One probe on open. Migration: when a schema exists but no snapshot is stored
-  // (older plugin version, or first run with this feature) we seed the BASE
-  // fields from current settings — assume "what's set now is what's applied", so
-  // the Apply button starts disabled rather than falsely lit. We deliberately
-  // seed `webTag` empty instead: the base probe can't confirm the web tag was
-  // actually wired, so we bias toward letting the user (re-)run the idempotent
-  // "Set up web tag" once. Both self-heal on the next Apply.
+  // One probe on open. `isSchemaAdded()` is the authoritative, *per-graph* check;
+  // the snapshot (`appliedSchema`) is a GLOBAL setting — one file shared by every
+  // graph (see settings.md) — so a schema applied in one graph leaves a snapshot
+  // that leaks into graphs where nothing was ever applied, falsely matching the
+  // live config and disabling the first-ever Apply. So trust the snapshot only
+  // when the schema actually exists *in this graph*:
+  //   • not applied here → applied = null (ignore any stale global snapshot), so
+  //     baseDirty is true and the first Apply is enabled even at the defaults.
+  //   • applied but no snapshot (pre-snapshot install) → migrate: seed the BASE
+  //     fields from current settings — assume "what's set now is applied", so
+  //     Apply starts disabled rather than falsely lit — but seed `webTag` empty
+  //     so the idempotent "Set up web tag" is offered once (the base probe can't
+  //     confirm the web tag was actually wired). Both self-heal on the next Apply.
   useEffect(() => {
     let alive = true
     void (async () => {
       const ready = await isSchemaAdded().catch(() => false)
       if (!alive) return
-      let snap = readAppliedSnapshot()
-      if (!snap && ready) {
+      let snap = ready ? readAppliedSnapshot() : null
+      if (ready && !snap) {
         snap = { ...currentSchemaConfig(), webTag: '' }
         writeAppliedSnapshot(snap)
       }
       setSchemaReady(ready)
-      setApplied(snap) // null when nothing applied
+      setApplied(snap) // null when nothing applied IN THIS GRAPH
     })()
     return () => {
       alive = false

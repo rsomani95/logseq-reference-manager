@@ -296,6 +296,17 @@ then `display: none` the rows via injected CSS — see `HIDDEN_KEYS` /
 `applySettingsStyles` in `settings.ts`. The real editing surface is the setup-hub
 modal, not the panel.
 
+**`logseq.settings` is GLOBAL, not per-graph ⚠️.** Plugin settings persist in one
+file per plugin — `~/.logseq/settings/<plugin-id>.json` (desktop) — shared by
+*every* graph, and `updateSettings` writes there. Anything graph-specific must be
+derived by *querying the graph* (e.g. `isSchemaAdded()` → `getAllProperties`), not
+stashed in a setting. The trap: caching a per-graph fact in a global setting makes
+it leak across graphs. This bit the schema-applied snapshot (`appliedSchema`) — a
+snapshot written when the schema was applied in graph A made graph B (never set
+up) look already-applied, disabling its first Apply. Fix: the per-graph query is
+the source of truth; the global setting is only trusted when that query confirms
+it for the current graph (see `use-schema-state.ts`'s open-time probe).
+
 ---
 
 ## Debugging

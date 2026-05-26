@@ -171,11 +171,20 @@ Set-up upward (see Save model).
     bouncing back to Schema. `applySchema` itself lives in `useSchemaState`, shared
     by both footers. This also consolidated the three separate `isSchemaAdded`
     probes the sections used to each run into one.
-  - **Migration:** a pre-snapshot install (schema applied by an older version)
-    seeds `appliedSchema` from current settings on open — base fields assumed
-    already-applied (button starts disabled), but `webTag` seeded empty (the base
-    probe can't confirm the web tag was actually wired, so the idempotent "Set up
-    web tag" is offered once). Both self-heal on the next Apply.
+  - **Snapshot is global; "applied" is per-graph.** `appliedSchema` lives in the
+    one global settings file (`~/.logseq/settings/<plugin-id>.json`, shared by
+    every graph), but whether the schema *exists* is per-graph — so the open-time
+    probe trusts the snapshot only when `isSchemaAdded()` confirms the schema is in
+    **this** graph. In a graph where nothing was applied, the snapshot is ignored
+    (treated as `null` → `baseDirty` true), so the **first Apply is enabled even at
+    the defaults** — without this gate, a snapshot left by another graph matches the
+    default config and wrongly disables Apply.
+  - **Migration:** a pre-snapshot install (schema applied here by an older version,
+    snapshot present + `isSchemaAdded()` true) seeds `appliedSchema` from current
+    settings on open — base fields assumed already-applied (button starts disabled),
+    but `webTag` seeded empty (the base probe can't confirm the web tag was actually
+    wired, so the idempotent "Set up web tag" is offered once). Both self-heal on
+    the next Apply.
 
 ## Adding or changing a setting
 
