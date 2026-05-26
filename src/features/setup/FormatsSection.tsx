@@ -52,7 +52,7 @@ export const FormatsSection = () => {
         <h3 className="setup-section-title">Import Formats</h3>
         <p className="setup-section-desc">
           {sample.fromLibrary
-            ? `How imported pages are named. Previewed with “${sample.title}” from your library.`
+            ? `How imported pages are named. Previewed with "${sample.title}" from your library.`
             : 'How imported pages are named. The preview uses a sample item until your library loads.'}
         </p>
       </div>

@@ -72,7 +72,7 @@ export const AuthorsSection = ({
         <h3 className="setup-section-title">Authors</h3>
         <p className="setup-section-desc">
           {sample.fromLibrary
-            ? `How creators are named and stored, shared across every source. Previewed with “${sample.title}” from your library.`
+            ? `How creators are named and stored, shared across every source. Previewed with "${sample.title}" from your library.`
             : 'How creators are named and stored, shared across every source. The preview uses a sample item until your library loads.'}
         </p>
       </div>

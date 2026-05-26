@@ -9,10 +9,10 @@ const PRESETS: { id: PropertyPreset; label: string; desc: string }[] = [
   {
     id: 'Essentials',
     label: 'Essentials',
-    desc: 'Common citation fields for papers & articles.',
+    desc: 'Common citation fields for papers & articles',
   },
-  { id: 'Full', label: 'Full', desc: 'Every available Zotero field.' },
-  { id: 'Custom', label: 'Custom', desc: 'Pick exactly the fields you want.' },
+  { id: 'Full', label: 'Full', desc: 'Every available Zotero field' },
+  { id: 'Custom', label: 'Custom', desc: 'Pick exactly the fields you want' },
 ]
 
 // The shared property schema. Pulled out of the (Zotero-specific) Library
@@ -52,10 +52,10 @@ export const SchemaSection = ({
     schemaReady === null
       ? ''
       : baseDirty && schemaReady
-        ? 'Settings changed — re-apply to update your graph.'
+        ? 'Settings changed. Re-apply to update your graph.'
         : schemaReady
           ? 'Schema applied to your graph.'
-          : 'Not applied yet — apply to create the tags & properties.'
+          : 'Apply schema to create the tags & properties.'
 
   return (
     <>
