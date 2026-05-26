@@ -2388,17 +2388,48 @@ html[data-theme="dark"] .tagrule-select {
   scrollbar-color: var(--zot-color-scrollbar) transparent;
 }
 
+/* Section headers — the legible replacement for the per-row "essential" dot:
+   the list splits into the curated Essentials and everything else, each named.
+   Sticky within the scroll so the group stays identified down the long Full
+   list. A single group renders without a header (see PropertyList). */
+.setup-picker-section {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem 0.25rem;
+  background: var(--zot-color-bg);
+}
+
+.setup-picker-section:not(:first-child) {
+  margin-top: 0.35rem;
+}
+
+.setup-picker-section-label {
+  font-size: var(--zot-text-sm);
+  font-weight: var(--zot-weight-semibold);
+  letter-spacing: var(--zot-tracking-caps);
+  text-transform: uppercase;
+  color: var(--zot-color-text-muted);
+}
+
+.setup-picker-section-count {
+  font-size: var(--zot-text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--zot-color-text-tertiary);
+}
+
+/* Rows separate by spacing + hover, not rules — a border under each row read as
+   a spreadsheet grid. */
 .setup-picker-item {
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  padding: 0.4rem 0.55rem;
+  padding: 0.35rem 0.55rem;
   cursor: pointer;
-  border-bottom: 1px solid var(--zot-color-divider);
-}
-
-.setup-picker-item:last-child {
-  border-bottom: none;
 }
 
 .setup-picker-item:hover {
@@ -2416,32 +2447,32 @@ html[data-theme="dark"] .tagrule-select {
   outline-offset: 2px;
 }
 
+/* Term + gloss: name and description share one text size and baseline, so each
+   row reads as a single glossary entry. The hierarchy comes from weight + color
+   (name medium / primary, description muted), not a size jump — the size jump
+   had framed the name as a heading over its caption. Aligned name column keeps
+   the list scannable; both cells shrink + wrap (min-width: 0). */
 .setup-picker-item-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: clamp(7rem, 30%, 10.5rem) minmax(0, 1fr);
+  column-gap: 0.85rem;
+  align-items: baseline;
   min-width: 0;
 }
 
 .setup-picker-item-name {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
   font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-medium);
   color: var(--zot-color-text);
-}
-
-.setup-picker-badge {
-  font-size: var(--zot-text-sm);
-  text-transform: uppercase;
-  letter-spacing: var(--zot-tracking-caps);
-  color: var(--zot-color-info);
+  overflow-wrap: break-word;
 }
 
 .setup-picker-item-desc {
-  font-size: var(--zot-text-sm);
+  font-size: var(--zot-text-base);
   line-height: var(--zot-leading-normal);
   color: var(--zot-color-text-muted);
+  overflow-wrap: break-word;
 }
 
 /* Read-only preset field list (Essentials / Full) — a disclosure that reveals

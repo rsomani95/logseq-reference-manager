@@ -5,6 +5,7 @@ import {
   formatPagePropChoice,
   parsePagePropChoice,
 } from '../../services/page-props-choice'
+import { PropertyList } from './PropertyList'
 
 export const PropertyPicker = ({
   onChange,
@@ -66,28 +67,15 @@ export const PropertyPicker = ({
         <span className="setup-picker-count">{selected.size} selected</span>
       </div>
       <div className="setup-picker-list">
-        {filtered.map((o) => (
-          <label key={o.key} className="setup-picker-item">
-            <input
-              type="checkbox"
-              checked={selected.has(o.key)}
-              onChange={() => toggle(o.key)}
-            />
-            <span className="setup-picker-item-text">
-              <span className="setup-picker-item-name">
-                {o.displayName}
-                {o.isEssential && (
-                  <span className="setup-picker-badge">essential</span>
-                )}
-              </span>
-              {o.description && (
-                <span className="setup-picker-item-desc">{o.description}</span>
-              )}
-            </span>
-          </label>
-        ))}
-        {filtered.length === 0 && (
+        {filtered.length === 0 ? (
           <div className="batch-empty">No properties match “{query}”.</div>
+        ) : (
+          <PropertyList
+            options={filtered}
+            selectable
+            selected={selected}
+            onToggle={toggle}
+          />
         )}
       </div>
     </div>

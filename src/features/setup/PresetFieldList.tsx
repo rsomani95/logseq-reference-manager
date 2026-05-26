@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 
 import type { PropertyPreset } from '../../interfaces'
 import { buildPropertyOptions } from '../../services/page-props-choice'
+import { PropertyList } from './PropertyList'
 
 /**
  * Read-only disclosure of the fields a fixed preset applies. Essentials is a
@@ -41,25 +42,9 @@ export const PresetFieldList = ({
       {open && (
         <div className="setup-picker">
           <div className="setup-picker-list">
-            {options.map((o) => (
-              <div key={o.key} className="setup-picker-item is-readonly">
-                <span className="setup-picker-item-text">
-                  <span className="setup-picker-item-name">
-                    {o.displayName}
-                    {/* In Full, flag the curated ones; in Essentials they all
-                        are, so the badge would be noise. */}
-                    {preset === 'Full' && o.isEssential && (
-                      <span className="setup-picker-badge">essential</span>
-                    )}
-                  </span>
-                  {o.description && (
-                    <span className="setup-picker-item-desc">
-                      {o.description}
-                    </span>
-                  )}
-                </span>
-              </div>
-            ))}
+            {/* Full → Essentials + "All other fields" sections; the Essentials
+                preset is all-essential, so PropertyList renders it flat. */}
+            <PropertyList options={options} />
           </div>
         </div>
       )}
