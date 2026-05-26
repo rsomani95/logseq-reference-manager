@@ -119,6 +119,7 @@
   --zot-color-danger: #c92a2a; /* red-9 — danger text/icons, ~5.3:1 on white */
   --zot-color-danger-fill: #e03131; /* red-8 — danger button fill */
   --zot-color-danger-fill-hover: #c92a2a;
+  --zot-color-warning: #c2410c; /* orange-700 — caution text/icons, ~5.4:1 on white */
   /* links & accent text — Logseq's accent, not a fixed blue (see above). The
      primary button tints with the accent rather than filling with it, so
      there's no info-fill: white-on-accent can fail AA when the host accent is
@@ -139,6 +140,11 @@
     var(--zot-color-danger) 10%,
     transparent
   );
+  --zot-color-warning-bg: color-mix(
+    in srgb,
+    var(--zot-color-warning) 12%,
+    transparent
+  );
 
   /* ─── Color · Layer 3 — elevation ──────────────────────────────────────────
      Cool-shifted near-black, not pure black (Design for Hackers, Ch 9): a
@@ -156,6 +162,7 @@ html[data-theme="dark"] {
   --zot-color-success: #69db7c; /* green-4 */
   --zot-color-danger: #ff8787; /* red-4 — light enough for a dark surface */
   --zot-color-danger-fill-hover: #f03e3e; /* red-7 — hover lifts toward light */
+  --zot-color-warning: #ffa94d; /* orange-4 — light enough for a dark surface */
   --zot-color-neutral-fill: #495057; /* gray-7 */
   --zot-color-mark-bg: var(--ls-page-mark-bg-color, #5c4e1f);
   --zot-color-mark-text: var(--ls-page-mark-color, #f3ead0);
@@ -2073,6 +2080,19 @@ html[data-theme="dark"] .tagrule-select {
 .setup-status.is-error {
   color: var(--zot-color-danger);
   background: var(--zot-color-danger-bg);
+}
+
+.setup-status.is-warn {
+  color: var(--zot-color-warning);
+  background: var(--zot-color-warning-bg);
+}
+
+/* "Go to Schema" action inside the web-clipper gate callout — pushed to the
+   trailing edge and centered against the (possibly two-line) message. */
+.setup-gate-action {
+  margin-left: auto;
+  align-self: center;
+  flex-shrink: 0;
 }
 
 .setup-status > svg {

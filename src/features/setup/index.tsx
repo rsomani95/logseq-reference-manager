@@ -121,7 +121,7 @@ export const SetupApp = ({
       case 'tagRules':
         return <TagRulesSection />
       case 'web':
-        return <WebSection />
+        return <WebSection onGoToSchema={() => setActive('schema')} />
       default:
         return (
           <div className="setup-loading">

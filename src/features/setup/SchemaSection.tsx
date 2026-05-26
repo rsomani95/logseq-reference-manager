@@ -191,48 +191,53 @@ export const SchemaSection = ({
           )}
         </div>
 
-        <div className="setup-danger">
-          <span className="setup-danger-label">Danger zone</span>
-          <div className="setup-danger-row">
-            <div className="setup-danger-text">
-              <span className="setup-danger-title">Delete schema</span>
-              <span className="setup-field-hint">
-                Removes every reference property this plugin created. The tag
-                pages (base + Web) are left intact (deleting them would clear
-                their backlinks — do that manually if you want). You can
-                re-apply afterward.
-              </span>
-            </div>
-            {confirmDelete ? (
-              <div className="btn-group">
-                <button
-                  type="button"
-                  className="btn btn-white"
-                  disabled={deleting}
-                  onClick={() => setConfirmDelete(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  disabled={deleting}
-                  onClick={doDelete}
-                >
-                  {deleting ? 'Deleting…' : 'Confirm delete'}
-                </button>
+        {/* Only offer deletion once a schema exists — nothing to delete (and
+            no destructive affordance to dangle) before the first Apply, or
+            after a delete. `applied === null` is the in-flight probe → hidden. */}
+        {applied === true && (
+          <div className="setup-danger">
+            <span className="setup-danger-label">Danger zone</span>
+            <div className="setup-danger-row">
+              <div className="setup-danger-text">
+                <span className="setup-danger-title">Delete schema</span>
+                <span className="setup-field-hint">
+                  Removes every reference property this plugin created. The tag
+                  pages (base + Web) are left intact (deleting them would clear
+                  their backlinks — do that manually if you want). You can
+                  re-apply afterward.
+                </span>
               </div>
-            ) : (
-              <button
-                type="button"
-                className="btn btn-danger-outline"
-                onClick={() => setConfirmDelete(true)}
-              >
-                Delete schema
-              </button>
-            )}
+              {confirmDelete ? (
+                <div className="btn-group">
+                  <button
+                    type="button"
+                    className="btn btn-white"
+                    disabled={deleting}
+                    onClick={() => setConfirmDelete(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    disabled={deleting}
+                    onClick={doDelete}
+                  >
+                    {deleting ? 'Deleting…' : 'Confirm delete'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-danger-outline"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  Delete schema
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="setup-section-footer">

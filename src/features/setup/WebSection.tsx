@@ -1,4 +1,4 @@
-import { CheckCircle2, Link2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Link2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { isSchemaAdded } from '../../services/is-schema-added'
@@ -11,7 +11,13 @@ import { ensureWebTagExtendsBase } from '../../services/set-web-schema'
 // tag, and uses the rest to shape the page. So this section is a settings form
 // for a *consumer that lives in another process*, plus a button to wire the Web
 // tag into the shared schema. The keys are a contract — see settings.md.
-export const WebSection = () => {
+export const WebSection = ({
+  onGoToSchema,
+}: {
+  // Jump to the Schema section — used by the "base schema not set up" gate so
+  // the user can fix the precondition without hunting for the right nav item.
+  onGoToSchema?: () => void
+}) => {
   const baseTag = (logseq.settings?.zotTag as string) ?? 'Reference'
 
   const [webTag, setWebTag] = useState<string>(
@@ -129,6 +135,29 @@ export const WebSection = () => {
       </div>
 
       <div className="setup-section-body">
+        {baseReady === false && (
+          <div className="setup-status is-warn">
+            <AlertTriangle size={16} aria-hidden />
+            <div className="setup-status-text">
+              Shared schema not set up yet
+              <span className="setup-status-sub">
+                The Web tag inherits the shared schema — and the web clipper
+                refuses to clip until it exists. Apply it in the Schema section
+                first, then set up the Web tag here.
+              </span>
+            </div>
+            {onGoToSchema && (
+              <button
+                type="button"
+                className="btn btn-white setup-gate-action"
+                onClick={onGoToSchema}
+              >
+                Go to Schema
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="setup-field">
           <label className="setup-field-label" htmlFor="web-tag">
             Web tag
