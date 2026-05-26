@@ -1,5 +1,9 @@
 name: Build Logseq Plugin
 
+# Manual versioning: package.json `version` is the single source of truth.
+# Bump it, push to main, and this workflow tags + releases that version (once).
+# Pushing without a version bump is a no-op, so it's safe to push freely.
+
 on:
   push:
     branches:
@@ -8,38 +12,56 @@ on:
       - 'README.md'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 env:
   PLUGIN_NAME: logseq-reference-manager
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js for semantic-release
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
         with:
-          node-version: '24'
+          fetch-depth: 0 # need tags so the gate below can see existing releases
+
+      - name: Read version from package.json
+        id: meta
+        run: echo "version=$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Release only if this version isn't tagged yet
+        id: gate
+        run: |
+          if git rev-parse "v${{ steps.meta.outputs.version }}" >/dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "v${{ steps.meta.outputs.version }} already released — nothing to do."
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup Bun
+        if: steps.gate.outputs.release == 'true'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - name: Build
-        id: build
+      - name: Build & package
+        if: steps.gate.outputs.release == 'true'
         run: |
           bun install
           bun run build
-          mkdir ${{ env.PLUGIN_NAME }}
-          cp README.md package.json icon.svg ${{ env.PLUGIN_NAME }}
-          mv dist ${{ env.PLUGIN_NAME }}
-          zip -r ${{ env.PLUGIN_NAME }}.zip ${{ env.PLUGIN_NAME }}
-          ls
-          echo "tag_name=git tag --sort version:refname | tail -n 1" >> $GITHUB_OUTPUT
-      - name: Release
-        run: bunx semantic-release 
+          mkdir "$PLUGIN_NAME"
+          cp README.md package.json icon.svg "$PLUGIN_NAME"
+          cp -r dist "$PLUGIN_NAME"
+          zip -r "$PLUGIN_NAME.zip" "$PLUGIN_NAME"
+
+      - name: Create GitHub release
+        if: steps.gate.outputs.release == 'true'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "v${{ steps.meta.outputs.version }}" \
+            --title "v${{ steps.meta.outputs.version }}" \
+            --generate-notes \
+            "$PLUGIN_NAME.zip"

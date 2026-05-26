@@ -1,6 +1,6 @@
 {
   "name": "logseq-reference-manager",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "author": "Rahul Somani",
   "description": "Reference manager for importing from Zotero locally and from the Web clipper",
   "license": "MIT",
@@ -33,24 +33,6 @@
     "test": "bun test",
     "prepare": "husky",
     "lint:precommit": "echo \"Running biome\" && bunx biome check . --write && echo \"Running tsc\" && bunx tsc --noEmit"
-  },
-  "release": {
-    "branches": [
-      "main"
-    ],
-    "plugins": [
-      [
-        "@semantic-release/github",
-        {
-          "assets": [
-            "logseq-reference-manager.zip"
-          ],
-          "options": {
-            "successComment": false
-          }
-        }
-      ]
-    ]
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
