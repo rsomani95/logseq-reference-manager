@@ -36,9 +36,11 @@ all real configuration lives in the plugin's own modal.
 | `zotTag` | string | `Reference` | Schema | `set-logseqdb-schema` (base tag), `handle-zot-db` (page tag), `set-web-schema` (extends target), `index.tsx` (sync-all query) |
 | `propertyPreset` | enum `Essentials\|Full\|Custom` | `Essentials` | Schema | `set-logseqdb-schema`, `handle-zot-db` |
 | `pageProps` | `string[]` (`formatPagePropChoice` labels) | essentials | Schema → `PropertyPicker` (Custom only) | both, via `parsePagePropChoice` |
-| `creatorsAsNodes` | boolean | `true` | Import formats | `set-logseqdb-schema` (property type), `handle-zot-db` (render) |
-| `creatorNameTemplate` | string template | `<% firstName %> <% lastName %>` | Import formats | `resolveCreatorName` → `applyCreatorTemplate` |
+| `creatorsAsNodes` | boolean | `true` | Authors | `set-logseqdb-schema` (`authors`/`creators` property type), `handle-zot-db` (render); type **inherited by the web tag via `extends`** — see Author formatting |
+| `creatorNameTemplate` | string template | `<% firstName %> <% lastName %>` | Authors | `resolveCreatorName` → `applyCreatorTemplate`; **web-clipper extension** (pending — see Author formatting) |
+| `creatorSeparator` | string | `, ` | Authors | `handle-zot-db` (joins names in text mode); **web-clipper extension** (pending — see Author formatting) |
 | `pagenameTemplate` | string template | `@<% citeKey %>` | Import formats | `resolvePageName` → `applyPageNameTemplate` |
+| `pagenamePrefix` | string | empty (migration peels a leading literal like `@` out of the template) | Import formats | `applyPageNameTemplate` (prefix arg) |
 | `openAttachmentInline` | boolean | `true` | Import formats | `handle-zot-db` (attachment link) |
 | `tagRules` | JSON string (array of `TagRule`) | empty | Tag rules | `getConfiguredTagRules`; watched by `watch-tag-rules` |
 | `appliedSchema` | JSON string (`SchemaSnapshot`) | empty | (internal — written by Apply / Set up web tag) | `use-schema-state` for the dirty diff (`schema-snapshot.ts`) |
@@ -66,9 +68,12 @@ can tell a real schema change from a no-op edit (see Save model below).
 
 The `web*` keys are a **contract** with the companion web-clipper extension: it
 reads them over the HTTP API (`getStateFromStore`) but can't write them, so this
-hub is the only editing surface. The keys/types/defaults must match the
-extension's `logseq-remote-settings.ts` mapping — coordinate before renaming
-any. The extension repo's `LOGSEQ_SETTINGS_INTEGRATION.md` is the full handoff.
+hub is the only editing surface. As of the shared-**Authors** change, the
+creator-formatting keys **`creatorNameTemplate`** and **`creatorSeparator`** join
+that contract too (see [Author formatting](#author-formatting-shared)). The
+keys/types/defaults must match the extension's `logseq-remote-settings.ts`
+mapping — coordinate before renaming any. The extension repo's
+`LOGSEQ_SETTINGS_INTEGRATION.md` is the full handoff.
 
 ### Page template
 
@@ -96,6 +101,45 @@ own fallbacks) must agree.
 `logseq-remote-settings.ts` mapping (with matching fallbacks) for them to take
 effect. Until then they're written but ignored, and clipping is unaffected.
 
+### Author formatting (shared)
+
+Creator formatting (the **General → Authors** panel) applies to **every source**,
+so a clipped web page should render authors the way a Zotero import does. Three
+keys govern it; the Logseq properties they shape are **`authors`** and
+**`creators`**, both inherited by the web tag via `extends`.
+
+- **`creatorsAsNodes`** (boolean, default `true`) — sets the **type** of the
+  `authors` / `creators` properties: `node` / cardinality-`many` (each creator is
+  its own linked page) when true, `default` (one plain-text value) when false
+  (`set-logseqdb-schema.ts` → `desiredSchemaFor`). **The extension does not need
+  to read this key.** Because the web tag `extends` the base, the property the
+  extension discovers when walking `webTag`'s inherited schema *already carries
+  the right type* — so honor that discovered type: write page-reference values
+  for a `node` property, a single joined string for a `default` one.
+- **`creatorNameTemplate`** (string template, default `<% firstName %> <% lastName %>`)
+  — how each creator's name is rendered. Same placeholder grammar as page names:
+  `<% firstName %>` / `<% lastName %>`, case- and whitespace-tolerant inside the
+  `<% %>`; unrecognised tokens are stripped; a template with no usable token falls
+  back to `<% firstName %> <% lastName %>`; double spaces (one part missing) are
+  collapsed. A single-field creator (institutional author, "Various", …) that has
+  a `name` but no first/last bypasses the template and is used verbatim. The
+  reference implementation is `applyCreatorTemplate` in
+  `services/resolve-templates.ts` (pure, unit-tested) — mirror its rules so the
+  web output matches Zotero's character-for-character.
+- **`creatorSeparator`** (string, default `, `) — joins the formatted names into
+  one string **only when creators are plain text** (`creatorsAsNodes` false →
+  `default` type). When creators are nodes each name is a separate page reference
+  and the separator is irrelevant.
+
+Like the new Page-template keys above, **`creatorNameTemplate` and
+`creatorSeparator` are new to the contract** — the clipper must add them to its
+`logseq-remote-settings.ts` mapping with matching fallbacks (`<% firstName %> <% lastName %>`
+and `, `) for them to take effect; until then they're written but ignored.
+`creatorsAsNodes` needs no mapping — its effect arrives through the inherited
+property type. **Plugin status:** the Authors panel presents these as shared, but
+the plugin only applies the format to its own Zotero imports until the extension
+wires the two keys; nothing breaks in the meantime.
+
 ## Setup hub
 
 ```
@@ -104,16 +148,19 @@ Reference Manager: Settings ─┐
 src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
   └─ src/features/setup/index.tsx → SetupApp (shell: header · grouped nav · panel)
        nav groups → sections (src/features/setup/):
-         Schema:
+         General:
            SchemaSection.tsx  — base tag, preset, Apply schema, Danger zone
                                 (deleteZoteroSchema); shared by both sources
              ├─ PropertyPicker.tsx  — searchable custom-property selector (Custom)
              └─ PresetFieldList.tsx — read-only Essentials / Full field list
+           AuthorsSection.tsx — creator name/separator + live preview,
+                                creatorsAsNodes (+ its own Apply-schema footer,
+                                gated on baseDirty); shared by both sources
          Zotero:
            ConnectSection.tsx — live connection test (testZotConnection)
-           FormatsSection.tsx — page/author dropdowns + live preview from a
-                                real library item, creatorsAsNodes (+ its own
-                                Apply-schema footer, gated on baseDirty)
+           FormatsSection.tsx — page-name dropdown + prefix + live preview from
+                                a real library item (useFmtSample);
+                                openAttachmentInline (no schema footer)
            TagRulesSection.tsx — rule builder (reuses ../tag-rules/RuleCard)
          Web references:
            WebSection.tsx     — webTag + Page template (a @dnd-kit reorderable
@@ -127,7 +174,7 @@ The nav is grouped: `NAV` in `index.tsx` tags each item with a `group`, and a
 `.setup-nav-group` label renders whenever the group changes.
 
 Schema state spans the sections (base tag/preset/list in Schema, `creatorsAsNodes`
-in Import formats, `webTag` in Web references) yet shares one Apply and one notion
+in Authors, `webTag` in Web references) yet shares one Apply and one notion
 of "dirty", so it's all owned by **`useSchemaState`** (`features/setup/use-schema-state.ts`)
 in `SetupApp` and threaded down; the diff logic is in `services/schema-snapshot.ts`.
 The sections render the controls as controlled inputs and delegate Apply / Delete /
@@ -165,7 +212,7 @@ Set-up upward (see Save model).
     their side of that diff is non-empty (`baseDirty` / `webDirty`), so re-typing a
     value back to what's applied — or reordering a custom list — re-disables the
     button. Schema's footer status reads off the same diff.
-  - Because `creatorsAsNodes` is schema-relevant but lives in **Import formats**,
+  - Because `creatorsAsNodes` is schema-relevant but lives in **Authors**,
     that section shows its **own** Apply-schema footer (same `baseDirty` gate;
     hidden until a schema exists) so a creators change can be applied without
     bouncing back to Schema. `applySchema` itself lives in `useSchemaState`, shared
@@ -206,8 +253,9 @@ defaults into the store during the ready-init pass.
 
 `pagenameTemplate` / `creatorNameTemplate` are filled by pure functions
 (`applyPageNameTemplate`, `applyCreatorTemplate`) — no `@logseq/libs` import, so
-they're unit-tested (`resolve-templates.test.ts`) and the Formats preview
-renders through the **same** functions (preview === import output). They
+they're unit-tested (`resolve-templates.test.ts`) and the setup previews (page
+name in Import formats, author name in Authors) render through the **same**
+functions (preview === import output). They
 tolerate placeholder case/whitespace, strip unknown `<% … %>`, and fall back to
 a collision-safe per-item name (citeKey, else title) when a template carries no
 usable placeholder. `handle-zot-db.ts` wraps them, supplying the template from
@@ -220,7 +268,7 @@ Properties and the tag only reach the graph when **Apply schema** runs
 `pageProps` / `creatorsAsNodes` from `logseq.settings`. `SchemaSection` flushes
 its own values (`zotTag`, `propertyPreset`) via `updateSettings` *before* calling
 it, since its change handlers are fire-and-forget; `pageProps` and
-`creatorsAsNodes` are autosaved by the `PropertyPicker` and the Import-formats
+`creatorsAsNodes` are autosaved by the `PropertyPicker` and the Authors
 section respectively, so they're already persisted by then.
 
 After the base tag + properties, `setLogseqDbSchema` wires the web tag —
