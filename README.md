@@ -1,79 +1,60 @@
-![Logseq Badge](https://img.shields.io/badge/logseq%20%7C%20db-%2385C8C8?style=for-the-badge&logo=logseq&logoColor=black)
+# Logseq Reference Manager
 
-# Zotero (Local) for Logseq
+This plugin is meant to help bring references in from various sources into Logseq in a structured manner. It uses the Zotero schema as the foundation, and helps you bring in references from Zotero and/or the Web (using a companion [web clipper chrome extension](https://github.com/rsomani95/logseq-web-clipper/)).
 
-Connect locally to Zotero 7 (and above) and pull your items into Logseq without needing to sync with Zotero Cloud.
-
-![](/screenshots/demo.gif)
+![](./docs/main-demo.gif)
 
 ## Features
 
-- Supports Logseq-DB only
-- Direct connection to Zotero 7+ without needing to sync with Zotero Cloud
-- Easy insertion of Zotero items into your graph
-- Track which items are already in your graph
-- Fuzzy search for the articles that you want to insert
-- Sync new annotations from Zotero to existing pages
+- Schema:
+  - A ~1:1 mapping with Zotero's API. One key change: Unlike Zotero, we add a dedicated `authors` field (all non-authors go into the _native_ `creators` field)
+  - Two presets out of the box: `Essentials`, which should serve most folks, and `Full`. You can pick `Custom` if you want to pick and choose which properties you want with more specificity
+- Zotero:
+  - Bring in references from Zotero (tested with Zotero 9, should work with 7+)
+  - Single / Batch import
+  - (Advanced) Setup addding specific tags to references when custom defined conditions are met. See examples [here](TODO: Add examples)
+- Web:
+  - This plugin is a pre-requisite + configurator to bring in sources from the web using [`logseq-web-clipper`](https://github.com/rsomani95/logseq-web-clipper/)
+- A dedicated settings panel for ease of setup and customisation
+- Plays nice with Logseq's theming system
 
-## Installation
+PS: This plugin only works with 
 
-1. Recommended: Install from the Logseq marketplace.
-2. Alternative: Download a release and manually load it in Logseq.
+## Setup & Customisation
 
-## Setup
+I **strongly recommend** you try this in a standalone graph first to get a feel for it, and setup the properties to your liking. It's messy to change schemas afterwards, especially if you want to change whether _Authors_ are imported as plaintext names or page references.
 
-1. Close Logseq.
-2. Ensure Zotero 7 is running, and then:
-   - In settings, under `Advanced`, check `Allow other applications on this computer to communicate with Zotero`
-   - (only if you want to citation keys) Install [Better Bibtex](https://github.com/retorquere/zotero-better-bibtex/releases).
-   - In the Better Bibtex section of your Zotero settings, ensure that `Automatically pin citation key after X seconds` is set to `1`.
-   - Note: Citation keys need to be **both** set up and pinned in Zotero 7 in order to use citation keys in Logseq. If you have issues setting this up, please seek help at the Zotero or Better Bibtex forums as I may not be as familiar.
-   - Restart Zotero.
-3. Open Logseq, and then plugin settings.
-4. Verify that "Connection to Zotero is working" is checked.
-5. Complete the rest of the plugin settings.
+- `Cmd+Shift+P` to open the command palette in Logseq
+- Type `Reference Manager: Settings` > hit Enter
+- Follow steps in the panel
 
-## Usage
+## Importing From Zotero
 
-1. Ensure that you have completed the DB-related settings in the plugin settings.
-2. Trigger the command palette (`Mod+Shift+P`) and run **Zotero: Setup schema** to configure the property types used by Zotero.
-3. If you encounter any issues, try using the following commands from the command palette:
-   - **Zotero: Delete schema**: This removes all the schema created by the plugin
-   - **Zotero: Reset settings**: This resets all settings to default. Restart Logseq after using this command.
+### `/Zotero: Import single item`
 
-### Import a Zotero item
+Imports a single reference from Zotero, and adds a wiki-link to the citation from where you imported this. By default, you see your most recent items, and can search to drill down and find exactly what you need. This was shown above in the demo.
 
-- Navigate to the page where you want to insert a Zotero item.
-- Type `/Zotero: Import single item`.
-- Perform your search.
-- Click the desired item.
-- A new page will be created, and a reference to it will be inserted at your cursor position.
+### `/Zotero: Batch import`
 
-## Configuration
+Imports multiple Zotero items at once - supports searching, importing Zotero collections and/or saved searches. Relies on Zotero's search and paginates queries to keep things snappy with larger libraries. Also accessible from the Command Palette.
 
+![](./docs/batch-import.gif)
 
-### Syncing Annotations
+## Importing From The Web
 
-After importing a Zotero item, you can sync new annotations that you've added in Zotero since the last import or sync.
+- Setup the web clipper tag in the settings panel
+- Download and setup the chrome extension from https://github.com/rsomani95/logseq-web-clipper
+- Clip
 
-**Single page:** Navigate to a Zotero item page in Logseq, right-click the page title and select **Zotero: Sync annotations**. Only annotations added after the last sync will be appended under their respective attachment.
+![](./docs/web-clipper.gif)
 
-**All pages:** Open the command palette (`Mod+Shift+P`) and run **Zotero: Sync all annotations**. This will sync annotations for every page tagged with "Zotero" in your graph.
+## Rough Edges
 
-The plugin tracks a `zotero-last-sync` timestamp on each page to determine which annotations are new. This timestamp is set automatically on initial import and updated after each sync.
+- Re-syncing annotations has not been tested extensively
+- Changing schemas and back-applying changes to already tagged content has not been given much thought and will be bumpy / impossible. Highly suggest you try this out in a test graph and get a feel for how you want to use it before bringing into your main graph
 
-### Other Settings
-
-For the Page Name template, use only the stated placeholders. Refer to the plugin settings for available options.
-
-## Issues and Contributions
-
-For bug reports, feature requests, or contributions, please visit the [GitHub repository](https://github.com/rsomani95/logseq-reference-manager).
-
-## License
-
-[MIT License](LICENSE.md)
+All my testing has been done on MacOS with Zotero 9+ and Logseq version `2.0.1-alpha+nightly.20260505`
 
 ## Credits
 
-Forked from [benjypng/logseq-zoterolocal-plugin](https://github.com/benjypng/logseq-zoterolocal-plugin), originally created by benjypng.
+Originally forked from [logseq-zoterolocal-plugin](https://github.com/benjypng/logseq-zoterolocal-plugin), created by benjypng. Go [buy him a coffee](https://buymeacoffee.com/hkgnp.dev) for laying strong foundations to build on top of!
