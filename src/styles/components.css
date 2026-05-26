@@ -2020,6 +2020,23 @@ html[data-theme="dark"] .tagrule-select {
   width: 100%;
 }
 
+/* A single-row field: label on the left, a right-aligned input. For the
+   web-clipper block-name fields, where the label says enough on its own and a
+   stacked hint over a full-width box would weigh more than the setting earns.
+   The fixed input basis lines the boxes into one column across rows. */
+.setup-field-inline {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.setup-field-inline .setup-control {
+  width: auto;
+  flex: 0 1 18rem;
+  min-width: 0;
+}
+
 /* A dropdown and its inline modifier (the page-name prefix, the author
    separator) share one row: the dropdown is the primary choice and flexes to
    fill, the modifier sits compact at the end — so the modifier reads as a

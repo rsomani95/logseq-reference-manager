@@ -189,28 +189,25 @@ export const WebSection = ({
           </p>
         </div>
 
-        <div className="setup-field">
-          <label className="setup-field-label" htmlFor="web-content-block">
-            Page content block
-          </label>
-          <p className="setup-field-hint">
-            Heading the article body nests under.
-          </p>
-          <input
-            id="web-content-block"
-            className="tagrule-input setup-control"
-            value={contentBlock}
-            placeholder="Page Content"
-            disabled={!capture}
-            onChange={(e) => onContentBlock(e.target.value)}
-          />
-        </div>
+        {capture && (
+          <div className="setup-field setup-field-inline">
+            <label className="setup-field-label" htmlFor="web-content-block">
+              Page content block
+            </label>
+            <input
+              id="web-content-block"
+              className="tagrule-input setup-control"
+              value={contentBlock}
+              placeholder="Page Content"
+              onChange={(e) => onContentBlock(e.target.value)}
+            />
+          </div>
+        )}
 
-        <div className="setup-field">
+        <div className="setup-field setup-field-inline">
           <label className="setup-field-label" htmlFor="web-highlights-block">
             Highlights block
           </label>
-          <p className="setup-field-hint">Heading highlights nest under.</p>
           <input
             id="web-highlights-block"
             className="tagrule-input setup-control"
