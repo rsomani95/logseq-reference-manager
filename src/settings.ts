@@ -8,6 +8,10 @@ import {
 } from './constants'
 import { PropertyPreset } from './interfaces'
 import { formatPagePropChoice } from './services/page-props-choice'
+import {
+  serializeSectionOrder,
+  WEB_SECTION_DEFAULT_ORDER,
+} from './web-sections'
 
 export const PRESET_CHOICES: PropertyPreset[] = ['Essentials', 'Full', 'Custom']
 
@@ -70,6 +74,12 @@ const HIDDEN_KEYS = [
   'webCapturePageContent',
   'webPageContentBlockName',
   'webHighlightsBlockName',
+  'webAbstractBlockName',
+  'webCaptureAbstract',
+  'webFoldAbstract',
+  'webFoldHighlights',
+  'webFoldPageContent',
+  'webSectionOrder',
   'webUseHeadingMarkers',
   'webPopulatePageTags',
 ]
@@ -226,6 +236,52 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       title: 'Populate Page Tags',
       description: '',
       default: false,
+    },
+    // Page-template keys: per-section heading name, fold-on-import, and the
+    // optional-section enable toggles, plus the section order. Defaults mirror
+    // `WEB_SECTIONS` / `WEB_SECTION_DEFAULT_ORDER` in web-sections.ts and the
+    // extension's own fallbacks — keep all three in sync (see settings.md).
+    {
+      key: 'webAbstractBlockName',
+      type: 'string',
+      title: 'Abstract Block Name',
+      description: '',
+      default: 'Abstract',
+    },
+    {
+      key: 'webCaptureAbstract',
+      type: 'boolean',
+      title: 'Capture Abstract',
+      description: '',
+      default: true,
+    },
+    {
+      key: 'webFoldAbstract',
+      type: 'boolean',
+      title: 'Fold Abstract',
+      description: '',
+      default: false,
+    },
+    {
+      key: 'webFoldHighlights',
+      type: 'boolean',
+      title: 'Fold Highlights',
+      description: '',
+      default: false,
+    },
+    {
+      key: 'webFoldPageContent',
+      type: 'boolean',
+      title: 'Fold Page Content',
+      description: '',
+      default: true,
+    },
+    {
+      key: 'webSectionOrder',
+      type: 'string',
+      title: 'Section Order',
+      description: '',
+      default: serializeSectionOrder(WEB_SECTION_DEFAULT_ORDER),
     },
   ]
 

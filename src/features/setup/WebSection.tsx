@@ -1,8 +1,140 @@
-import { AlertTriangle, CheckCircle2, Link2 } from 'lucide-react'
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  restrictToParentElement,
+  restrictToVerticalAxis,
+} from '@dnd-kit/modifiers'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { AlertTriangle, CheckCircle2, GripVertical, Link2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { isSchemaAdded } from '../../services/is-schema-added'
 import { ensureWebTagExtendsBase } from '../../services/set-web-schema'
+import {
+  parseSectionOrder,
+  serializeSectionOrder,
+  WEB_SECTIONS,
+  type WebSectionDef,
+  type WebSectionId,
+} from '../../web-sections'
+
+interface SectionValue {
+  name: string
+  fold: boolean
+  // Highlights has no capture key, so its enable is pinned true.
+  capture: boolean
+}
+
+// Seed the per-section template state from the live store, falling back to each
+// section's default (which matches what settings.ts seeds on a fresh install).
+const readSections = (): Record<WebSectionId, SectionValue> => {
+  const s = logseq.settings as Record<string, unknown> | undefined
+  const out = {} as Record<WebSectionId, SectionValue>
+  for (const def of Object.values(WEB_SECTIONS)) {
+    out[def.id] = {
+      name: (s?.[def.nameKey] as string) ?? def.defaultName,
+      fold: (s?.[def.foldKey] as boolean) ?? def.defaultFold,
+      capture: def.captureKey
+        ? ((s?.[def.captureKey] as boolean) ?? true)
+        : true,
+    }
+  }
+  return out
+}
+
+// One row in the Page template list — a draggable card for a single section
+// block. The grip is the only drag activator (pointer + keyboard), so the name
+// input and toggles stay directly interactive. An optional section that's
+// switched off dims its name/fold but keeps its place in the order.
+const SortableSectionCard = ({
+  def,
+  value,
+  onChange,
+}: {
+  def: WebSectionDef
+  value: SectionValue
+  onChange: (patch: Partial<SectionValue>) => void
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: def.id })
+
+  const enabled = value.capture
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={`web-section-card${isDragging ? ' is-dragging' : ''}${
+        enabled ? '' : ' is-off'
+      }`}
+    >
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        className="web-section-grip"
+        aria-label={`Reorder ${def.label}`}
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical size={16} aria-hidden />
+      </button>
+
+      {def.captureKey ? (
+        <input
+          type="checkbox"
+          className="web-section-enable"
+          checked={enabled}
+          aria-label={`Include ${def.label}`}
+          onChange={(e) => onChange({ capture: e.target.checked })}
+        />
+      ) : (
+        <span className="web-section-enable-spacer" aria-hidden />
+      )}
+
+      <span className="web-section-label">{def.label}</span>
+
+      <input
+        className="tagrule-input web-section-name"
+        value={value.name}
+        placeholder={def.defaultName}
+        disabled={!enabled}
+        aria-label={`${def.label} heading name`}
+        onChange={(e) => onChange({ name: e.target.value })}
+      />
+
+      <label className="checkbox-label web-section-fold">
+        <input
+          type="checkbox"
+          checked={value.fold}
+          disabled={!enabled}
+          onChange={(e) => onChange({ fold: e.target.checked })}
+        />
+        Fold
+      </label>
+    </div>
+  )
+}
 
 // The Web references section. Unlike the Zotero sections, the plugin doesn't do
 // the work here — the companion web-clipper browser extension does. The
@@ -23,15 +155,15 @@ export const WebSection = ({
   const [webTag, setWebTag] = useState<string>(
     (logseq.settings?.webTag as string) ?? 'Web',
   )
-  const [capture, setCapture] = useState<boolean>(
-    (logseq.settings?.webCapturePageContent as boolean) ?? true,
+
+  // Page-template state: each section's heading name / fold / enable, plus the
+  // order the extension writes them in.
+  const [sections, setSections] =
+    useState<Record<WebSectionId, SectionValue>>(readSections)
+  const [order, setOrder] = useState<WebSectionId[]>(() =>
+    parseSectionOrder(logseq.settings?.webSectionOrder),
   )
-  const [contentBlock, setContentBlock] = useState<string>(
-    (logseq.settings?.webPageContentBlockName as string) ?? 'Page Content',
-  )
-  const [highlightsBlock, setHighlightsBlock] = useState<string>(
-    (logseq.settings?.webHighlightsBlockName as string) ?? 'Highlights',
-  )
+
   const [headingMarkers, setHeadingMarkers] = useState<boolean>(
     (logseq.settings?.webUseHeadingMarkers as boolean) ?? false,
   )
@@ -52,23 +184,30 @@ export const WebSection = ({
     void isSchemaAdded().then(setBaseReady)
   }, [])
 
+  // If the stored order was missing or malformed, write the normalised value
+  // back so the extension always reads a complete, valid list.
+  useEffect(() => {
+    const normalized = parseSectionOrder(logseq.settings?.webSectionOrder)
+    const canonical = serializeSectionOrder(normalized)
+    if (
+      (logseq.settings?.webSectionOrder as string | undefined) !== canonical
+    ) {
+      void logseq.updateSettings({ webSectionOrder: canonical })
+    }
+  }, [])
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  )
+
   const onWebTag = (v: string) => {
     setWebTag(v)
     setDirty(true)
     setLinked(false)
     void logseq.updateSettings({ webTag: v })
-  }
-  const onCapture = (v: boolean) => {
-    setCapture(v)
-    void logseq.updateSettings({ webCapturePageContent: v })
-  }
-  const onContentBlock = (v: string) => {
-    setContentBlock(v)
-    void logseq.updateSettings({ webPageContentBlockName: v })
-  }
-  const onHighlightsBlock = (v: string) => {
-    setHighlightsBlock(v)
-    void logseq.updateSettings({ webHighlightsBlockName: v })
   }
   const onHeadingMarkers = (v: boolean) => {
     setHeadingMarkers(v)
@@ -77,6 +216,32 @@ export const WebSection = ({
   const onPageTags = (v: boolean) => {
     setPageTags(v)
     void logseq.updateSettings({ webPopulatePageTags: v })
+  }
+
+  const updateSection = (id: WebSectionId, patch: Partial<SectionValue>) => {
+    setSections((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }))
+    const def = WEB_SECTIONS[id]
+    const next: Record<string, unknown> = {}
+    if (patch.name !== undefined) next[def.nameKey] = patch.name
+    if (patch.fold !== undefined) next[def.foldKey] = patch.fold
+    if (patch.capture !== undefined && def.captureKey)
+      next[def.captureKey] = patch.capture
+    if (Object.keys(next).length) void logseq.updateSettings(next)
+  }
+
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    setOrder((prev) => {
+      const from = prev.indexOf(active.id as WebSectionId)
+      const to = prev.indexOf(over.id as WebSectionId)
+      if (from === -1 || to === -1) return prev
+      const reordered = arrayMove(prev, from, to)
+      void logseq.updateSettings({
+        webSectionOrder: serializeSectionOrder(reordered),
+      })
+      return reordered
+    })
   }
 
   const setUpWebTag = async () => {
@@ -176,45 +341,36 @@ export const WebSection = ({
         </div>
 
         <div className="setup-field">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={capture}
-              onChange={(e) => onCapture(e.target.checked)}
-            />
-            Capture page content
-          </label>
-          <p className="setup-field-hint">
-            Save the article body as a block on the clipped page.
-          </p>
-        </div>
-
-        {capture && (
-          <div className="setup-field setup-field-inline">
-            <label className="setup-field-label" htmlFor="web-content-block">
-              Page content block
-            </label>
-            <input
-              id="web-content-block"
-              className="tagrule-input setup-control"
-              value={contentBlock}
-              placeholder="Page Content"
-              onChange={(e) => onContentBlock(e.target.value)}
-            />
+          <div className="web-template-head">
+            <span className="setup-field-label">Page template</span>
+            <p className="setup-field-hint">
+              The sections each clipped page is built from. Drag to set the
+              order they appear, rename a heading, or fold one on import.
+            </p>
           </div>
-        )}
 
-        <div className="setup-field setup-field-inline">
-          <label className="setup-field-label" htmlFor="web-highlights-block">
-            Highlights block
-          </label>
-          <input
-            id="web-highlights-block"
-            className="tagrule-input setup-control"
-            value={highlightsBlock}
-            placeholder="Highlights"
-            onChange={(e) => onHighlightsBlock(e.target.value)}
-          />
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+            onDragEnd={onDragEnd}
+          >
+            <SortableContext
+              items={order}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="web-section-list">
+                {order.map((id) => (
+                  <SortableSectionCard
+                    key={id}
+                    def={WEB_SECTIONS[id]}
+                    value={sections[id]}
+                    onChange={(patch) => updateSection(id, patch)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </div>
 
         <div className="setup-field">

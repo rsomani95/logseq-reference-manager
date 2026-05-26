@@ -2020,21 +2020,114 @@ html[data-theme="dark"] .tagrule-select {
   width: 100%;
 }
 
-/* A single-row field: label on the left, a right-aligned input. For the
-   web-clipper block-name fields, where the label says enough on its own and a
-   stacked hint over a full-width box would weigh more than the setting earns.
-   The fixed input basis lines the boxes into one column across rows. */
-.setup-field-inline {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+/* Page template — a reorderable list of the section blocks the web clipper
+   writes onto each clipped page (Abstract · Highlights · Page Content). */
+.web-template-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
 }
 
-.setup-field-inline .setup-control {
-  width: auto;
-  flex: 0 1 18rem;
+.web-section-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* One row = one section block. A grid so the controls line into columns across
+   cards (the calm, scannable read) regardless of label length:
+   grip · enable · section · heading name · fold. The enable column is a fixed
+   width so the always-on section (its checkbox replaced by a spacer) still
+   aligns. Surface is a faint inset card; it lifts on drag via shadow. */
+.web-section-card {
+  display: grid;
+  grid-template-columns: auto 1.15rem 7rem 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--zot-color-divider);
+  border-radius: 8px;
+  background: var(--zot-color-bg-secondary);
+}
+
+/* Elevation (not a heavier border) marks the lifted card, and it rides above
+   its neighbours while dragging. */
+.web-section-card.is-dragging {
+  box-shadow: var(--zot-shadow-modal);
+  z-index: 1;
+}
+
+/* A switched-off section keeps its place in the order (so re-enabling restores
+   it where the user left it) but dims its name + fold; the grip and the enable
+   box stay full strength so it's still reorderable and easy to switch back on. */
+.web-section-card.is-off .web-section-label,
+.web-section-card.is-off .web-section-name,
+.web-section-card.is-off .web-section-fold {
+  opacity: 0.45;
+}
+
+.web-section-grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem;
+  border: none;
+  background: transparent;
+  color: var(--zot-color-text-muted);
+  border-radius: 4px;
+  cursor: grab;
+  /* Stop touch scroll from hijacking a pointer-drag on the handle. */
+  touch-action: none;
+}
+
+.web-section-grip:hover {
+  color: var(--zot-color-text);
+}
+
+.web-section-grip:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 1px;
+}
+
+.web-section-card.is-dragging .web-section-grip {
+  cursor: grabbing;
+}
+
+.web-section-enable {
+  margin: 0;
+  justify-self: center;
+  accent-color: var(--zot-color-accent-host);
+}
+
+.web-section-enable:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 2px;
+}
+
+/* Holds the enable column open for the always-on section. */
+.web-section-enable-spacer {
+  width: 1.15rem;
+}
+
+.web-section-label {
+  font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-medium);
+  color: var(--zot-color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.web-section-name {
   min-width: 0;
+}
+
+.web-section-fold {
+  justify-self: end;
+  font-size: var(--zot-text-sm);
+  color: var(--zot-color-text-muted);
+  white-space: nowrap;
 }
 
 /* A dropdown and its inline modifier (the page-name prefix, the author

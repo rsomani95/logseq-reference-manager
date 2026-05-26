@@ -43,8 +43,14 @@ all real configuration lives in the plugin's own modal.
 | `tagRules` | JSON string (array of `TagRule`) | empty | Tag rules | `getConfiguredTagRules`; watched by `watch-tag-rules` |
 | `webTag` | string | `Web` | Web references | `set-web-schema` (extends base); **web-clipper extension** (clip tag) |
 | `webCapturePageContent` | boolean | `true` | Web references | **web-clipper extension** |
-| `webPageContentBlockName` | string | `Page Content` | Web references | **web-clipper extension** |
-| `webHighlightsBlockName` | string | `Highlights` | Web references | **web-clipper extension** |
+| `webPageContentBlockName` | string | `Page Content` | Web references → Page template | **web-clipper extension** |
+| `webHighlightsBlockName` | string | `Highlights` | Web references → Page template | **web-clipper extension** |
+| `webAbstractBlockName` | string | `Abstract` | Web references → Page template | **web-clipper extension** |
+| `webCaptureAbstract` | boolean | `true` | Web references → Page template | **web-clipper extension** |
+| `webFoldAbstract` | boolean | `false` | Web references → Page template | **web-clipper extension** |
+| `webFoldHighlights` | boolean | `false` | Web references → Page template | **web-clipper extension** |
+| `webFoldPageContent` | boolean | `true` | Web references → Page template | **web-clipper extension** |
+| `webSectionOrder` | string — CSV of section ids | `abstract,highlights,pageContent` | Web references → Page template | **web-clipper extension** |
 | `webUseHeadingMarkers` | boolean | `false` | Web references | **web-clipper extension** |
 | `webPopulatePageTags` | boolean | `false` | Web references | **web-clipper extension** |
 | `testConnection` | heading | — | — | display-only (native panel status line) |
@@ -59,6 +65,32 @@ reads them over the HTTP API (`getStateFromStore`) but can't write them, so this
 hub is the only editing surface. The keys/types/defaults must match the
 extension's `logseq-remote-settings.ts` mapping — coordinate before renaming
 any. The extension repo's `LOGSEQ_SETTINGS_INTEGRATION.md` is the full handoff.
+
+### Page template
+
+The clipper writes up to three top-level section blocks onto each clipped page —
+**Abstract**, **Highlights**, **Page Content** (ids `abstract` / `highlights` /
+`pageContent`). The plugin owns how they're templated; `src/web-sections.ts` is
+the single source for the section model (`WEB_SECTIONS` — each section's
+`web*BlockName` / `webFold*` / optional `webCapture*` keys + defaults — and
+`WEB_SECTION_DEFAULT_ORDER`). The seed defaults in `settings.ts` and the UI
+fallbacks in `WebSection.tsx` both mirror it; all three (plus the extension's
+own fallbacks) must agree.
+
+- **Per-section knobs.** Each section has a heading name (`web*BlockName`) and a
+  fold-on-import flag (`webFold*`, default folded only for Page Content).
+- **Enable toggles.** Abstract and Page Content are optional (`webCaptureAbstract`
+  / `webCapturePageContent`); **Highlights is always imported** and has no
+  capture key. A disabled section keeps its slot in the order.
+- **Order.** `webSectionOrder` is a comma-separated id list (a plain string seeds
+  reliably and the extension just splits on `,`). `parseSectionOrder` is
+  defensive — dedupes, drops unknown ids, appends any missing section in
+  canonical order — so a stale/partial value never strands a section.
+
+`webAbstractBlockName`, `webCaptureAbstract`, `webSectionOrder`, and the three
+`webFold*` keys are **new** to this contract — the clipper must add them to its
+`logseq-remote-settings.ts` mapping (with matching fallbacks) for them to take
+effect. Until then they're written but ignored, and clipping is unaffected.
 
 ## Setup hub
 
@@ -79,7 +111,10 @@ src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
                                 real library item, creatorsAsNodes
            TagRulesSection.tsx — rule builder (reuses ../tag-rules/RuleCard)
          Web references:
-           WebSection.tsx     — webTag + capture knobs (read by the extension)
+           WebSection.tsx     — webTag + Page template (a @dnd-kit reorderable
+                                list of the Abstract/Highlights/Page Content
+                                section cards: name, fold, enable) + heading
+                                markers / page tags (all read by the extension)
                                 + Set up web tag (ensureWebTagExtendsBase)
 ```
 
