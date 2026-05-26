@@ -156,8 +156,7 @@ export const WebSection = () => {
             Capture page content
           </label>
           <p className="setup-field-hint">
-            Save the article body as a block on the clipped page. Off = clip
-            metadata and highlights only.
+            Save the article body as a block on the clipped page.
           </p>
         </div>
 

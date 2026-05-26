@@ -38,9 +38,9 @@ interface NavItem {
 const NAV: NavItem[] = [
   { id: 'schema', label: 'Properties', icon: Database, group: 'Schema' },
   { id: 'connect', label: 'Connection', icon: Link2, group: 'Zotero' },
-  { id: 'formats', label: 'Import formats', icon: Type, group: 'Zotero' },
-  { id: 'tagRules', label: 'Tag rules', icon: Tags, group: 'Zotero' },
-  { id: 'web', label: 'Web clip', icon: Globe, group: 'Web references' },
+  { id: 'formats', label: 'Import Formats', icon: Type, group: 'Zotero' },
+  { id: 'tagRules', label: 'Tag Rules', icon: Tags, group: 'Zotero' },
+  { id: 'web', label: 'Web Clipper', icon: Globe, group: 'Web references' },
 ]
 
 // Only these two gate the "first incomplete → land here" logic and show a

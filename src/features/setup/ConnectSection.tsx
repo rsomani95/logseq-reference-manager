@@ -35,8 +35,8 @@ export const ConnectSection = ({
         <h3 className="setup-section-title">Connection</h3>
         <p className="setup-section-desc">
           The plugin talks to a running Zotero 7+ instance over its local API at{' '}
-          <code className="inline-code">127.0.0.1:23119</code>. No Zotero cloud
-          sync required — keep Zotero open while you import.
+          <code className="inline-code">127.0.0.1:23119</code>. Keep Zotero open
+          while you import.
         </p>
       </div>
 

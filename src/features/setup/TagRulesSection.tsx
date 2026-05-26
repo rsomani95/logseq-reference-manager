@@ -17,6 +17,8 @@ import { RuleCard } from '../tag-rules/RuleCard'
 // Saving persists to the `tagRules` setting and shows an inline tick instead of
 // closing the window, so the user can keep editing other sections.
 export const TagRulesSection = () => {
+  const baseTag = (logseq.settings?.zotTag as string) ?? 'Reference'
+
   const [drafts, setDrafts] = useState<DraftRule[]>(() =>
     rulesToDrafts(getConfiguredTagRules()),
   )
@@ -72,7 +74,7 @@ export const TagRulesSection = () => {
         <h3 className="setup-section-title">Tag rules</h3>
         <p className="setup-section-desc">
           Add extra Logseq tags to imported items that match your conditions.
-          The base Zotero tag is always applied on top.
+          The base tag "{baseTag}" is always applied.
         </p>
       </div>
 
@@ -82,9 +84,9 @@ export const TagRulesSection = () => {
             <Tags size={30} aria-hidden className="tagrule-empty-icon" />
             <p className="tagrule-empty-title">No tag rules yet</p>
             <p className="tagrule-empty-sub">
-              Add a rule to automatically tag matching imports — for example,
-              tag anything from arxiv.org as MLPaper.
+              Add a rule to automatically tag matching imports.
             </p>
+            {/* TODO: Add a link to example documentation here */}
             <button
               type="button"
               className="tagrule-add tagrule-add-rule"

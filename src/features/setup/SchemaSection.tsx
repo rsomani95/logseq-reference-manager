@@ -142,21 +142,19 @@ export const SchemaSection = ({
       <div className="setup-section-head">
         <h3 className="setup-section-title">Schema</h3>
         <p className="setup-section-desc">
-          The shared property schema every reference carries — derived from
-          Zotero's fields and inherited by both Zotero imports and Web clips.
-          Choose the base tag and properties, then apply the schema to your
-          graph.
+          Properties based on the Zotero API. These are used by both Zotero and
+          Web references. Once configured, hit "Apply Schema" at the bottom to
+          affect changes.
         </p>
       </div>
 
       <div className="setup-section-body">
         <div className="setup-field">
           <label className="setup-field-label" htmlFor="zot-tag">
-            Base tag
+            Base tag name
           </label>
           <p className="setup-field-hint">
-            Every reference page carries this. The Web tag extends it, so it
-            inherits the same schema.
+            Tag applied to every reference, regardless of source.
           </p>
           <input
             id="zot-tag"

@@ -322,7 +322,7 @@ export const setLogseqDbSchema = async () => {
           .map((t) => `${t.prop} (${t.from}→${t.to})`)
           .join(', ')
         bits.push(
-          `Kept the existing type of ${names} — Logseq can’t change a property’s type once it has data. To change it, delete the schema (Danger zone) and re-apply.`,
+          `Kept the existing type of ${names} as Logseq can't change a property's type once it has data. To change it, delete the schema and re-apply.`,
         )
       }
       if (failed.length) {

@@ -38,7 +38,6 @@ const FALLBACK_SAMPLE: FmtSample = {
 const PAGE_PRESETS: FmtPreset[] = [
   { value: '<% citeKey %>', label: 'Citekey' },
   { value: '<% title %>', label: 'Title' },
-  { value: '<% citeKey %> — <% title %>', label: 'Citekey — Title' },
 ]
 
 const CREATOR_PRESETS: FmtPreset[] = [
@@ -164,10 +163,10 @@ export const FormatsSection = ({
   return (
     <>
       <div className="setup-section-head">
-        <h3 className="setup-section-title">Import formats</h3>
+        <h3 className="setup-section-title">Import Formats</h3>
         <p className="setup-section-desc">
           {sample.fromLibrary
-            ? `How imported pages and authors are named — previewed with “${sample.title}” from your library.`
+            ? `How imported pages and authors are named. Previewed with “${sample.title}” from your library.`
             : 'How imported pages and authors are named. The preview uses a sample item until your library loads.'}
         </p>
       </div>
@@ -257,9 +256,8 @@ export const FormatsSection = ({
             Store creators as page references
           </label>
           <p className="setup-field-hint">
-            Each author becomes its own page — shown as [[links]] above — so you
-            can jump to all their works. Off = plain text. This sets a property
-            type, so re-apply the schema after changing it.
+            Create a wiki-linked page for each author i.e.{' '}
+            <code>[[Author Name]]</code> as shown above
           </p>
         </div>
 
