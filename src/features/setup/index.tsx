@@ -6,11 +6,13 @@ import {
   type LucideIcon,
   Tags,
   Type,
+  Users,
   X,
 } from 'lucide-react'
 import { Fragment, useEffect, useState } from 'react'
 
 import { testZotConnection } from '../../services/get-zot-items'
+import { AuthorsSection } from './AuthorsSection'
 import { ConnectSection } from './ConnectSection'
 import { FormatsSection } from './FormatsSection'
 import { SchemaSection } from './SchemaSection'
@@ -18,7 +20,13 @@ import { TagRulesSection } from './TagRulesSection'
 import { useSchemaState } from './use-schema-state'
 import { WebSection } from './WebSection'
 
-export type SetupSection = 'schema' | 'connect' | 'formats' | 'tagRules' | 'web'
+export type SetupSection =
+  | 'schema'
+  | 'authors'
+  | 'connect'
+  | 'formats'
+  | 'tagRules'
+  | 'web'
 
 export interface ConnResult {
   code: 'success' | 'error'
@@ -32,11 +40,13 @@ interface NavItem {
   group: string
 }
 
-// Three top-level groups. "Schema" is the shared property schema both sources
-// inherit; "Zotero" is the source the plugin imports itself; "Web references"
-// configures the companion browser extension.
+// Three top-level groups. "General" holds what both sources share — the Schema
+// (base tag + properties) and Authors (creator formatting + the node/default
+// creators type the Web tag inherits); "Zotero" is the source the plugin
+// imports itself; "Web references" configures the companion browser extension.
 const NAV: NavItem[] = [
-  { id: 'schema', label: 'Properties', icon: Database, group: 'Schema' },
+  { id: 'schema', label: 'Schema', icon: Database, group: 'General' },
+  { id: 'authors', label: 'Authors', icon: Users, group: 'General' },
   { id: 'connect', label: 'Connection', icon: Link2, group: 'Zotero' },
   { id: 'formats', label: 'Import Formats', icon: Type, group: 'Zotero' },
   { id: 'tagRules', label: 'Tag Rules', icon: Tags, group: 'Zotero' },
@@ -44,8 +54,8 @@ const NAV: NavItem[] = [
 ]
 
 // Only these two gate the "first incomplete → land here" logic and show a
-// completion tick. Formats / Tag rules / Web always have valid defaults (or are
-// optional), so none can be "incomplete".
+// completion tick. Authors / Formats / Tag rules / Web always have valid
+// defaults (or are optional), so none can be "incomplete".
 const GATING: SetupSection[] = ['connect', 'schema']
 
 export const SetupApp = ({
@@ -87,6 +97,7 @@ export const SetupApp = ({
 
   const complete: Record<SetupSection, boolean | null> = {
     schema: schema.schemaReady,
+    authors: true,
     connect: conn ? conn.code === 'success' : null,
     formats: true,
     tagRules: true,
@@ -110,11 +121,9 @@ export const SetupApp = ({
             onDelete={schema.deleteSchema}
           />
         )
-      case 'connect':
-        return <ConnectSection initial={conn} onResult={setConn} />
-      case 'formats':
+      case 'authors':
         return (
-          <FormatsSection
+          <AuthorsSection
             creatorsAsNodes={schema.config.creatorsAsNodes}
             schemaReady={schema.schemaReady}
             baseDirty={schema.baseDirty}
@@ -123,6 +132,10 @@ export const SetupApp = ({
             onApply={schema.applySchema}
           />
         )
+      case 'connect':
+        return <ConnectSection initial={conn} onResult={setConn} />
+      case 'formats':
+        return <FormatsSection />
       case 'tagRules':
         return <TagRulesSection />
       case 'web':
