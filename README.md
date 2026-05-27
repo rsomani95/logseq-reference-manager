@@ -4,6 +4,10 @@ This plugin is meant to help bring references in from various sources into Logse
 
 ![](./docs/main-demo.gif)
 
+## Installation
+
+Download from the plugin marketplace from within Logseq
+
 ## Features
 
 - Schema:
