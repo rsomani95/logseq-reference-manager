@@ -52,9 +52,18 @@ Imports multiple Zotero items at once - supports searching, importing Zotero col
 
 - Re-syncing annotations has not been tested extensively
 - Changing schemas and back-applying changes to already tagged content has not been given much thought and will be bumpy / impossible. Highly suggest you try this out in a test graph and get a feel for how you want to use it before bringing into your main graph
+- Currently doesn't work when installed from the marketplace. Ongoing issue about this: https://github.com/logseq/logseq/issues/12736
 
 All my testing has been done on MacOS with Zotero 9+ and Logseq version `2.0.1-alpha+nightly.20260505`
 
 ## Credits
 
 Originally forked from [logseq-zoterolocal-plugin](https://github.com/benjypng/logseq-zoterolocal-plugin), created by benjypng. Go [buy him a coffee](https://buymeacoffee.com/hkgnp.dev) for laying strong foundations to build on top of!
+
+## Contributing
+
+As is glaringly obvious from the commit log, this has been developed with the help of Claude while I've been testing it for all of my use-cases. Two reasons for this:
+- I wanted to get the shape of this right first
+- I'm no TypeScript expert and iterating with Claude while I test everything has been a much faster route for now
+
+As a result, the code has been tested quite a bit, but not reviewed thoroughly, so I'm not taking PRs right now. I plan on doing this once the dust settles a bit. For now, feel free to open issues if you experience rough edges
