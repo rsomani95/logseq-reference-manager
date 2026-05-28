@@ -38,6 +38,33 @@ export const resolvePageName = (zotItem: ZotData): string =>
 export const resolveCreatorName = (creator: CreatorItem): string =>
   applyCreatorTemplate(logseq.settings?.creatorNameTemplate as string, creator)
 
+/**
+ * Builds a properly percent-encoded `file://` URL from an absolute filesystem
+ * path. Distinct from the bare-path form used for the Markdown link in the
+ * attachment loop below, which deliberately avoids `file://` to dodge mldoc's
+ * missing decode (see `dev_notes/LOGSEQ_FILE_LINKS.md`). The asset-block
+ * renderer is a different code path — PDF.js consumes the URL directly, so it
+ * wants a real, encoded URL.
+ */
+const pathToFileUrl = (absPath: string): string =>
+  // encodeURIComponent encodes `/` too, so encode per-segment then rejoin.
+  `file://${absPath.split('/').map(encodeURIComponent).join('/')}`
+
+/** Lowercase file extension without the dot, or '' if none. */
+const extensionFromPath = (path: string): string => {
+  const dot = path.lastIndexOf('.')
+  return dot >= 0 ? path.slice(dot + 1).toLowerCase() : ''
+}
+
+/** SHA-256 hex digest of a string. Needed upstram. */
+const sha256Hex = async (s: string): Promise<string> => {
+  const buf = new TextEncoder().encode(s)
+  const hash = await crypto.subtle.digest('SHA-256', buf)
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
 // FIXME: Add docstring. what does this do?
 export const handleZotInDb = async (
   zotItem: ZotData,
@@ -388,6 +415,48 @@ export const handleZotInDb = async (
                 { sibling: false },
               )
             }
+          }
+        }
+
+        // Experimental — alongside the Markdown link above, emit a "proper"
+        // asset block. The Markdown link is a
+        // content block: clicking opens the PDF, but the first highlight
+        // pops Logseq's "Create asset" modal because no asset block is in
+        // scope. Setting `:logseq.property.asset/external-url` (+ type,
+        // checksum, size) makes the block an asset entity that Logseq's
+        // annotation machinery checks against, so highlighting should work
+        // first-try with no modal.
+        //
+        // Scoped to linked_file because that's the only mode where I currently have
+        // a real on-disk path; imported_file points at Zotero's local HTTP
+        // and linked_url is a web URL — neither matches the guide's premise
+        // of a file PDF.js can load directly.
+        if (attachment.linkMode === 'linked_file') {
+          const fileUrl = pathToFileUrl(attachment.path)
+          const ext = extensionFromPath(attachment.path)
+          const checksum = await sha256Hex(fileUrl)
+
+          const assetBlock = await logseq.Editor.insertBlock(
+            headerBlock.uuid,
+            attachment.title,
+            {
+              sibling: false,
+              properties: {
+                'logseq.property.asset/type': ext,
+                'logseq.property.asset/external-url': fileUrl,
+                'logseq.property.asset/checksum': checksum,
+                'logseq.property.asset/size': 0,
+              },
+            },
+          )
+          if (assetBlock?.uuid) {
+            // Parity with the drag-drop flow's class tag. Not required for
+            // the `asset?` predicate (one property is enough) but the guide
+            // recommends it for query parity.
+            await logseq.Editor.addBlockTag(
+              assetBlock.uuid,
+              'logseq.class/Asset',
+            )
           }
         }
       }
