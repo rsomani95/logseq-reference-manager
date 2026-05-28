@@ -137,6 +137,10 @@ export interface ZotItem {
     numPages?: string
     pages?: string
     parentItem?: string
+    // linked_file attachments: absolute filesystem path to the file. Set by
+    // Zotero (or plugins like ZotMoov, which move files out of Zotero storage
+    // and convert imported_file → linked_file with this populated).
+    path?: string
     patentNumber?: string
     place?: string
     postType?: string
@@ -207,6 +211,15 @@ export interface FileItem {
   type: string
 }
 
+export interface FileLinkItem {
+  title: string
+  // Absolute filesystem path. We don't try to resolve Zotero's
+  // `attachments:`-prefixed relative paths here — those need the user's
+  // "Linked Attachment Base Directory" setting, which the API doesn't expose.
+  path: string
+  contentType: string
+}
+
 interface AttachmentBase {
   key: string
   annotations: AnnotationItem[]
@@ -220,6 +233,10 @@ export type AttachmentItem =
   | ({
       linkMode: 'imported_file'
     } & FileItem &
+      AttachmentBase)
+  | ({
+      linkMode: 'linked_file'
+    } & FileLinkItem &
       AttachmentBase)
 
 export interface CreatorItem {

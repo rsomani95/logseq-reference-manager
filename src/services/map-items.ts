@@ -105,6 +105,17 @@ export const mapItems = async (
         }
         item.attachments.push(att)
         attachmentMap.set(child.data.key, att)
+      } else if (child.data.linkMode === 'linked_file' && child.data.path) {
+        const att: AttachmentItem = {
+          linkMode: 'linked_file',
+          key: child.data.key,
+          annotations: [],
+          title: child.data.title,
+          path: child.data.path,
+          contentType: child.data.contentType ?? '',
+        }
+        item.attachments.push(att)
+        attachmentMap.set(child.data.key, att)
       }
     }
 

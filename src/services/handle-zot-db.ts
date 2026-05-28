@@ -326,16 +326,34 @@ export const handleZotInDb = async (
   if (zotItem.attachments && zotItem.attachments.length > 0) {
     const headerBlock = await logseq.Editor.insertBlock(
       existingPage.uuid,
-      '## Attachments and Annotations',
+      'Attachments and Annotations',
       { sibling: false },
     )
 
     if (headerBlock) {
       for (const attachment of zotItem.attachments) {
-        const link =
-          attachment.linkMode === 'linked_url'
-            ? `${logseq.settings?.openAttachmentInline ? '!' : ''}[${attachment.title}](${decodeURI(attachment.url)})`
-            : `${logseq.settings?.openAttachmentInline ? '!' : ''}[${attachment.title}](${decodeURI(attachment.href)})`
+        // Pick the most "openable" target per link mode:
+        // - linked_file: emit the bare absolute path with literal characters,
+        //   no `file://` prefix, no percent-encoding. Logseq's mldoc parser
+        //   strips `file://` on its own but never decodes %20/%2C before
+        //   passing the path to Electron's `shell.openPath`, so an encoded
+        //   form silently fails (see logseq/logseq#9017). The bare path takes
+        //   the `Search` branch in mldoc — leading `/` short-circuits — and
+        //   reaches `shell.openPath` verbatim, which macOS hands to Preview /
+        //   the user's default PDF app. ZotMoov users live here.
+        // - imported_file: Zotero's local HTTP enclosure URL — fetches the
+        //   file through the running Zotero. No file:// because we don't
+        //   know the user's Zotero data dir without an extra setting.
+        // - linked_url: the web URL, as-is.
+        let url: string
+        if (attachment.linkMode === 'linked_file') {
+          url = attachment.path
+        } else if (attachment.linkMode === 'imported_file') {
+          url = decodeURI(attachment.href)
+        } else {
+          url = decodeURI(attachment.url)
+        }
+        const link = `${logseq.settings?.openAttachmentInline ? '!' : ''}[${attachment.title}](${url})`
 
         const attachmentBlock = await logseq.Editor.insertBlock(
           headerBlock.uuid,

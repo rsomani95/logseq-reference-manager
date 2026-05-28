@@ -170,6 +170,15 @@ export const getChildrenForItem = async (
           title: child.data.title,
           url: child.data.url,
         })
+      } else if (child.data.linkMode === 'linked_file' && child.data.path) {
+        attachments.push({
+          linkMode: 'linked_file',
+          key: child.data.key,
+          annotations: [],
+          title: child.data.title,
+          path: child.data.path,
+          contentType: child.data.contentType ?? '',
+        })
       }
     }
   }
