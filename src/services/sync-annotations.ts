@@ -1,6 +1,7 @@
 import { BlockEntity } from '@logseq/libs/dist/LSPlugin'
 
 import {
+  ATTACHMENTS_BLOCK_NAME_DEFAULT,
   PLUGIN_ID,
   ZOTERO_ATTACHMENT_KEY_PROP,
   ZOTERO_CODE_PROP,
@@ -47,14 +48,17 @@ export const syncAnnotations = async (pageName: string) => {
     return
   }
 
-  // Find the "Attachments and Annotations" section in the page block tree
+  // Find the attachments wrapper in the page block tree by the user's
+  // configured `attachmentsBlockName` (Attachments tab → block name).
   const blockTree = await logseq.Editor.getPageBlocksTree(pageName)
   if (!blockTree) throw new Error('Could not read page blocks')
 
+  const configuredBlockName =
+    (logseq.settings?.attachmentsBlockName as string | undefined)?.trim() ||
+    ATTACHMENTS_BLOCK_NAME_DEFAULT
+
   let attachmentsBlock = blockTree.find(
-    (b) =>
-      b.content === '## Attachments and Annotations' ||
-      b.content === '## Attachments',
+    (b) => b.content === configuredBlockName,
   )
 
   // Create the section if it doesn't exist
@@ -63,7 +67,7 @@ export const syncAnnotations = async (pageName: string) => {
     if (!lastBlock) throw new Error('Page has no blocks')
     attachmentsBlock = (await logseq.Editor.insertBlock(
       lastBlock.uuid,
-      '## Attachments and Annotations',
+      configuredBlockName,
       { sibling: true },
     )) as BlockEntity
   }

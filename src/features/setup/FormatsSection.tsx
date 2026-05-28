@@ -10,20 +10,17 @@ const PAGE_PRESETS: FmtPreset[] = [
   { value: '<% title %>', label: 'Title' },
 ]
 
-// Zotero-only naming + attachment behavior. Author formatting moved to the
-// shared Authors panel (General group) since it applies to every source —
-// leaving this section purely cosmetic: nothing here touches the schema, so
-// there's no re-apply footer. Page name (citeKey / title) is Zotero-specific —
-// web clips have no citeKey — so it stays under Zotero.
+// Zotero-only page naming. Author formatting lives in the shared Authors panel
+// (General group); attachment behavior lives in its own Attachments panel under
+// Zotero. Nothing here touches the schema, so there's no re-apply footer. Page
+// name (citeKey / title) is Zotero-specific — web clips have no citeKey — so
+// it stays under Zotero.
 export const FormatsSection = () => {
   const [pageTpl, setPageTpl] = useState<string>(
     (logseq.settings?.pagenameTemplate as string) ?? '<% citeKey %>',
   )
   const [prefix, setPrefix] = useState<string>(
     (logseq.settings?.pagenamePrefix as string) ?? '',
-  )
-  const [inline, setInline] = useState<boolean>(
-    (logseq.settings?.openAttachmentInline as boolean) ?? true,
   )
   const sample = useFmtSample()
 
@@ -34,10 +31,6 @@ export const FormatsSection = () => {
   const onPrefix = (v: string) => {
     setPrefix(v)
     void logseq.updateSettings({ pagenamePrefix: v })
-  }
-  const onInline = (v: boolean) => {
-    setInline(v)
-    void logseq.updateSettings({ openAttachmentInline: v })
   }
 
   const pagePreview = applyPageNameTemplate(
@@ -93,20 +86,6 @@ export const FormatsSection = () => {
             <span className="setup-preview-label">Preview</span>
             <span className="setup-preview-value">{pagePreview}</span>
           </div>
-        </div>
-
-        <div className="setup-field">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={inline}
-              onChange={(e) => onInline(e.target.checked)}
-            />
-            Open attachments in Logseq
-          </label>
-          <p className="setup-field-hint">
-            Off = open attachments in your default system app instead.
-          </p>
         </div>
       </div>
     </>

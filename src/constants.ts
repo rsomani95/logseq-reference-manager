@@ -9,6 +9,15 @@ export const ZOTERO_LAST_SYNC_PROP = `${ZOTERO_PROP}/zotero-last-sync`
 export const ZOTERO_ATTACHMENT_KEY_PROP = `${ZOTERO_PROP}/zotero-attachment-key`
 export const ZOT_URL = 'http://127.0.0.1:23119/api/users/0'
 export const ZOTERO_LIBRARY_ITEM = 'zotero://select/library/items?itemKey='
+
+// Attachments tab settings — defaults mirror the schema in `settings.ts`.
+// Kept here so the import flow doesn't depend on string literals scattered
+// across files.
+export const ATTACHMENTS_BLOCK_NAME_DEFAULT = 'Attachments'
+export const ATTACHMENT_IMPORT_MODES = ['PDFs only', 'All attachments'] as const
+export type AttachmentImportMode = (typeof ATTACHMENT_IMPORT_MODES)[number]
+export const ATTACHMENT_EXTERNAL_PDF_LABEL_DEFAULT = 'Open PDF Outside Logseq'
+
 export const BASE_QUERY = {
   sort: 'dateAdded',
   direction: 'desc',

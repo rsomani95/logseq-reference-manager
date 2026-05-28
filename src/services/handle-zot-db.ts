@@ -1,9 +1,20 @@
 import { IBatchBlock } from '@logseq/libs/dist/LSPlugin'
 import { format, parse, parseISO } from 'date-fns'
 
-import { PROP_PRESETS, ZOT_DATA_KEY_MAP } from '../constants'
+import {
+  ATTACHMENT_EXTERNAL_PDF_LABEL_DEFAULT,
+  ATTACHMENTS_BLOCK_NAME_DEFAULT,
+  type AttachmentImportMode,
+  PROP_PRESETS,
+  ZOT_DATA_KEY_MAP,
+} from '../constants'
 import { getConfiguredTagRules, matchTagRules } from '../extended-tags'
-import { CreatorItem, PropertyPreset, ZotData } from '../interfaces'
+import {
+  AttachmentItem,
+  CreatorItem,
+  PropertyPreset,
+  ZotData,
+} from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
 import { isRecycledPage } from './is-recycled-page'
 import { isSchemaAdded } from './is-schema-added'
@@ -63,6 +74,127 @@ const sha256Hex = async (s: string): Promise<string> => {
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('')
+}
+
+/**
+ * True if the attachment is a PDF. Prefers Zotero's MIME (`contentType` for
+ * `linked_file`, `type` for `imported_file`), with a filename-extension fallback
+ * for the cases where Zotero left the MIME blank. `linked_url` is never a PDF
+ * for our purposes — those are web pages, not files.
+ */
+const isPdfAttachment = (att: AttachmentItem): boolean => {
+  if (att.linkMode === 'linked_file') {
+    if (att.contentType === 'application/pdf') return true
+    return att.path.toLowerCase().endsWith('.pdf')
+  }
+  if (att.linkMode === 'imported_file') {
+    if (att.type === 'application/pdf') return true
+    return att.href.toLowerCase().endsWith('.pdf')
+  }
+  return false
+}
+
+/**
+ * Markdown link for attachments that aren't `linked_file` PDFs (those go via
+ * the asset-block path for first-class viewer + annotation support). The `!`
+ * prefix (when `openAttachmentInline` is on) makes Logseq try to embed —
+ * useful for image-like `linked_file` attachments. `imported_file` PDFs still
+ * land here because their content lives behind Zotero's HTTP enclosure URL
+ * rather than a real on-disk path, so the asset-block route doesn't apply.
+ *
+ * URL form per link mode (see `dev_notes/LOGSEQ_FILE_LINKS.md`):
+ * - `linked_file`: bare absolute path, literal characters (no `file://`, no
+ *   percent-encoding) — survives mldoc and reaches `shell.openPath` verbatim.
+ * - `imported_file`: Zotero's local-API enclosure URL; opens through Zotero.
+ * - `linked_url`: the web URL, decoded once for display.
+ */
+const formatAttachmentMarkdownLink = (att: AttachmentItem): string => {
+  let url: string
+  if (att.linkMode === 'linked_file') {
+    url = att.path
+  } else if (att.linkMode === 'imported_file') {
+    url = decodeURI(att.href)
+  } else {
+    url = decodeURI(att.url)
+  }
+  const prefix = logseq.settings?.openAttachmentInline ? '!' : ''
+  return `${prefix}[${att.title}](${url})`
+}
+
+/**
+ * Inserts the per-attachment block under the wrapping "Attachments" heading.
+ * PDFs with a real on-disk path (`linked_file`) come in as first-class Logseq
+ * asset blocks — the `:logseq.property.asset/external-url` family + the
+ * `logseq.class/Asset` tag together make the block an asset entity, so the
+ * embedded PDF viewer's annotation tooling activates without popping the
+ * "Create asset" modal on first highlight. Everything else is a plain markdown
+ * link block.
+ */
+const emitAttachmentBlock = async (
+  parentUuid: string,
+  attachment: AttachmentItem,
+) => {
+  if (attachment.linkMode === 'linked_file' && isPdfAttachment(attachment)) {
+    const fileUrl = pathToFileUrl(attachment.path)
+    const ext = extensionFromPath(attachment.path)
+    const checksum = await sha256Hex(fileUrl)
+
+    const assetBlock = await logseq.Editor.insertBlock(
+      parentUuid,
+      attachment.title,
+      {
+        sibling: false,
+        properties: {
+          'logseq.property.asset/type': ext,
+          'logseq.property.asset/external-url': fileUrl,
+          'logseq.property.asset/checksum': checksum,
+          'logseq.property.asset/size': 0,
+        },
+      },
+    )
+    if (assetBlock?.uuid) {
+      // Parity with the drag-drop flow. Not strictly required by the `asset?`
+      // predicate (the property family is enough) but the asset-block guide
+      // recommends it for query parity.
+      await logseq.Editor.addBlockTag(assetBlock.uuid, 'logseq.class/Asset')
+    }
+    return assetBlock
+  }
+
+  return logseq.Editor.insertBlock(
+    parentUuid,
+    formatAttachmentMarkdownLink(attachment),
+    { sibling: false },
+  )
+}
+
+/**
+ * Builds the single-block "open externally" links string. Currently emits up to
+ * two entries — "Open PDF Outside Logseq" (configurable label) targeting the
+ * first on-disk PDF, and a fixed "Open in Zotero" pointing at the item's
+ * library URI. The split isn't strictly 1:1 (an item may have multiple
+ * attachments, the Zotero link goes to the whole item) but that's intentional:
+ * for the practitioner-researcher case the "PDF of interest" is typically
+ * singular, and the Zotero link is a quick handoff to the source. Returns `''`
+ * when nothing useful can be linked.
+ */
+const buildExternalLinksContent = (
+  attachments: AttachmentItem[],
+  libraryLink: string | undefined,
+  pdfLabel: string,
+): string => {
+  const parts: string[] = []
+  const firstPdfOnDisk = attachments.find(
+    (a): a is Extract<AttachmentItem, { linkMode: 'linked_file' }> =>
+      a.linkMode === 'linked_file' && isPdfAttachment(a),
+  )
+  if (firstPdfOnDisk) {
+    parts.push(`[${pdfLabel}](${firstPdfOnDisk.path})`)
+  }
+  if (libraryLink) {
+    parts.push(`[Open in Zotero](${libraryLink})`)
+  }
+  return parts.join(' · ')
 }
 
 // FIXME: Add docstring. what does this do?
@@ -348,117 +480,89 @@ export const handleZotInDb = async (
 
   let glossaryBatchBlk: IBatchBlock[] = []
 
-  // Insert attachments with annotations — done individually so we can set
-  // the zotero-attachment-key property on each attachment block for sync
-  if (zotItem.attachments && zotItem.attachments.length > 0) {
+  // ─── Attachments ──────────────────────────────────────────────────────
+  // Filter by the user's Attachments → import-mode pick (PDFs only / All),
+  // emit each filtered attachment as its own block under a configurable
+  // heading, and (optionally) append a single "open externally" links block.
+  // PDFs from `linked_file` come in as first-class asset blocks; everything
+  // else is a markdown link. Annotations land as children of whichever block
+  // represents the attachment, so `zotero-attachment-key` stays the sync hook.
+  const attachmentsBlockName =
+    (logseq.settings?.attachmentsBlockName as string | undefined)?.trim() ||
+    ATTACHMENTS_BLOCK_NAME_DEFAULT
+  const importMode =
+    (logseq.settings?.attachmentImportMode as
+      | AttachmentImportMode
+      | undefined) ?? 'PDFs only'
+  const showExternalLinks =
+    (logseq.settings?.attachmentShowExternalLinks as boolean | undefined) ??
+    false
+  const externalPdfLabel =
+    (
+      logseq.settings?.attachmentExternalPdfLabel as string | undefined
+    )?.trim() || ATTACHMENT_EXTERNAL_PDF_LABEL_DEFAULT
+
+  const filteredAttachments =
+    importMode === 'PDFs only'
+      ? (zotItem.attachments ?? []).filter(isPdfAttachment)
+      : (zotItem.attachments ?? [])
+
+  const externalLinksContent = showExternalLinks
+    ? buildExternalLinksContent(
+        filteredAttachments,
+        zotItem.libraryLink,
+        externalPdfLabel,
+      )
+    : ''
+
+  if (filteredAttachments.length > 0 || externalLinksContent.length > 0) {
     const headerBlock = await logseq.Editor.insertBlock(
       existingPage.uuid,
-      'Attachments and Annotations',
+      attachmentsBlockName,
       { sibling: false },
     )
 
     if (headerBlock) {
-      for (const attachment of zotItem.attachments) {
-        // Pick the most "openable" target per link mode:
-        // - linked_file: emit the bare absolute path with literal characters,
-        //   no `file://` prefix, no percent-encoding. Logseq's mldoc parser
-        //   strips `file://` on its own but never decodes %20/%2C before
-        //   passing the path to Electron's `shell.openPath`, so an encoded
-        //   form silently fails (see logseq/logseq#9017). The bare path takes
-        //   the `Search` branch in mldoc — leading `/` short-circuits — and
-        //   reaches `shell.openPath` verbatim, which macOS hands to Preview /
-        //   the user's default PDF app. ZotMoov users live here.
-        // - imported_file: Zotero's local HTTP enclosure URL — fetches the
-        //   file through the running Zotero. No file:// because we don't
-        //   know the user's Zotero data dir without an extra setting.
-        // - linked_url: the web URL, as-is.
-        let url: string
-        if (attachment.linkMode === 'linked_file') {
-          url = attachment.path
-        } else if (attachment.linkMode === 'imported_file') {
-          url = decodeURI(attachment.href)
-        } else {
-          url = decodeURI(attachment.url)
-        }
-        const link = `${logseq.settings?.openAttachmentInline ? '!' : ''}[${attachment.title}](${url})`
-
-        const attachmentBlock = await logseq.Editor.insertBlock(
+      for (const attachment of filteredAttachments) {
+        const attachmentBlock = await emitAttachmentBlock(
           headerBlock.uuid,
-          link,
-          { sibling: false },
+          attachment,
+        )
+        if (!attachmentBlock) continue
+
+        await logseq.Editor.upsertBlockProperty(
+          attachmentBlock.uuid,
+          'zotero-attachment-key',
+          attachment.key,
         )
 
-        if (attachmentBlock) {
-          // Store the Zotero attachment key for sync matching
-          await logseq.Editor.upsertBlockProperty(
+        const sortedAnnotations = [...attachment.annotations].sort((a, b) =>
+          a.annotationSortIndex.localeCompare(b.annotationSortIndex),
+        )
+        for (const annotation of sortedAnnotations) {
+          if (!annotation.annotationText) continue
+          const annotationBlock = await logseq.Editor.insertBlock(
             attachmentBlock.uuid,
-            'zotero-attachment-key',
-            attachment.key,
+            annotation.annotationText,
+            { sibling: false },
           )
 
-          // Insert annotations sorted by document position
-          const sortedAnnotations = [...attachment.annotations].sort((a, b) =>
-            a.annotationSortIndex.localeCompare(b.annotationSortIndex),
-          )
-          for (const annotation of sortedAnnotations) {
-            if (!annotation.annotationText) continue
-            const annotationBlock = await logseq.Editor.insertBlock(
-              attachmentBlock.uuid,
-              annotation.annotationText,
+          if (annotationBlock && annotation.annotationComment) {
+            await logseq.Editor.insertBlock(
+              annotationBlock.uuid,
+              annotation.annotationComment,
               { sibling: false },
             )
-
-            if (annotationBlock && annotation.annotationComment) {
-              await logseq.Editor.insertBlock(
-                annotationBlock.uuid,
-                annotation.annotationComment,
-                { sibling: false },
-              )
-            }
           }
         }
+      }
 
-        // Experimental — alongside the Markdown link above, emit a "proper"
-        // asset block. The Markdown link is a
-        // content block: clicking opens the PDF, but the first highlight
-        // pops Logseq's "Create asset" modal because no asset block is in
-        // scope. Setting `:logseq.property.asset/external-url` (+ type,
-        // checksum, size) makes the block an asset entity that Logseq's
-        // annotation machinery checks against, so highlighting should work
-        // first-try with no modal.
-        //
-        // Scoped to linked_file because that's the only mode where I currently have
-        // a real on-disk path; imported_file points at Zotero's local HTTP
-        // and linked_url is a web URL — neither matches the guide's premise
-        // of a file PDF.js can load directly.
-        if (attachment.linkMode === 'linked_file') {
-          const fileUrl = pathToFileUrl(attachment.path)
-          const ext = extensionFromPath(attachment.path)
-          const checksum = await sha256Hex(fileUrl)
-
-          const assetBlock = await logseq.Editor.insertBlock(
-            headerBlock.uuid,
-            attachment.title,
-            {
-              sibling: false,
-              properties: {
-                'logseq.property.asset/type': ext,
-                'logseq.property.asset/external-url': fileUrl,
-                'logseq.property.asset/checksum': checksum,
-                'logseq.property.asset/size': 0,
-              },
-            },
-          )
-          if (assetBlock?.uuid) {
-            // Parity with the drag-drop flow's class tag. Not required for
-            // the `asset?` predicate (one property is enough) but the guide
-            // recommends it for query parity.
-            await logseq.Editor.addBlockTag(
-              assetBlock.uuid,
-              'logseq.class/Asset',
-            )
-          }
-        }
+      if (externalLinksContent.length > 0) {
+        await logseq.Editor.insertBlock(
+          headerBlock.uuid,
+          externalLinksContent,
+          { sibling: false },
+        )
       }
     }
   }

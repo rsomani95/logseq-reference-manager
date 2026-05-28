@@ -70,6 +70,10 @@ const HIDDEN_KEYS = [
   'pagenameTemplate',
   'pagenamePrefix',
   'openAttachmentInline',
+  'attachmentImportMode',
+  'attachmentsBlockName',
+  'attachmentShowExternalLinks',
+  'attachmentExternalPdfLabel',
   'webTag',
   'webCapturePageContent',
   'webPageContentBlockName',
@@ -189,6 +193,43 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       title: 'Open Attachment in Logseq',
       description: '',
       default: true,
+    },
+    // ─── Attachments ───────────────────────────────────────────────────────
+    // Controls which attachments are imported, what the wrapping block is
+    // called, and whether to emit a separate "open externally" links block.
+    // PDFs (`linked_file` with `application/pdf`) come in as first-class
+    // Logseq asset blocks so the embedded PDF viewer + annotation tooling work
+    // first-try; the external-links block lets the user jump out to Preview /
+    // Zotero when they prefer.
+    {
+      key: 'attachmentImportMode',
+      type: 'enum',
+      title: 'Attachment Import Mode',
+      description: '',
+      default: 'PDFs only',
+      enumPicker: 'select',
+      enumChoices: ['PDFs only', 'All attachments'],
+    },
+    {
+      key: 'attachmentsBlockName',
+      type: 'string',
+      title: 'Attachments Block Name',
+      description: '',
+      default: 'Attachments',
+    },
+    {
+      key: 'attachmentShowExternalLinks',
+      type: 'boolean',
+      title: 'Show External Opener Links',
+      description: '',
+      default: false,
+    },
+    {
+      key: 'attachmentExternalPdfLabel',
+      type: 'string',
+      title: 'External PDF Link Label',
+      description: '',
+      default: 'Open PDF Outside Logseq',
     },
     // ─── Web references ────────────────────────────────────────────────────
     // Read over the HTTP API by the companion web-clipper extension (it reads

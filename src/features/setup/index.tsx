@@ -4,6 +4,7 @@ import {
   Globe,
   Link2,
   type LucideIcon,
+  Paperclip,
   Tags,
   Type,
   Users,
@@ -12,6 +13,7 @@ import {
 import { Fragment, useEffect, useState } from 'react'
 
 import { testZotConnection } from '../../services/get-zot-items'
+import { AttachmentsSection } from './AttachmentsSection'
 import { AuthorsSection } from './AuthorsSection'
 import { ConnectSection } from './ConnectSection'
 import { FormatsSection } from './FormatsSection'
@@ -25,6 +27,7 @@ export type SetupSection =
   | 'authors'
   | 'connect'
   | 'formats'
+  | 'attachments'
   | 'tagRules'
   | 'web'
 
@@ -49,6 +52,12 @@ const NAV: NavItem[] = [
   { id: 'authors', label: 'Authors', icon: Users, group: 'General' },
   { id: 'connect', label: 'Connection', icon: Link2, group: 'Zotero' },
   { id: 'formats', label: 'Import Formats', icon: Type, group: 'Zotero' },
+  {
+    id: 'attachments',
+    label: 'Attachments',
+    icon: Paperclip,
+    group: 'Zotero',
+  },
   { id: 'tagRules', label: 'Tag Rules', icon: Tags, group: 'Zotero' },
   { id: 'web', label: 'Web Clipper', icon: Globe, group: 'Web references' },
 ]
@@ -100,6 +109,7 @@ export const SetupApp = ({
     authors: true,
     connect: conn ? conn.code === 'success' : null,
     formats: true,
+    attachments: true,
     tagRules: true,
     web: true,
   }
@@ -136,6 +146,8 @@ export const SetupApp = ({
         return <ConnectSection initial={conn} onResult={setConn} />
       case 'formats':
         return <FormatsSection />
+      case 'attachments':
+        return <AttachmentsSection />
       case 'tagRules':
         return <TagRulesSection />
       case 'web':
