@@ -140,12 +140,9 @@ export const AttachmentsSection = () => {
           </p>
 
           {showExternalLinks && (
-            <div
-              className="setup-field"
-              style={{ marginTop: '0.6rem', marginBottom: 0 }}
-            >
+            <div className="setup-field-row" style={{ marginTop: '0.6rem' }}>
               <label
-                className="setup-field-label"
+                className="setup-inline-label"
                 htmlFor="attach-external-pdf-label"
               >
                 PDF link label
