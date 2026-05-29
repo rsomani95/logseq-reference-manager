@@ -162,6 +162,18 @@ export const getChildrenForItem = async (
           annotations: [],
           ...child.links.enclosure,
         })
+      } else if (
+        child.data.linkMode === 'imported_url' &&
+        child.links.enclosure
+      ) {
+        // Saved web-page snapshot — stored like an imported_file and reached
+        // through the same enclosure URL.
+        attachments.push({
+          linkMode: 'imported_url',
+          key: child.data.key,
+          annotations: [],
+          ...child.links.enclosure,
+        })
       } else if (child.data.linkMode === 'linked_url' && child.data.url) {
         attachments.push({
           linkMode: 'linked_url',

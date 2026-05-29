@@ -1,11 +1,135 @@
-// TODO: Clarify if this is a 1:1 mapping of what the Zotero
-// API gives us
-// DO NOT TOUCH BELOW SECTION //
+/**
+ * The interfaces below mirror the JSON the Zotero local/web API returns for an
+ * item. The string-literal unions are a *pinned snapshot* of Zotero's
+ * contract, not a live binding — refresh them when bumping Zotero support:
+ *
+ *   • `ZoteroItemType` and `ZoteroCreatorType` come from Zotero's published
+ *     `schema.json` (https://github.com/zotero/zotero-schema), snapshotted at
+ *     schema `version` 42. That file also maps which creator types are valid
+ *     per item type; we deliberately flatten to the full union (a creator type
+ *     that's invalid for a given item type simply never appears on it).
+ *   • `ZoteroLinkMode`, `ZoteroAnnotationType`, and `ZoteroLibraryType` are not
+ *     in schema.json — they're constants in the Zotero client source
+ *     (github.com/zotero/zotero: `Zotero.Attachments.LINK_MODE_*` in
+ *     `xpcom/attachments.js`, `Zotero.Annotations.ANNOTATION_TYPE_*` in
+ *     `xpcom/annotations.js`) and have been stable across Zotero 7–9.
+ */
+
+// Regular item types (Zotero's `/itemTypes` endpoint) plus the special
+// `attachment` / `annotation` types — present in schema.json but hidden from
+// that endpoint, and both reach us as `data.itemType` on child items.
+export type ZoteroItemType =
+  | 'artwork'
+  | 'audioRecording'
+  | 'bill'
+  | 'blogPost'
+  | 'book'
+  | 'bookSection'
+  | 'case'
+  | 'conferencePaper'
+  | 'dataset'
+  | 'dictionaryEntry'
+  | 'document'
+  | 'email'
+  | 'encyclopediaArticle'
+  | 'film'
+  | 'forumPost'
+  | 'hearing'
+  | 'instantMessage'
+  | 'interview'
+  | 'journalArticle'
+  | 'letter'
+  | 'magazineArticle'
+  | 'manuscript'
+  | 'map'
+  | 'newspaperArticle'
+  | 'note'
+  | 'patent'
+  | 'podcast'
+  | 'preprint'
+  | 'presentation'
+  | 'radioBroadcast'
+  | 'report'
+  | 'computerProgram'
+  | 'standard'
+  | 'statute'
+  | 'tvBroadcast'
+  | 'thesis'
+  | 'videoRecording'
+  | 'webpage'
+  | 'attachment'
+  | 'annotation'
+
+// Zotero.Attachments.LINK_MODE_* — the four ways an attachment is stored.
+export type ZoteroLinkMode =
+  | 'imported_file' // file copied into Zotero storage
+  | 'imported_url' // saved web-page snapshot (HTML in Zotero storage)
+  | 'linked_file' // link to a file left in place on disk
+  | 'linked_url' // link to a web URL
+
+// `ANNOTATION_TYPE_*` constants (values 1–6) under `Zotero.Annotations`, near
+// the top of the client source file:
+// https://github.com/zotero/zotero/blob/main/chrome/content/zotero/xpcom/annotations.js
+// Stable from Zotero 7 through 9 — verified 2026-05-29 by diffing the `7.0`
+// branch against `main` (underline + text were Zotero 7's additions over 6's
+// four; 8 and 9 added none). To re-check on a newer release, swap the ref in
+// that URL for a release branch (`8.0`, `9.0`) or a patch tag (`9.0.4`).
+// highlight/underline/text carry `annotationText`; image/ink do not.
+export type ZoteroAnnotationType =
+  | 'highlight'
+  | 'note'
+  | 'image'
+  | 'ink'
+  | 'underline'
+  | 'text'
+
+// schema.json creatorTypes, flattened across every item type.
+export type ZoteroCreatorType =
+  | 'artist'
+  | 'attorneyAgent'
+  | 'author'
+  | 'bookAuthor'
+  | 'cartographer'
+  | 'castMember'
+  | 'chair'
+  | 'commenter'
+  | 'composer'
+  | 'contributor'
+  | 'cosponsor'
+  | 'counsel'
+  | 'creator'
+  | 'director'
+  | 'editor'
+  | 'executiveProducer'
+  | 'guest'
+  | 'host'
+  | 'interviewee'
+  | 'interviewer'
+  | 'inventor'
+  | 'narrator'
+  | 'organizer'
+  | 'originalCreator'
+  | 'performer'
+  | 'podcaster'
+  | 'presenter'
+  | 'producer'
+  | 'programmer'
+  | 'recipient'
+  | 'reviewedAuthor'
+  | 'scriptwriter'
+  | 'seriesCreator'
+  | 'seriesEditor'
+  | 'sponsor'
+  | 'translator'
+  | 'wordsBy'
+
+export type ZoteroLibraryType = 'user' | 'group'
+
 export interface ZotItem {
   key: string
   version: number
   library: {
-    type: string
+    type: ZoteroLibraryType
     id: number
     name: string
     links: {
@@ -60,7 +184,7 @@ export interface ZotItem {
     annotationPosition?: string
     annotationSortIndex?: string
     annotationText?: string
-    annotationType?: string
+    annotationType?: ZoteroAnnotationType
     applicationNumber?: string
     archive?: string
     archiveID?: string
@@ -111,7 +235,7 @@ export interface ZotItem {
     issue?: string
     issueDate?: string
     issuingAuthority?: string
-    itemType: string
+    itemType: ZoteroItemType
     journalAbbreviation?: string
     key: string
     label?: string
@@ -121,7 +245,7 @@ export interface ZotItem {
     libraryCatalog?: string
     libraryLink?: string
     license?: string
-    linkMode?: string
+    linkMode?: ZoteroLinkMode
     manuscriptType?: string
     mapType?: string
     md5?: string
@@ -181,8 +305,6 @@ export interface ZotItem {
   }
 }
 
-// DO NOT TOUCH ABOVE SECTION //
-
 /**
 ZotData maps Zotero schema to Logseq schema
 Handles additional schema that Logseq requires
@@ -235,6 +357,12 @@ export type AttachmentItem =
     } & FileItem &
       AttachmentBase)
   | ({
+      // Saved web-page snapshot. Stored in Zotero like an imported_file and
+      // reachable through the same enclosure URL, so it shares FileItem.
+      linkMode: 'imported_url'
+    } & FileItem &
+      AttachmentBase)
+  | ({
       linkMode: 'linked_file'
     } & FileLinkItem &
       AttachmentBase)
@@ -249,7 +377,7 @@ export interface CreatorItem {
   // only one name field landed. Consumers that format a creator's name must
   // fall back to this when `firstName` / `lastName` aren't present.
   name?: string
-  creatorType: string
+  creatorType: ZoteroCreatorType
 }
 
 export interface AnnotationItem {

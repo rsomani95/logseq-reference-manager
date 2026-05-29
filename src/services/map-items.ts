@@ -95,6 +95,20 @@ export const mapItems = async (
         }
         item.attachments.push(att)
         attachmentMap.set(child.data.key, att)
+      } else if (
+        child.data.linkMode === 'imported_url' &&
+        child.links.enclosure
+      ) {
+        // Saved web-page snapshot — stored like an imported_file and reached
+        // through the same enclosure URL.
+        const att: AttachmentItem = {
+          linkMode: 'imported_url',
+          key: child.data.key,
+          annotations: [],
+          ...child.links.enclosure,
+        }
+        item.attachments.push(att)
+        attachmentMap.set(child.data.key, att)
       } else if (child.data.linkMode === 'linked_url' && child.data.url) {
         const att: AttachmentItem = {
           linkMode: 'linked_url',

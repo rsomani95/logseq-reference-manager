@@ -79,8 +79,9 @@ const sha256Hex = async (s: string): Promise<string> => {
 /**
  * True if the attachment is a PDF. Prefers Zotero's MIME (`contentType` for
  * `linked_file`, `type` for `imported_file`), with a filename-extension fallback
- * for the cases where Zotero left the MIME blank. `linked_url` is never a PDF
- * for our purposes — those are web pages, not files.
+ * for the cases where Zotero left the MIME blank. `linked_url` (web link) and
+ * `imported_url` (web-page snapshot) are never PDFs for our purposes — they
+ * fall through to `false`.
  */
 const isPdfAttachment = (att: AttachmentItem): boolean => {
   if (att.linkMode === 'linked_file') {
@@ -105,17 +106,19 @@ const isPdfAttachment = (att: AttachmentItem): boolean => {
  * URL form per link mode (see `dev_notes/LOGSEQ_FILE_LINKS.md`):
  * - `linked_file`: bare absolute path, literal characters (no `file://`, no
  *   percent-encoding) — survives mldoc and reaches `shell.openPath` verbatim.
- * - `imported_file`: Zotero's local-API enclosure URL; opens through Zotero.
+ * - `imported_file` / `imported_url`: Zotero's local-API enclosure URL; opens
+ *   through Zotero (`imported_url` is a saved web-page snapshot).
  * - `linked_url`: the web URL, decoded once for display.
  */
 const formatAttachmentMarkdownLink = (att: AttachmentItem): string => {
   let url: string
   if (att.linkMode === 'linked_file') {
     url = att.path
-  } else if (att.linkMode === 'imported_file') {
-    url = decodeURI(att.href)
-  } else {
+  } else if (att.linkMode === 'linked_url') {
     url = decodeURI(att.url)
+  } else {
+    // imported_file | imported_url — both live behind Zotero's enclosure URL.
+    url = decodeURI(att.href)
   }
   const prefix = logseq.settings?.openAttachmentInline ? '!' : ''
   return `${prefix}[${att.title}](${url})`
