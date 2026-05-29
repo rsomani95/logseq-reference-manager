@@ -140,22 +140,23 @@ export const AttachmentsSection = () => {
           </p>
 
           {showExternalLinks && (
-            <div className="setup-field-row" style={{ marginTop: '0.6rem' }}>
-              <div className="setup-inline-field" style={{ flex: 1 }}>
-                <label
-                  className="setup-inline-label"
-                  htmlFor="attach-external-pdf-label"
-                >
-                  PDF link label
-                </label>
-                <input
-                  id="attach-external-pdf-label"
-                  className="tagrule-input setup-inline-input"
-                  value={externalPdfLabel}
-                  placeholder={ATTACHMENT_EXTERNAL_PDF_LABEL_DEFAULT}
-                  onChange={(e) => onExternalPdfLabel(e.target.value)}
-                />
-              </div>
+            <div
+              className="setup-field"
+              style={{ marginTop: '0.6rem', marginBottom: 0 }}
+            >
+              <label
+                className="setup-field-label"
+                htmlFor="attach-external-pdf-label"
+              >
+                PDF link label
+              </label>
+              <input
+                id="attach-external-pdf-label"
+                className="tagrule-input setup-control"
+                value={externalPdfLabel}
+                placeholder={ATTACHMENT_EXTERNAL_PDF_LABEL_DEFAULT}
+                onChange={(e) => onExternalPdfLabel(e.target.value)}
+              />
             </div>
           )}
         </div>
