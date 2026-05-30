@@ -33,6 +33,51 @@ const readApiConfig = (): { base: string; token: string } => {
 export const hasLogseqApiToken = (): boolean => readApiConfig().token.length > 0
 
 /**
+ * Validate the configured Logseq API base URL + token with a lightweight read
+ * (`getCurrentGraph`). Powers the Annotations section's "Test" button so the
+ * user can confirm the write path will work before importing. Never throws.
+ */
+export const testLogseqApi = async (): Promise<{
+  ok: boolean
+  msg: string
+}> => {
+  const { base, token } = readApiConfig()
+  if (!token) {
+    return {
+      ok: false,
+      msg: 'No token set. Enable Logseq → Settings → Features → HTTP APIs Server and paste its token above.',
+    }
+  }
+  try {
+    const res = await fetch(`${base}/api`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ method: 'logseq.App.getCurrentGraph', args: [] }),
+    })
+    if (res.status === 401) return { ok: false, msg: 'Token rejected (401).' }
+    if (!res.ok) return { ok: false, msg: `HTTP ${res.status}.` }
+    const body = (await res.json().catch(() => null)) as {
+      error?: unknown
+    } | null
+    if (body && typeof body === 'object' && 'error' in body) {
+      return { ok: false, msg: String(body.error) }
+    }
+    return {
+      ok: true,
+      msg: '✅ Connected to Logseq — annotation import is ready.',
+    }
+  } catch {
+    return {
+      ok: false,
+      msg: `Couldn't reach ${base}. Is the HTTP APIs Server turned on?`,
+    }
+  }
+}
+
+/**
  * Attach `records` as `Pdf-annotation` children of the PDF asset block (by
  * uuid), declared under the host reference page (by title). Idempotent:
  * re-running upserts by block uuid (`:build/keep-uuid?`), so it never

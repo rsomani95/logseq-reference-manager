@@ -2,6 +2,7 @@ import {
   Check,
   Database,
   Globe,
+  Highlighter,
   Link2,
   type LucideIcon,
   Paperclip,
@@ -13,6 +14,7 @@ import {
 import { Fragment, useEffect, useState } from 'react'
 
 import { testZotConnection } from '../../services/get-zot-items'
+import { AnnotationsSection } from './AnnotationsSection'
 import { AttachmentsSection } from './AttachmentsSection'
 import { AuthorsSection } from './AuthorsSection'
 import { ConnectSection } from './ConnectSection'
@@ -28,6 +30,7 @@ export type SetupSection =
   | 'connect'
   | 'formats'
   | 'attachments'
+  | 'annotations'
   | 'tagRules'
   | 'web'
 
@@ -56,6 +59,12 @@ const NAV: NavItem[] = [
     id: 'attachments',
     label: 'Attachments',
     icon: Paperclip,
+    group: 'Zotero',
+  },
+  {
+    id: 'annotations',
+    label: 'Annotations',
+    icon: Highlighter,
     group: 'Zotero',
   },
   { id: 'tagRules', label: 'Tag Rules', icon: Tags, group: 'Zotero' },
@@ -110,6 +119,7 @@ export const SetupApp = ({
     connect: conn ? conn.code === 'success' : null,
     formats: true,
     attachments: true,
+    annotations: true,
     tagRules: true,
     web: true,
   }
@@ -148,6 +158,8 @@ export const SetupApp = ({
         return <FormatsSection />
       case 'attachments':
         return <AttachmentsSection />
+      case 'annotations':
+        return <AnnotationsSection />
       case 'tagRules':
         return <TagRulesSection />
       case 'web':
