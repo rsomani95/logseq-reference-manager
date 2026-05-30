@@ -67,6 +67,20 @@ const extensionFromPath = (path: string): string => {
   return dot >= 0 ? path.slice(dot + 1).toLowerCase() : ''
 }
 
+/**
+ * Inverse of `pathToFileUrl`: a percent-encoded `file://` URL back to a bare,
+ * literal absolute path. Zotero's local API hands imported attachments their
+ * on-disk location as exactly such a URL (`file://<dataDir>/storage/<key>/<file>`
+ * — see `dev_notes/ZOTERO_ATTACHMENT_PATHS.md`); decoding per segment mirrors
+ * the per-segment encoding above.
+ */
+const fileUrlToPath = (fileUrl: string): string =>
+  fileUrl
+    .replace(/^file:\/\//, '')
+    .split('/')
+    .map(decodeURIComponent)
+    .join('/')
+
 /** SHA-256 hex digest of a string. Needed upstram. */
 const sha256Hex = async (s: string): Promise<string> => {
   const buf = new TextEncoder().encode(s)
@@ -78,17 +92,18 @@ const sha256Hex = async (s: string): Promise<string> => {
 
 /**
  * True if the attachment is a PDF. Prefers Zotero's MIME (`contentType` for
- * `linked_file`, `type` for `imported_file`), with a filename-extension fallback
- * for the cases where Zotero left the MIME blank. `linked_url` (web link) and
- * `imported_url` (web-page snapshot) are never PDFs for our purposes — they
- * fall through to `false`.
+ * `linked_file`, the enclosure `type` for `imported_file` / `imported_url`),
+ * with a filename/URL-extension fallback for when Zotero left the MIME blank.
+ * `imported_url` is a saved snapshot that's usually HTML but can be a downloaded
+ * PDF, so it's checked too. `linked_url` (a web bookmark, no file) is never a
+ * PDF.
  */
 const isPdfAttachment = (att: AttachmentItem): boolean => {
   if (att.linkMode === 'linked_file') {
     if (att.contentType === 'application/pdf') return true
     return att.path.toLowerCase().endsWith('.pdf')
   }
-  if (att.linkMode === 'imported_file') {
+  if (att.linkMode === 'imported_file' || att.linkMode === 'imported_url') {
     if (att.type === 'application/pdf') return true
     return att.href.toLowerCase().endsWith('.pdf')
   }
@@ -96,18 +111,65 @@ const isPdfAttachment = (att: AttachmentItem): boolean => {
 }
 
 /**
- * Markdown link for attachments that aren't `linked_file` PDFs (those go via
- * the asset-block path for first-class viewer + annotation support). The `!`
- * prefix (when `openAttachmentInline` is on) makes Logseq try to embed —
- * useful for image-like `linked_file` attachments. `imported_file` PDFs still
- * land here because their content lives behind Zotero's HTTP enclosure URL
- * rather than a real on-disk path, so the asset-block route doesn't apply.
+ * Bare absolute on-disk path for an attachment whose bytes live on this machine,
+ * else null. `linked_file` keeps its path verbatim; `imported_file` /
+ * `imported_url` decode the enclosure's `file://` URL, gated on `length`
+ * (Zotero only sets it when the stored file is actually present). `linked_url`
+ * has no file. See `dev_notes/ZOTERO_ATTACHMENT_PATHS.md`.
+ */
+const attachmentOnDiskPath = (att: AttachmentItem): string | null => {
+  if (att.linkMode === 'linked_file') return att.path
+  if (att.linkMode === 'imported_file' || att.linkMode === 'imported_url') {
+    return att.length == null ? null : fileUrlToPath(att.href)
+  }
+  return null
+}
+
+/**
+ * For a PDF backed by a file on this machine, the inputs for a first-class
+ * Logseq asset block: the percent-encoded `file://` URL PDF.js loads, the
+ * extension, and the byte size (0 when Zotero doesn't expose it). Returns null
+ * for anything that shouldn't become an asset — non-PDFs, web bookmarks, and
+ * imported PDFs whose bytes aren't actually on disk (`enclosure.length` unset).
+ *
+ * `linked_file` builds the URL from its bare path; `imported_file` /
+ * `imported_url` reuse Zotero's enclosure href, which already *is* such a URL.
+ */
+const pdfAssetSource = (
+  att: AttachmentItem,
+): { fileUrl: string; ext: string; size: number } | null => {
+  if (!isPdfAttachment(att)) return null
+  if (att.linkMode === 'linked_file') {
+    return {
+      fileUrl: pathToFileUrl(att.path),
+      ext: extensionFromPath(att.path),
+      size: 0, // not exposed by the API for linked files
+    }
+  }
+  if (att.linkMode === 'imported_file' || att.linkMode === 'imported_url') {
+    if (att.length == null) return null // bytes not on this machine
+    return {
+      fileUrl: att.href,
+      ext: extensionFromPath(fileUrlToPath(att.href)),
+      size: att.length,
+    }
+  }
+  return null
+}
+
+/**
+ * Markdown link for attachments that don't take the asset-block route — i.e.
+ * everything except on-disk PDFs (those go through `emitAttachmentBlock`'s asset
+ * path for the first-class viewer + annotation tooling). That leaves: non-PDF
+ * `linked_file` attachments, `linked_url` bookmarks, and imported snapshots
+ * (HTML, or a PDF whose bytes aren't on this machine). The `!` prefix (when
+ * `openAttachmentInline` is on) makes Logseq try to embed.
  *
  * URL form per link mode (see `dev_notes/LOGSEQ_FILE_LINKS.md`):
  * - `linked_file`: bare absolute path, literal characters (no `file://`, no
  *   percent-encoding) — survives mldoc and reaches `shell.openPath` verbatim.
- * - `imported_file` / `imported_url`: Zotero's local-API enclosure URL; opens
- *   through Zotero (`imported_url` is a saved web-page snapshot).
+ * - `imported_file` / `imported_url`: the enclosure is a `file://` URL to the
+ *   on-disk copy in Zotero storage; decoded to that same bare-path form.
  * - `linked_url`: the web URL, decoded once for display.
  */
 const formatAttachmentMarkdownLink = (att: AttachmentItem): string => {
@@ -117,8 +179,10 @@ const formatAttachmentMarkdownLink = (att: AttachmentItem): string => {
   } else if (att.linkMode === 'linked_url') {
     url = decodeURI(att.url)
   } else {
-    // imported_file | imported_url — both live behind Zotero's enclosure URL.
-    url = decodeURI(att.href)
+    // imported_file | imported_url — Zotero's enclosure is a file:// URL to the
+    // copy in its storage dir; emit the bare path, same robust form as
+    // linked_file.
+    url = fileUrlToPath(att.href)
   }
   const prefix = logseq.settings?.openAttachmentInline ? '!' : ''
   return `${prefix}[${att.title}](${url})`
@@ -126,21 +190,23 @@ const formatAttachmentMarkdownLink = (att: AttachmentItem): string => {
 
 /**
  * Inserts the per-attachment block under the wrapping "Attachments" heading.
- * PDFs with a real on-disk path (`linked_file`) come in as first-class Logseq
- * asset blocks — the `:logseq.property.asset/external-url` family + the
- * `logseq.class/Asset` tag together make the block an asset entity, so the
- * embedded PDF viewer's annotation tooling activates without popping the
- * "Create asset" modal on first highlight. Everything else is a plain markdown
- * link block.
+ * Any PDF backed by a real on-disk file comes in as a first-class Logseq asset
+ * block — `linked_file` PDFs (path on disk) and `imported_file` / `imported_url`
+ * PDFs alike (Zotero's enclosure resolves to `<dataDir>/storage/<key>/<file>`;
+ * see `dev_notes/ZOTERO_ATTACHMENT_PATHS.md`). The
+ * `:logseq.property.asset/external-url` family + the `logseq.class/Asset` tag
+ * make the block an asset entity, so the embedded PDF viewer's annotation
+ * tooling activates without popping the "Create asset" modal on first highlight.
+ * Everything else — non-PDFs, web bookmarks, and imported PDFs whose bytes
+ * aren't on this machine — is a plain markdown link block.
  */
 const emitAttachmentBlock = async (
   parentUuid: string,
   attachment: AttachmentItem,
 ) => {
-  if (attachment.linkMode === 'linked_file' && isPdfAttachment(attachment)) {
-    const fileUrl = pathToFileUrl(attachment.path)
-    const ext = extensionFromPath(attachment.path)
-    const checksum = await sha256Hex(fileUrl)
+  const asset = pdfAssetSource(attachment)
+  if (asset) {
+    const checksum = await sha256Hex(asset.fileUrl)
 
     const assetBlock = await logseq.Editor.insertBlock(
       parentUuid,
@@ -148,10 +214,10 @@ const emitAttachmentBlock = async (
       {
         sibling: false,
         properties: {
-          'logseq.property.asset/type': ext,
-          'logseq.property.asset/external-url': fileUrl,
+          'logseq.property.asset/type': asset.ext,
+          'logseq.property.asset/external-url': asset.fileUrl,
           'logseq.property.asset/checksum': checksum,
-          'logseq.property.asset/size': 0,
+          'logseq.property.asset/size': asset.size,
         },
       },
     )
@@ -178,8 +244,9 @@ const emitAttachmentBlock = async (
  * library URI. The split isn't strictly 1:1 (an item may have multiple
  * attachments, the Zotero link goes to the whole item) but that's intentional:
  * for the practitioner-researcher case the "PDF of interest" is typically
- * singular, and the Zotero link is a quick handoff to the source. Returns `''`
- * when nothing useful can be linked.
+ * singular, and the Zotero link is a quick handoff to the source. The PDF can
+ * be `linked_file` or an imported file in Zotero storage. Returns `''` when
+ * nothing useful can be linked.
  */
 const buildExternalLinksContent = (
   attachments: AttachmentItem[],
@@ -187,12 +254,12 @@ const buildExternalLinksContent = (
   pdfLabel: string,
 ): string => {
   const parts: string[] = []
-  const firstPdfOnDisk = attachments.find(
-    (a): a is Extract<AttachmentItem, { linkMode: 'linked_file' }> =>
-      a.linkMode === 'linked_file' && isPdfAttachment(a),
-  )
-  if (firstPdfOnDisk) {
-    parts.push(`[${pdfLabel}](${firstPdfOnDisk.path})`)
+  const firstPdfPath = attachments
+    .filter(isPdfAttachment)
+    .map(attachmentOnDiskPath)
+    .find((p): p is string => p != null)
+  if (firstPdfPath) {
+    parts.push(`[${pdfLabel}](${firstPdfPath})`)
   }
   if (libraryLink) {
     parts.push(`[Open in Zotero](${libraryLink})`)
