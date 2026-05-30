@@ -9,10 +9,10 @@ export const insertZotIntoGraph = async (
   // No hideMainUI / "please wait" toast here — the inline search UI owns
   // loading and hides itself once the page is built.
   try {
-    // List paths return parents-only ZotData; pull notes / attachments /
-    // annotations from Zotero now so handleZotInDb can write them into the
-    // page. One round-trip plus a parallel fan-out for annotations — ~10ms on
-    // localhost.
+    // List paths return parents-only ZotData; pull notes / attachments from
+    // Zotero now so handleZotInDb can write them into the page. (Annotations are
+    // no longer fetched here — the annotation importer reads them from the PDF
+    // file, or Zotero on fallback, on demand.) One round-trip on localhost.
     const { attachments, notes } = await getChildrenForItem(zotItem.key)
     const fullItem: ZotData = { ...zotItem, attachments, notes }
 

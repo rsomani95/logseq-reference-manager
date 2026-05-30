@@ -120,10 +120,33 @@ export const importAnnotationRecords = async (
     )
   }
 
+  const bodyText = await res.text().catch(() => '')
   if (!res.ok) {
-    const body = await res.text().catch(() => '')
     throw new LogseqApiError(
-      `Logseq rejected the annotation import (HTTP ${res.status}). ${body.slice(0, 400)}`,
+      `Logseq rejected the annotation import (HTTP ${res.status}). ${bodyText.slice(0, 400)}`,
     )
+  }
+  // The desktop API wraps a thrown method in HTTP 200 + a JSON `{error: …}` body
+  // (a build-import/transact rejection still returns 200), so a 2xx status alone
+  // doesn't mean the import landed — inspect the body too (mirrors testLogseqApi).
+  // A successful import returns `null`.
+  if (bodyText) {
+    let parsed: unknown = null
+    try {
+      parsed = JSON.parse(bodyText)
+    } catch {
+      parsed = null
+    }
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      (parsed as { error?: unknown }).error
+    ) {
+      throw new LogseqApiError(
+        `Logseq couldn't transact the annotations: ${String(
+          (parsed as { error: unknown }).error,
+        )}`,
+      )
+    }
   }
 }

@@ -10,6 +10,7 @@ import { QUERY_ALL_ZOT_PAGES } from './queries'
 import { SetupContainer } from './SetupContainer'
 import { testZotConnection } from './services/get-zot-items'
 import { syncAnnotationsForPage } from './services/import-annotations'
+import { hasLogseqApiToken } from './services/logseq-import-edn'
 import { registerThemeSync } from './services/sync-theme'
 import { registerTagRulesWatcher } from './services/watch-tag-rules'
 import {
@@ -65,6 +66,13 @@ const main = async () => {
       label: 'Zotero: Sync all annotations',
     },
     async () => {
+      if (!hasLogseqApiToken()) {
+        await logseq.UI.showMsg(
+          'Set the Logseq API token in Reference Manager → Settings → Annotations before syncing.',
+          'warning',
+        )
+        return
+      }
       // Track the configured base tag, not a hardcoded name (see queries.ts).
       const zotTag = (logseq.settings?.zotTag as string) ?? 'Reference'
       const allZoteroPages: BlockEntity[][] = await logseq.DB.datascriptQuery(
@@ -73,10 +81,32 @@ const main = async () => {
       )
       const flattenedPages = allZoteroPages.flat()
 
+      // Isolate per page so one unreadable PDF / transient error can't abort the
+      // whole library-wide run; aggregate into a single summary toast
+      // (announce:false suppresses per-page toasts).
+      let total = 0
+      let pagesWithPdf = 0
+      let failedPages = 0
       for (const page of flattenedPages) {
-        logseq.UI.showMsg(`Syncing annotations for ${page.title}`)
-        await syncAnnotationsForPage(page.title.toLowerCase())
+        try {
+          const r = await syncAnnotationsForPage(page.title.toLowerCase(), {
+            announce: false,
+          })
+          total += r.total
+          if (r.hadPdf) pagesWithPdf += 1
+          if (r.failed > 0) failedPages += 1
+        } catch (e) {
+          failedPages += 1
+          console.warn(`[annotations] sync-all failed for ${page.title}:`, e)
+        }
       }
+      await logseq.UI.showMsg(
+        `Synced ${total} annotation(s) across ${pagesWithPdf} page(s)` +
+          (failedPages > 0
+            ? ` · ${failedPages} page(s) had failures (see console)`
+            : ''),
+        failedPages > 0 ? 'warning' : 'success',
+      )
     },
   )
 

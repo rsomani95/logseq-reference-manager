@@ -136,8 +136,10 @@ const blockNode = (rec: ConvertedRecord, assetRef: TNode): TNode => {
     [kw('build/properties'), tmap(props)],
   ]
   // A markup highlight's comment becomes a nested child block (Zotero path only;
-  // the PDF path leaves these unset). Stable comment_uuid keeps re-sync idempotent.
-  if (rec.comment && rec.comment_uuid) {
+  // the PDF path leaves these unset). Stable comment_uuid keeps re-sync
+  // idempotent. The trim() check mirrors edn.ts so the two serializers stay
+  // provably identical even if a future producer passes a blank comment.
+  if (rec.comment && rec.comment.trim() !== '' && rec.comment_uuid) {
     pairs.push([
       kw('build/children'),
       [

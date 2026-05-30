@@ -3,15 +3,21 @@
  *
  * For one PDF that already exists as an asset block in the graph:
  *   1. Resolve the file on disk and read its bytes.
- *   2. Inspect the PDF for embedded markup (any non-`/Link`, non-`/Popup`
- *      annotation). If present, the file was annotated in an external app
- *      (Preview / PDF Expert / …) → extract from the file with mupdf and IGNORE
- *      Zotero (the file is the strictly-better source — it even recovers the
- *      FreeText notes Zotero drops on import).
- *   3. Otherwise (no embedded markup) → fall back to Zotero's database
- *      annotations for that attachment.
- *   4. Convert to Logseq `Pdf-annotation` records and write them via the live
- *      build-import path. Idempotent (re-running upserts by uuid).
+ *   2. Convert whatever annotations are embedded in the file (mupdf). If that
+ *      yields any renderable highlight, the file was annotated in an external
+ *      app (Preview / PDF Expert / …) → use it and IGNORE Zotero (the file is
+ *      the strictly-better source — it even recovers the FreeText notes Zotero
+ *      drops on import).
+ *   3. Otherwise (the file has no highlight we can place — nothing embedded, or
+ *      only ink / stamps / form-field widgets we don't render) → fall back to
+ *      Zotero's database annotations for that attachment.
+ *   4. Write the resulting `Pdf-annotation` records via the live build-import
+ *      path. Idempotent (re-running upserts by uuid).
+ *
+ * The decision is made on the *converted records*, not on the bare presence of
+ * any `/Annots` entry: keying off "are there embedded annotations" would commit
+ * a file whose only marks are ink/stamps/widgets to the PDF path, produce zero
+ * records, and silently skip the Zotero fallback.
  *
  * The mupdf-backed core is dynamically imported so its ~10 MB WASM only loads
  * the first time annotations are actually imported, not on every plugin start.
@@ -54,72 +60,112 @@ export const importAnnotationsForAsset = async (
   const bytes = await readPdfBytes(absPath)
 
   const pa = await import('./pdf-annot')
-
-  const extracted = pa.extract(bytes)
-  // "Annotations inside the file" = any real markup or note — Link/Popup are
-  // document plumbing, not reading notes (see pdf-annot zotero-annotations.md §9).
-  const hasNativeMarkup = extracted.annotations.some(
-    (a) => !a.is_link && a.subtype !== 'Popup',
-  )
-
   const color = colorOverride()
 
-  if (hasNativeMarkup) {
-    const conv = pa.convert(extracted, {
-      assetUuid,
-      assetTitle: pageTitle,
-      color,
-    })
-    await importAnnotationRecords(conv.records, assetUuid, pageTitle)
-    return { source: 'pdf', count: conv.records.length }
+  // PDF-native first: convert whatever the file carries and decide on the
+  // *records* it yields. A file with only ink / stamps / form-field widgets (or
+  // markup we can't place) converts to zero records and must fall through to
+  // Zotero, not commit to the PDF path and import nothing.
+  const pdfConv = pa.convert(pa.extract(bytes), {
+    assetUuid,
+    assetTitle: pageTitle,
+    color,
+  })
+  if (pdfConv.records.length > 0) {
+    await importAnnotationRecords(pdfConv.records, assetUuid, pageTitle)
+    return { source: 'pdf', count: pdfConv.records.length }
   }
 
-  // Zotero-database fallback (file has no embedded markup). Needs the attachment
-  // key to fetch its annotations and the PDF's page dimensions for the transform.
+  // Zotero-database fallback. Needs the attachment key to fetch its annotations
+  // and the PDF's page dimensions for the coordinate transform.
   if (!attachmentKey) return { source: 'none', count: 0 }
   const { annotations, libraryID } =
     await getRawAnnotationsForAttachment(attachmentKey)
   if (annotations.length === 0) return { source: 'none', count: 0 }
 
-  const pages = pa.pageGeometriesFromBytes(bytes)
-  const conv = pa.convertZoteroAnnotations(annotations, pages, {
-    assetUuid,
-    assetTitle: pageTitle,
-    libraryID,
-    color,
-  })
+  const conv = pa.convertZoteroAnnotations(
+    annotations,
+    pa.pageGeometriesFromBytes(bytes),
+    { assetUuid, assetTitle: pageTitle, libraryID, color },
+  )
   await importAnnotationRecords(conv.records, assetUuid, pageTitle)
   return { source: 'zotero', count: conv.records.length }
 }
 
+export interface PageSyncResult {
+  /** Annotations written across this page's PDF asset(s). */
+  total: number
+  /** PDF targets that threw (unreadable file, API error, …). */
+  failed: number
+  /** Which sources contributed, for an aggregate summary. */
+  sources: Set<'pdf' | 'zotero'>
+  /** Whether the page had any PDF asset at all. */
+  hadPdf: boolean
+}
+
 /**
  * "Sync annotations" entry point for one page: find its PDF asset block(s) and
- * (re-)import each. Surfaces a single summary toast. Safe to re-run.
+ * (re-)import each, isolating per-target failures. Safe to re-run (idempotent).
+ * Toasts a summary when `announce` (the default, single-page command); "Sync
+ * all" passes `announce: false` and aggregates the returned tallies instead, so
+ * it doesn't fire a toast per (often PDF-less) page.
  */
 export const syncAnnotationsForPage = async (
   pageName: string,
-): Promise<void> => {
+  opts: { announce?: boolean } = {},
+): Promise<PageSyncResult> => {
+  const announce = opts.announce ?? true
   const targets = await findPdfAssetsForPage(pageName)
   if (targets.length === 0) {
-    await logseq.UI.showMsg(
-      'No PDF asset on this page to sync annotations from.',
-      'warning',
-    )
-    return
+    if (announce) {
+      await logseq.UI.showMsg(
+        'No PDF asset on this page to sync annotations from.',
+        'warning',
+      )
+    }
+    return { total: 0, failed: 0, sources: new Set(), hadPdf: false }
   }
 
+  // Per-target isolation: one unreadable/corrupt PDF (or a transient API error)
+  // must not abort the page's other PDFs or swallow the summary.
   let total = 0
-  let source: AnnotImportResult['source'] = 'none'
+  let failed = 0
+  const sources = new Set<'pdf' | 'zotero'>()
   for (const target of targets) {
-    const result = await importAnnotationsForAsset(target)
-    total += result.count
-    if (result.source !== 'none') source = result.source
+    try {
+      const result = await importAnnotationsForAsset(target)
+      total += result.count
+      if (result.source !== 'none') sources.add(result.source)
+    } catch (e) {
+      failed += 1
+      console.warn(`[annotations] sync failed for ${target.absPath}:`, e)
+    }
   }
 
-  await logseq.UI.showMsg(
-    total > 0
-      ? `Synced ${total} annotation(s) from ${source === 'pdf' ? 'the PDF file' : 'Zotero'}`
-      : 'No annotations found to sync',
-    total > 0 ? 'success' : 'warning',
-  )
+  if (announce) {
+    const from =
+      sources.size > 1
+        ? ' from the PDF files and Zotero'
+        : sources.has('pdf')
+          ? ' from the PDF file'
+          : sources.has('zotero')
+            ? ' from Zotero'
+            : ''
+    const failSuffix =
+      failed > 0
+        ? ` (${failed} PDF${failed > 1 ? 's' : ''} failed — see console)`
+        : ''
+    if (total > 0) {
+      await logseq.UI.showMsg(
+        `Synced ${total} annotation(s)${from}${failSuffix}`,
+        'success',
+      )
+    } else if (failed > 0) {
+      await logseq.UI.showMsg(`Annotation sync failed${failSuffix}`, 'error')
+    } else {
+      await logseq.UI.showMsg('No annotations found to sync', 'warning')
+    }
+  }
+
+  return { total, failed, sources, hadPdf: true }
 }

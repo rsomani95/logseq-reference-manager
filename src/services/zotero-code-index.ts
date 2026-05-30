@@ -43,8 +43,8 @@ interface PulledPage {
  *
  * Built from proven primitives: `QUERY_ALL_ZOT_PAGES` (every imported page is
  * tagged `Zotero`) for the page list, then `getPageProperties` to read each
- * page's `zotero-code` — the same read path `sync-annotations.ts` relies on,
- * which resolves the value whatever its underlying DB storage shape is.
+ * page's `zotero-code` — resolving the value whatever its underlying DB storage
+ * shape is.
  *
  * Recycled pages are excluded. On any failure the index comes back empty
  * (logged, not thrown) — callers then fall back to the page-name collision
@@ -77,7 +77,7 @@ export const buildZoteroCodeIndex = async (): Promise<
       )
 
     // Read each page's properties in parallel; the zotero-code is keyed by its
-    // full property ident, exactly as sync-annotations.ts reads it.
+    // full property ident.
     const withCode = await Promise.all(
       pages.map(async (page) => {
         const props = await logseq.Editor.getPageProperties(page.uuid)
