@@ -42,6 +42,9 @@ all real configuration lives in the plugin's own modal.
 | `pagenameTemplate` | string template | `@<% citeKey %>` | Import formats | `resolvePageName` → `applyPageNameTemplate` |
 | `pagenamePrefix` | string | empty (migration peels a leading literal like `@` out of the template) | Import formats | `applyPageNameTemplate` (prefix arg) |
 | `openAttachmentInline` | boolean | `true` | Import formats | `handle-zot-db` (attachment link) |
+| `logseqApiToken` | string | empty | Annotations | `logseq-import-edn` (Bearer for the `build-import` POST) — **required** for annotation import |
+| `logseqApiBaseUrl` | string | `http://127.0.0.1:12315` | Annotations | `logseq-import-edn` (HTTP API base) |
+| `annotationColor` | enum `auto\|yellow\|red\|green\|blue\|purple` | `auto` | Annotations | `import-annotations` (forced highlight color; `auto` = nearest-pastel) |
 | `tagRules` | JSON string (array of `TagRule`) | empty | Tag rules | `getConfiguredTagRules`; watched by `watch-tag-rules` |
 | `appliedSchema` | JSON string (`SchemaSnapshot`) | empty | (internal — written by Apply / Set up web tag) | `use-schema-state` for the dirty diff (`schema-snapshot.ts`) |
 | `webTag` | string | `Web` | Web references | `set-web-schema` (extends base); **web-clipper extension** (clip tag) |
@@ -140,6 +143,20 @@ property type. **Plugin status:** the Authors panel presents these as shared, bu
 the plugin only applies the format to its own Zotero imports until the extension
 wires the two keys; nothing breaks in the meantime.
 
+### Annotation import (the `logseqApi*` keys)
+
+PDF-annotation import writes first-class `Pdf-annotation` highlight blocks through
+Logseq's own `build-import`, reached over the desktop **HTTP API** — the only path
+that can set their closed-value `hl-color` ref + `hl-value` map (the `@logseq/libs`
+Editor API can't). So unlike every other setting, **`logseqApiToken` is required
+for the feature to work at all**: the user enables Logseq → Settings → Features →
+HTTP APIs Server and pastes its token into the hub's **Annotations** section
+(`logseqApiBaseUrl` defaults to the standard `127.0.0.1:12315`). Without a token
+the page + PDF asset still import; only the annotation step is skipped (with a
+one-time hint). Architecture + the Transit-encoding detail live in **Annotation
+import** in [`CLAUDE.md`](./CLAUDE.md) and the write-path section of
+[`dev_notes/LOGSEQ_SDK_NOTES.md`](./dev_notes/LOGSEQ_SDK_NOTES.md).
+
 ## Setup hub
 
 ```
@@ -161,6 +178,9 @@ src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
            FormatsSection.tsx — page-name dropdown + prefix + live preview from
                                 a real library item (useFmtSample);
                                 openAttachmentInline (no schema footer)
+           AnnotationsSection.tsx — Logseq API token (+ Test connection via
+                                testLogseqApi), annotation highlight color,
+                                advanced API base URL
            TagRulesSection.tsx — rule builder (reuses ../tag-rules/RuleCard)
          Web references:
            WebSection.tsx     — webTag + Page template (a @dnd-kit reorderable

@@ -423,3 +423,70 @@ lsq logseq.Editor.getPageProperties '["<page-uuid>"]'
 # A tag's full (inherited) schema:
 lsq logseq.DB.datascriptQuery '["[:find (pull ?t [:block/title {:logseq.property.class/properties [:db/ident :block/title :logseq.property/type]} {:logseq.property.class/extends ...}]) :where [?t :block/title \"Zotero\"]]"]'
 ```
+
+---
+
+## Writing typed blocks the Editor API can't — `build-import` over the HTTP API ⚠️
+
+The plugin Editor API (`upsertBlockProperty`, `insertBlock`'s `properties`) only
+writes **scalar user-properties**. It **cannot** set:
+- a **closed-value reference** (e.g. `:logseq.property.pdf/hl-color
+  :logseq.property/color.yellow` — a ref to a closed-value entity), or
+- an **EDN-map** property value (e.g. `:logseq.property.pdf/hl-value {…}`), or
+- any **keyword** value (same root cause as the blockquote `display-type`
+  gotcha above — over the JSON bridge a keyword arrives as a string and fails the
+  host's `keyword?` validation).
+
+So a first-class typed block — a `:logseq.class/Pdf-annotation` (PDF annotation
+import), and in general anything needing internal idents/closed values — can't be
+built with the Editor API. The route that works is Logseq's own
+**`logseq.db.sqlite.export/build-import`**, reached from a plugin **only** via the
+desktop **HTTP API** (the same `:12315` server in the section above):
+
+- **Method:** `logseq.cli.import_edn` (the method `@logseq/cli`'s `import-edn`
+  dispatches to). Body: `{"method":"logseq.cli.import_edn","args":[<payload>]}`,
+  `Authorization: Bearer <token>`.
+- **The arg is Transit-JSON, NOT raw EDN.** `@logseq/cli`
+  (`commands/import_edn.cljs`) reads the `.edn` file, parses it, and sends
+  `(sqlite-util/transit-write import-map)` — i.e. a single **Transit-encoded
+  string**. Posting raw EDN fails with a JSON parse error. Uncached transit-json
+  is accepted: `map → ["^ ",k,v,…]`, `keyword → "~:ns/name"`, `uuid → "~u<uuid>"`,
+  and a string starting with `~`/`^`/`` ` `` is escaped with a leading `~`.
+- **Caller identity doesn't matter here.** Even though the HTTP caller is
+  `_test_plugin`, `build-import` sets idents straight from the payload (it doesn't
+  namespace them), so the closed-value `hl-color` ref and the `Pdf-annotation`
+  class resolve correctly regardless of caller.
+- **Idempotent** via `:build/keep-uuid? true` on each block (upsert by
+  `:block/uuid`, no duplicates). Attach-under-existing-asset trick: declare blocks
+  under the existing page (matched by `:block/title`) and set `:block/parent`
+  explicitly by uuid; reference the asset by uuid, never re-declare it.
+
+Verified against a live graph: a no-op `{:pages-and-blocks [] …}` returns HTTP
+200; a real annotation block round-trips with its `hl-color` closed-value ref
+(`{:ident ":logseq.property/color.yellow"}`) and full `hl-value` map intact.
+
+In this plugin: the Transit encoder + `build-import` payload builder live in
+`src/services/logseq-transit.ts`; the HTTP client (token/base from the
+`logseqApiToken` / `logseqApiBaseUrl` settings) in
+`src/services/logseq-import-edn.ts`. The token is the user's "HTTP APIs Server"
+auth token, set in the setup hub's **Annotations** section.
+
+### Reading local file bytes + bundling a WASM engine in the plugin iframe
+
+Two things the PDF-annotation feature needs, both confirmed working in Logseq's
+plugin iframe (Electron renderer):
+
+- **`fetch('file://…')` / `XMLHttpRequest` on a local path works.** Zotero's local
+  API only `302`-redirects `/items/<key>/file` to a `file://` URL (it never
+  streams bytes — see [`ZOTERO_ATTACHMENT_PATHS.md`](./ZOTERO_ATTACHMENT_PATHS.md)),
+  so the plugin reads the file itself. `read-pdf-bytes.ts` tries `fetch` then an
+  XHR fallback; one of them is permitted in the sandbox. (This is reading an
+  *external* file, distinct from the plugin's own bundled assets.)
+- **`mupdf` (10 MB WASM) bundles + loads.** Its `mupdf-wasm.js` locates the wasm
+  via `new URL("mupdf-wasm.wasm", import.meta.url)`, which Vite rewrites + emits as
+  a hashed **same-origin** asset (not inlined). In the renderer mupdf detects
+  `process.type === "renderer"` and takes its **browser** code path (fetch /
+  `instantiateStreaming`, with an ArrayBuffer fallback), so the Node-only
+  `node:fs` / `module` imports Vite externalizes are never reached. Keep it behind
+  a **dynamic `import()`** so the 10 MB chunk loads only when annotations are
+  actually imported, not on every plugin start.
