@@ -1,6 +1,7 @@
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user'
 
 import {
+  LOGSEQ_API_BASE_DEFAULT,
   PLUGIN_ID,
   PROP_DISPLAY_NAMES,
   PROP_PRESET_ESSENTIALS,
@@ -74,6 +75,9 @@ const HIDDEN_KEYS = [
   'attachmentsBlockName',
   'attachmentShowExternalLinks',
   'attachmentExternalPdfLabel',
+  'logseqApiBaseUrl',
+  'logseqApiToken',
+  'annotationColor',
   'webTag',
   'webCapturePageContent',
   'webPageContentBlockName',
@@ -230,6 +234,36 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       title: 'External PDF Link Label',
       description: '',
       default: 'Open PDF Outside Logseq',
+    },
+    // ─── Annotations ───────────────────────────────────────────────────────
+    // PDF-annotation import writes first-class highlight blocks through
+    // Logseq's own build-import over the desktop HTTP API — the only path that
+    // can set the closed-value `hl-color` ref and the `hl-value` map (the plugin
+    // Editor API can't). These keys configure that path; edited in the hub's
+    // Annotations section. The token is the user's Logseq "HTTP APIs Server"
+    // auth token (Settings → Features → HTTP APIs Server).
+    {
+      key: 'logseqApiBaseUrl',
+      type: 'string',
+      title: 'Logseq API Base URL',
+      description: '',
+      default: LOGSEQ_API_BASE_DEFAULT,
+    },
+    {
+      key: 'logseqApiToken',
+      type: 'string',
+      title: 'Logseq API Token',
+      description: '',
+      default: '',
+    },
+    {
+      key: 'annotationColor',
+      type: 'enum',
+      title: 'Annotation Highlight Color',
+      description: '',
+      default: 'auto',
+      enumPicker: 'select',
+      enumChoices: ['auto', 'yellow', 'red', 'green', 'blue', 'purple'],
     },
     // ─── Web references ────────────────────────────────────────────────────
     // Read over the HTTP API by the companion web-clipper extension (it reads

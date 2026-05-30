@@ -9,7 +9,7 @@ import { handlePopup } from './handle-popup'
 import { QUERY_ALL_ZOT_PAGES } from './queries'
 import { SetupContainer } from './SetupContainer'
 import { testZotConnection } from './services/get-zot-items'
-import { syncAnnotations } from './services/sync-annotations'
+import { syncAnnotationsForPage } from './services/import-annotations'
 import { registerThemeSync } from './services/sync-theme'
 import { registerTagRulesWatcher } from './services/watch-tag-rules'
 import {
@@ -49,7 +49,7 @@ const main = async () => {
     'Zotero: Sync annotations',
     async ({ page }) => {
       try {
-        await syncAnnotations(page)
+        await syncAnnotationsForPage(page)
       } catch (error) {
         await logseq.UI.showMsg(
           `Failed to sync annotations: ${(error as Error).message}`,
@@ -75,7 +75,7 @@ const main = async () => {
 
       for (const page of flattenedPages) {
         logseq.UI.showMsg(`Syncing annotations for ${page.title}`)
-        await syncAnnotations(page.title.toLowerCase())
+        await syncAnnotationsForPage(page.title.toLowerCase())
       }
     },
   )

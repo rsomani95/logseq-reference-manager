@@ -4,7 +4,6 @@ import { WretchError } from 'wretch/resolver'
 
 import { BASE_QUERY, BATCH_FETCH_LIMIT, PLUGIN_ID, ZOT_URL } from '../constants'
 import {
-  AnnotationItem,
   AttachmentItem,
   NoteItem,
   ZotCollection,
@@ -13,6 +12,7 @@ import {
   ZotSavedSearch,
 } from '../interfaces'
 import { MapItemsOptions, mapItems } from './map-items'
+import type { ZoteroAnnotationData } from './pdf-annot/zotero'
 
 const api = wretch().url(ZOT_URL).headers({
   'Content-Type': 'application/json',
@@ -130,13 +130,11 @@ export const getSampleParents = async (limit = 25): Promise<ZotData[]> => {
 }
 
 /**
- * Fetches notes + attachments (with their annotation grandchildren) for a
- * single Zotero parent item. Called by the insert paths right before
- * `handleZotInDb`, so the list paths can stay parents-only.
- *
- * `/items/{key}/children` returns direct children only — annotations are
- * grandchildren of the parent (parent → attachment → annotation) and need
- * their own fetch per attachment. The attachment fan-out is parallelized.
+ * Fetches notes + attachments for a single Zotero parent item. Called by the
+ * insert paths right before `handleZotInDb`, so the list paths can stay
+ * parents-only. Annotations are no longer pulled here — the annotation import
+ * orchestrator reads them straight from the PDF file (or, on fallback, from
+ * Zotero via `getRawAnnotationsForAttachment`).
  */
 export const getChildrenForItem = async (
   itemKey: string,
@@ -159,7 +157,6 @@ export const getChildrenForItem = async (
         attachments.push({
           linkMode: 'imported_file',
           key: child.data.key,
-          annotations: [],
           ...child.links.enclosure,
         })
       } else if (
@@ -171,14 +168,12 @@ export const getChildrenForItem = async (
         attachments.push({
           linkMode: 'imported_url',
           key: child.data.key,
-          annotations: [],
           ...child.links.enclosure,
         })
       } else if (child.data.linkMode === 'linked_url' && child.data.url) {
         attachments.push({
           linkMode: 'linked_url',
           key: child.data.key,
-          annotations: [],
           title: child.data.title,
           url: child.data.url,
         })
@@ -186,7 +181,6 @@ export const getChildrenForItem = async (
         attachments.push({
           linkMode: 'linked_file',
           key: child.data.key,
-          annotations: [],
           title: child.data.title,
           path: child.data.path,
           contentType: child.data.contentType ?? '',
@@ -195,86 +189,45 @@ export const getChildrenForItem = async (
     }
   }
 
-  await Promise.all(
-    attachments.map(async (att) => {
-      const annots = await api
-        .url(`/items/${att.key}/children`)
-        .addon(QueryAddon)
-        .query({ itemType: 'annotation' })
-        .get()
-        .json<ZotItem[]>()
-      att.annotations = annots
-        .filter((a) => a.data.annotationText)
-        .map((a) => ({
-          annotationText: a.data.annotationText ?? '',
-          annotationComment: a.data.annotationComment ?? '',
-          annotationSortIndex: a.data.annotationSortIndex ?? '',
-        }))
-    }),
-  )
-
   return { attachments, notes }
 }
 
 /**
- * Pure filter: keep annotations strictly added after `since`, drop empties.
- * If `since` is omitted, every annotation passes — callers (syncAnnotations)
- * are responsible for guarding against that case to avoid duplicates.
+ * Fetches a single attachment's Zotero-native annotations as the pdf-annot
+ * Zotero converter consumes them — the full annotation `data` plus the library
+ * id (which the converter folds into each annotation's stable block uuid). Used
+ * only on the orchestrator's Zotero fallback, i.e. when the PDF file itself
+ * carries no embedded markup. Annotations missing a type or position are
+ * dropped (the converter can't place them).
  */
-export const filterAnnotationsSince = (
-  annotations: ZotItem[],
-  since?: string,
-): AnnotationItem[] => {
-  const sinceMs = since ? new Date(since).getTime() : undefined
-  return annotations
-    .filter((a) => {
-      if (sinceMs === undefined) return true
-      return new Date(a.data.dateAdded).getTime() > sinceMs
-    })
-    .filter((a) => a.data.annotationText)
-    .map((a) => ({
-      annotationText: a.data.annotationText ?? '',
-      annotationComment: a.data.annotationComment ?? '',
-      annotationSortIndex: a.data.annotationSortIndex ?? '',
-    }))
-}
-
-/**
- * Fetches annotations for a given parent item key that were added after the specified date.
- * Annotations in Zotero are grandchildren: parent item -> attachment -> annotation.
- * Returns a map of attachment key -> annotations.
- */
-export const getAnnotationsByItemKey = async (
-  itemKey: string,
-  since?: string,
-): Promise<Map<string, AnnotationItem[]>> => {
-  // Get attachment children of the parent item
-  const attachments: ZotItem[] = await api
-    .url(`/items/${itemKey}/children`)
+export const getRawAnnotationsForAttachment = async (
+  attachmentKey: string,
+): Promise<{ annotations: ZoteroAnnotationData[]; libraryID: number }> => {
+  const items = await api
+    .url(`/items/${attachmentKey}/children`)
     .addon(QueryAddon)
-    .query({ itemType: 'attachment' })
+    .query({ itemType: 'annotation' })
     .get()
-    .json()
+    .json<ZotItem[]>()
 
-  // For each attachment, get its annotation children
-  const annotationMap = new Map<string, AnnotationItem[]>()
-
-  for (const attachment of attachments) {
-    const annotations: ZotItem[] = await api
-      .url(`/items/${attachment.data.key}/children`)
-      .addon(QueryAddon)
-      .query({ itemType: 'annotation' })
-      .get()
-      .json()
-
-    const filtered = filterAnnotationsSince(annotations, since)
-
-    if (filtered.length > 0) {
-      annotationMap.set(attachment.data.key, filtered)
-    }
+  const libraryID = items[0]?.library?.id ?? 0
+  const annotations: ZoteroAnnotationData[] = []
+  for (const item of items) {
+    const d = item.data
+    if (!d.annotationType || !d.annotationPosition) continue
+    annotations.push({
+      key: d.key,
+      annotationType: d.annotationType,
+      annotationPosition: d.annotationPosition,
+      annotationText: d.annotationText,
+      annotationComment: d.annotationComment,
+      annotationColor: d.annotationColor,
+      annotationPageLabel: d.annotationPageLabel,
+      annotationSortIndex: d.annotationSortIndex,
+      annotationAuthorName: d.annotationAuthorName,
+    })
   }
-
-  return annotationMap
+  return { annotations, libraryID }
 }
 
 // ─── Batch import sources ───────────────────────────────────────────────────

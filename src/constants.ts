@@ -10,6 +10,12 @@ export const ZOTERO_ATTACHMENT_KEY_PROP = `${ZOTERO_PROP}/zotero-attachment-key`
 export const ZOT_URL = 'http://127.0.0.1:23119/api/users/0'
 export const ZOTERO_LIBRARY_ITEM = 'zotero://select/library/items?itemKey='
 
+// Logseq's desktop HTTP API server (Settings → Features → HTTP APIs Server).
+// The annotation write path POSTs a Transit-encoded sqlite.build payload to
+// `${base}/api` (method `logseq.cli.import_edn`) — the only route that can write
+// the closed-value `hl-color` ref + `hl-value` map the plugin Editor API can't.
+export const LOGSEQ_API_BASE_DEFAULT = 'http://127.0.0.1:12315'
+
 // Attachments tab settings — defaults mirror the schema in `settings.ts`.
 // Kept here so the import flow doesn't depend on string literals scattered
 // across files.

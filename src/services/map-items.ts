@@ -69,90 +69,51 @@ export const mapItems = async (
     }
   })
 
-  // Synchronous join pass: citeKey, libraryLink, and the attachment / note /
-  // annotation children. The `inGraph` badge is resolved separately below —
-  // it's the only async (and slow) part.
+  // Synchronous join pass: citeKey, libraryLink, and the direct note /
+  // attachment children. (Annotations aren't joined here anymore — the
+  // annotation importer reads them from the PDF file / Zotero on demand.) The
+  // `inGraph` badge is resolved separately below — it's the only async (slow) part.
   for (const item of parentZotData) {
-    // Map citeKey
-    const citeKey = item.citationKey
-    item.citeKey = citeKey ?? 'N/A'
-
-    // Map libraryLink
+    item.citeKey = item.citationKey ?? 'N/A'
     item.libraryLink = `${ZOTERO_LIBRARY_ITEM}${item.key}`
 
-    // First pass: collect attachments (with keys) for this parent item
-    const attachmentMap = new Map<string, AttachmentItem>()
     for (const child of noteAndAttachmentItems) {
       if (child.data.parentItem !== item.key) continue
-      if (child.data.itemType !== 'attachment') continue
-
-      if (child.data.linkMode === 'imported_file' && child.links.enclosure) {
-        const att: AttachmentItem = {
-          linkMode: 'imported_file',
-          key: child.data.key,
-          annotations: [],
-          ...child.links.enclosure,
-        }
-        item.attachments.push(att)
-        attachmentMap.set(child.data.key, att)
-      } else if (
-        child.data.linkMode === 'imported_url' &&
-        child.links.enclosure
-      ) {
-        // Saved web-page snapshot — stored like an imported_file and reached
-        // through the same enclosure URL.
-        const att: AttachmentItem = {
-          linkMode: 'imported_url',
-          key: child.data.key,
-          annotations: [],
-          ...child.links.enclosure,
-        }
-        item.attachments.push(att)
-        attachmentMap.set(child.data.key, att)
-      } else if (child.data.linkMode === 'linked_url' && child.data.url) {
-        const att: AttachmentItem = {
-          linkMode: 'linked_url',
-          key: child.data.key,
-          annotations: [],
-          title: child.data.title,
-          url: child.data.url,
-        }
-        item.attachments.push(att)
-        attachmentMap.set(child.data.key, att)
-      } else if (child.data.linkMode === 'linked_file' && child.data.path) {
-        const att: AttachmentItem = {
-          linkMode: 'linked_file',
-          key: child.data.key,
-          annotations: [],
-          title: child.data.title,
-          path: child.data.path,
-          contentType: child.data.contentType ?? '',
-        }
-        item.attachments.push(att)
-        attachmentMap.set(child.data.key, att)
-      }
-    }
-
-    // Second pass: collect notes and assign annotations to their parent attachment
-    const attachmentKeys = [...attachmentMap.keys()]
-    for (const child of noteAndAttachmentItems) {
-      // Only consider direct children or grandchildren (via attachments)
-      if (
-        child.data.parentItem !== item.key &&
-        !attachmentKeys.includes(child.data.parentItem ?? '')
-      ) {
-        continue
-      }
 
       if (child.data.itemType === 'note' && child.data.note) {
         item.notes.push({ note: child.data.note })
-      } else if (child.data.itemType === 'annotation') {
-        const parentAttachment = attachmentMap.get(child.data.parentItem ?? '')
-        if (parentAttachment) {
-          parentAttachment.annotations.push({
-            annotationText: child.data.annotationText ?? '',
-            annotationComment: child.data.annotationComment ?? '',
-            annotationSortIndex: child.data.annotationSortIndex ?? '',
+      } else if (child.data.itemType === 'attachment') {
+        if (child.data.linkMode === 'imported_file' && child.links.enclosure) {
+          item.attachments.push({
+            linkMode: 'imported_file',
+            key: child.data.key,
+            ...child.links.enclosure,
+          })
+        } else if (
+          child.data.linkMode === 'imported_url' &&
+          child.links.enclosure
+        ) {
+          // Saved web-page snapshot — stored like an imported_file and reached
+          // through the same enclosure URL.
+          item.attachments.push({
+            linkMode: 'imported_url',
+            key: child.data.key,
+            ...child.links.enclosure,
+          })
+        } else if (child.data.linkMode === 'linked_url' && child.data.url) {
+          item.attachments.push({
+            linkMode: 'linked_url',
+            key: child.data.key,
+            title: child.data.title,
+            url: child.data.url,
+          })
+        } else if (child.data.linkMode === 'linked_file' && child.data.path) {
+          item.attachments.push({
+            linkMode: 'linked_file',
+            key: child.data.key,
+            title: child.data.title,
+            path: child.data.path,
+            contentType: child.data.contentType ?? '',
           })
         }
       }

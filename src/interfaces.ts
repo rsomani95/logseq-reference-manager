@@ -351,7 +351,6 @@ export interface FileLinkItem {
 
 interface AttachmentBase {
   key: string
-  annotations: AnnotationItem[]
 }
 
 export type AttachmentItem =
@@ -385,12 +384,6 @@ export interface CreatorItem {
   // fall back to this when `firstName` / `lastName` aren't present.
   name?: string
   creatorType: ZoteroCreatorType
-}
-
-export interface AnnotationItem {
-  annotationText: string
-  annotationComment: string
-  annotationSortIndex: string
 }
 
 export interface NoteItem {

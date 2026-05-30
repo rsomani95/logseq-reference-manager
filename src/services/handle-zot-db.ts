@@ -16,8 +16,13 @@ import {
   ZotData,
 } from '../interfaces'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
+import {
+  type AssetImportArgs,
+  importAnnotationsForAsset,
+} from './import-annotations'
 import { isRecycledPage } from './is-recycled-page'
 import { isSchemaAdded } from './is-schema-added'
+import { hasLogseqApiToken } from './logseq-import-edn'
 import { parsePagePropChoice } from './page-props-choice'
 import { parseHtml } from './parse-html'
 import {
@@ -585,6 +590,11 @@ export const handleZotInDb = async (
       )
     : ''
 
+  // PDF asset blocks we create, paired with the inputs the annotation importer
+  // needs. Populated in the loop; processed after the page is built so the page
+  // paints first and the (one-time, ~10MB) mupdf load happens off the hot path.
+  const annotationTargets: AssetImportArgs[] = []
+
   if (filteredAttachments.length > 0 || externalLinksContent.length > 0) {
     const headerBlock = await logseq.Editor.insertBlock(
       existingPage.uuid,
@@ -606,24 +616,17 @@ export const handleZotInDb = async (
           attachment.key,
         )
 
-        const sortedAnnotations = [...attachment.annotations].sort((a, b) =>
-          a.annotationSortIndex.localeCompare(b.annotationSortIndex),
-        )
-        for (const annotation of sortedAnnotations) {
-          if (!annotation.annotationText) continue
-          const annotationBlock = await logseq.Editor.insertBlock(
-            attachmentBlock.uuid,
-            annotation.annotationText,
-            { sibling: false },
-          )
-
-          if (annotationBlock && annotation.annotationComment) {
-            await logseq.Editor.insertBlock(
-              annotationBlock.uuid,
-              annotation.annotationComment,
-              { sibling: false },
-            )
-          }
+        // A PDF backed by a real on-disk file became a first-class asset block
+        // (pdfAssetSource non-null). That's what annotations attach to — record
+        // it as an import target.
+        const onDisk = attachmentOnDiskPath(attachment)
+        if (pdfAssetSource(attachment) && onDisk) {
+          annotationTargets.push({
+            assetUuid: attachmentBlock.uuid,
+            pageTitle: pageName,
+            absPath: onDisk,
+            attachmentKey: attachment.key,
+          })
         }
       }
 
@@ -668,6 +671,29 @@ export const handleZotInDb = async (
   // lands on a populated page instead of watching it fill in block by block.
   // Batch passes navigate:false and stays put.
   if (navigate) logseq.App.pushState('page', { name: existingPage.name })
+
+  // Bring in annotations for each PDF asset — PDF-native first, else Zotero
+  // (see services/import-annotations.ts). Best-effort and isolated: a failure
+  // never fails the item import. Needs the Logseq API token; when it's missing
+  // we skip (hinting once on a single import, staying quiet during a batch).
+  if (annotationTargets.length > 0) {
+    if (!hasLogseqApiToken()) {
+      if (navigate) {
+        await logseq.UI.showMsg(
+          'Imported the page. Annotation sync needs the Logseq API token — set it in Reference Manager settings (Annotations).',
+          'warning',
+        )
+      }
+    } else {
+      for (const target of annotationTargets) {
+        try {
+          await importAnnotationsForAsset(target)
+        } catch (e) {
+          console.warn(`[annotations] import failed for ${target.absPath}:`, e)
+        }
+      }
+    }
+  }
 
   return { status: 'created', pageName }
 }
