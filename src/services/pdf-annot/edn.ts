@@ -1,0 +1,214 @@
+/**
+ * edn.ts — EDN serializers for the Logseq sqlite.build import payload.
+ *
+ * Faithful port of the EDN serializers in `convert.py` (edn_str, edn_num,
+ * edn_rect, edn_hl_value, edn_annotation_block, emit_self_contained_edn,
+ * _empty_edn) plus the live block from `live.py` (_block, emit_live_edn).
+ *
+ * Python's single `edn_num` relied on int-vs-float typing we don't have, so it
+ * is split into `ednFloat` (rect coordinates / page dims) and `ednInt`
+ * (:page / :hl-page). EDN floats keep a decimal point so the reader yields a
+ * double; ints stay ints.
+ *
+ * The exact whitespace/indentation of the Python string builders is reproduced
+ * so the output matches the golden .edn fixtures byte-for-byte.
+ */
+import type { ConvertedRecord, HlValue, StoredRect } from './types'
+
+/** Serialize a string as an EDN string literal (escape \ then "). */
+export function ednStr(s: string): string {
+  return '"' + s.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"'
+}
+
+/**
+ * Serialize a number as an EDN float (keeps a decimal point so the reader
+ * yields a double). Integral values render as "N.0"; others use the shortest
+ * round-trip decimal, matching Python's repr() for the 3-dp stored values.
+ */
+export function ednFloat(n: number): string {
+  if (n === Math.trunc(n)) {
+    return n.toFixed(1)
+  }
+  return n.toString()
+}
+
+/** Serialize an integer for :page / :hl-page (stays an int). */
+export function ednInt(n: number): string {
+  return String(n)
+}
+
+export function ednRect(r: StoredRect): string {
+  return (
+    '{:x1 ' +
+    ednFloat(r.x1) +
+    ' :y1 ' +
+    ednFloat(r.y1) +
+    ' :x2 ' +
+    ednFloat(r.x2) +
+    ' :y2 ' +
+    ednFloat(r.y2) +
+    ' :width ' +
+    ednFloat(r.width) +
+    ' :height ' +
+    ednFloat(r.height) +
+    '}'
+  )
+}
+
+export function ednHlValue(hv: HlValue): string {
+  const pos = hv.position
+  const rects = pos.rects.map((r) => ednRect(r)).join(' ')
+  const parts = [
+    '{:id #uuid ' + ednStr(hv.id),
+    ' :page ' + ednInt(hv.page),
+    ' :position {:page ' + ednInt(pos.page),
+    ' :bounding ' + ednRect(pos.bounding),
+    ' :rects [' + rects + ']}',
+    ' :content {:text ' + ednStr(hv.content.text) + '}',
+    ' :properties {:color ' + ednStr(hv.properties.color) + '}}',
+  ]
+  return parts.join('')
+}
+
+/**
+ * Shared body for both block forms. `parentLine`, when given, is the
+ * `:block/parent {...}` line (live form); null for the self-contained form.
+ *
+ * When `rec.comment` is set (Zotero path), the commentary is nested as a child
+ * block via `:build/children`; the hl-value line then closes only the
+ * `:build/properties` map (one `}`) and the block map closes after the children
+ * vector. When it is unset (PDF path), the output is byte-for-byte what it was
+ * before children existed — so the golden .edn fixtures still match exactly.
+ */
+function annotationBlockLines(
+  rec: ConvertedRecord,
+  assetUuid: string,
+  parentLine: string | null,
+): string[] {
+  const hasComment =
+    typeof rec.comment === 'string' &&
+    rec.comment.trim() !== '' &&
+    typeof rec.comment_uuid === 'string' &&
+    rec.comment_uuid.length > 0
+
+  const lines = [
+    '    {:block/uuid #uuid ' + ednStr(rec.uuid),
+    '     :block/title ' + ednStr(rec.block_title),
+  ]
+  if (parentLine) lines.push(parentLine)
+  lines.push(
+    '     :build/keep-uuid? true',
+    '     :build/tags [:logseq.class/Pdf-annotation]',
+    '     :build/properties',
+    '     {:logseq.property/ls-type :annotation',
+    '      :logseq.property/asset [:block/uuid #uuid ' +
+      ednStr(assetUuid) +
+      ']',
+    '      :logseq.property.pdf/hl-color ' + rec.hl_color_db_ident,
+    '      :logseq.property.pdf/hl-page ' + ednInt(rec.hl_page),
+    '      :logseq.property.pdf/hl-value',
+  )
+
+  if (!hasComment) {
+    lines.push('      ' + ednHlValue(rec.hl_value) + '}}')
+    return lines
+  }
+  lines.push(
+    '      ' + ednHlValue(rec.hl_value) + '}',
+    '     :build/children',
+    '     [{:block/uuid #uuid ' + ednStr(rec.comment_uuid as string),
+    '       :block/title ' + ednStr(rec.comment as string),
+    '       :build/keep-uuid? true}]}',
+  )
+  return lines
+}
+
+/** One sqlite.build block element for an annotation (self-contained form). */
+export function ednAnnotationBlock(
+  rec: ConvertedRecord,
+  assetUuid: string,
+): string {
+  return annotationBlockLines(rec, assetUuid, null).join('\n')
+}
+
+/**
+ * Top-level sqlite.build import payload (self-contained STAGE-1 test form).
+ * With no records this is a valid no-op payload (empty :blocks vector).
+ */
+export function emitSelfContainedEdn(
+  records: ConvertedRecord[],
+  assetUuid: string,
+  pageTitle: string,
+): string {
+  const blocks = records.map((r) => ednAnnotationBlock(r, assetUuid)).join('\n')
+  const blocksSection = records.length ? '\n' + blocks + '\n   ' : ''
+  return (
+    ';; Logseq DB-graph annotation import payload, generated by ' +
+    'pdf-annot-logseq\n' +
+    ';; Feed to logseq.db.sqlite.export/build-import (CLI `import-edn` path).\n' +
+    ';; The PDF asset (uuid ' +
+    assetUuid +
+    ') is seeded separately; these\n' +
+    ';; annotation blocks bind to it via :logseq.property/asset.\n' +
+    '{:pages-and-blocks\n' +
+    ' [{:page {:block/title ' +
+    ednStr(pageTitle) +
+    '}\n' +
+    '   :blocks\n' +
+    '   [' +
+    blocksSection +
+    ']}]\n' +
+    ' :properties {}\n' +
+    ' :classes {}}\n'
+  )
+}
+
+/** A valid no-op import payload for a PDF with no annotations. */
+export function emptyEdn(): string {
+  return '{:pages-and-blocks [] :properties {} :classes {}}\n'
+}
+
+// ---------------------------------------------------------------------------
+// stage-2 live variants (reused by the plugin later)
+// ---------------------------------------------------------------------------
+
+/** One block element parented under the asset block by uuid (live form). */
+export function ednLiveBlock(rec: ConvertedRecord, assetUuid: string): string {
+  const parentLine =
+    '     :block/parent {:db/id [:block/uuid #uuid ' + ednStr(assetUuid) + ']}'
+  return annotationBlockLines(rec, assetUuid, parentLine).join('\n')
+}
+
+/**
+ * Build the live import payload attaching `records` under the asset block.
+ * With no records this is a valid no-op payload (empty :blocks vector).
+ */
+export function emitLiveEdn(
+  records: ConvertedRecord[],
+  assetUuid: string,
+  pageTitle: string,
+): string {
+  const blocks = records.map((r) => ednLiveBlock(r, assetUuid)).join('\n')
+  const blocksSection = records.length ? '\n' + blocks + '\n   ' : ''
+  return (
+    ';; LIVE import payload — pdf-annot-logseq stage 2\n' +
+    ';; Attaches ' +
+    String(records.length) +
+    ' annotation block(s) as children of asset\n' +
+    ';; block ' +
+    assetUuid +
+    ', declared under existing page ' +
+    pageTitle +
+    '.\n' +
+    '{:pages-and-blocks\n' +
+    ' [{:page {:block/title ' +
+    ednStr(pageTitle) +
+    '}\n' +
+    '   :blocks\n' +
+    '   [' +
+    blocksSection +
+    ']}]\n' +
+    ' :properties {}\n' +
+    ' :classes {}}\n'
+  )
+}
