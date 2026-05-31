@@ -89,7 +89,7 @@ Simple controls autosave (`updateSettings`); the heavy ops — Apply schema, sch
    - `inGraph`, `annotations`, `attachments`, `abstractNote`, `notes`, `version`, `collections`, `pages`, `parentItem`, empty values — skipped.
    - Anything else → string value via `upsertBlockProperty`.
    `handleZotInDb` returns `{ status: 'created' | 'exists', pageName }` — `'exists'` (no page created) when the `zotero-code` index already has the item; `pageName` is then the existing page's current title.
-5. Always writes `zotero-code` and `zotero-last-sync` (current ISO timestamp) properties.
+5. Always writes the `zotero-code` property (the Zotero item key — the in-graph match key).
 6. Attachments + annotations get inserted under a wrapping block whose name is the `attachmentsBlockName` setting (default `Attachments`). Per attachment, the emitted block depends on its Zotero `linkMode`:
    - **`linked_file` PDF** (real on-disk path + PDF MIME or `.pdf` extension) — emitted as a first-class Logseq asset block: block content is the title, and `:logseq.property.asset/type|external-url|checksum|size` + the `logseq.class/Asset` tag together make the block an asset entity. That's what activates the embedded PDF viewer's annotation tooling without popping the "Create asset" modal on first highlight. The `file://` URL is **percent-encoded per segment** (PDF.js consumes the URL directly, so this branch wants a real encoded URL — different from the markdown-link branch). Helpers: `pathToFileUrl`, `extensionFromPath`, `sha256Hex` in `handle-zot-db.ts`.
    - **Everything else** (non-PDF `linked_file`, `imported_file` including PDFs there, `linked_url`) — emitted as a plain markdown link. `openAttachmentInline`'s `!` prefix toggles embed vs. external open. URL form per mode follows the rules in [`dev_notes/LOGSEQ_FILE_LINKS.md`](./dev_notes/LOGSEQ_FILE_LINKS.md) — bare absolute path with literal characters for `linked_file`, Zotero's enclosure URL for `imported_file`, the web URL for `linked_url`.
@@ -100,10 +100,9 @@ Simple controls autosave (`updateSettings`); the heavy ops — Apply schema, sch
 
 Before importing items the user clicks **Apply schema** in the setup hub's Schema section (`Reference Manager: Settings`). This calls `services/set-logseqdb-schema.ts`, which:
 - Creates the base tag (`zotTag`, default `Reference`).
-- For each property in the resolved preset (plus always `zotero-code`, `zotero-last-sync`, `zotero-attachment-key`), calls `logseq.Editor.upsertProperty` with the correct type:
+- For each property in the resolved preset (plus always `zotero-code`, `zotero-attachment-key`), calls `logseq.Editor.upsertProperty` with the correct type:
   - `creators` → `node` cardinality many
   - `tags` → `node` cardinality many
-  - `zotero-last-sync` → `datetime` cardinality one
   - `access-date`, `date-added`, `date-modified` → `date` cardinality one
   - `url`, `libraryLink` → `url` cardinality one
   - everything else → `default`
@@ -174,7 +173,7 @@ Past example: the annotation flow was rewritten from plain-text blocks under the
 - `ZOT_URL` — `http://127.0.0.1:23119/api/users/0` (Zotero connector API).
 - `LOGSEQ_API_BASE_DEFAULT` — `http://127.0.0.1:12315` (Logseq's desktop HTTP API; the annotation write path POSTs here — see **Annotation import**).
 - `ZOTERO_LIBRARY_ITEM` — `zotero://select/library/items?itemKey=` (used to build `libraryLink`).
-- `ZOTERO_PROP` / `ZOTERO_CODE_PROP` / `ZOTERO_ATTACHMENT_KEY_PROP` — Logseq full property identifiers used when reading existing page properties (`zotero-code` for the in-graph index, `zotero-attachment-key` for annotation-asset lookup). `ZOTERO_LAST_SYNC_PROP` still exists but is now **write-only** — the annotation flow is uuid-idempotent, so nothing reads the `zotero-last-sync` timestamp anymore (it survives only as an "imported on" stamp; a candidate for removal).
+- `ZOTERO_PROP` / `ZOTERO_CODE_PROP` / `ZOTERO_ATTACHMENT_KEY_PROP` — Logseq full property identifiers used when reading existing page properties (`zotero-code` for the in-graph index, `zotero-attachment-key` for annotation-asset lookup). (The old `zotero-last-sync` property + its `ZOTERO_LAST_SYNC_PROP` constant were removed once the annotation flow became uuid-idempotent — nothing read the timestamp anymore.)
 
 ### Template placeholders
 

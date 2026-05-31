@@ -285,7 +285,6 @@ export const setLogseqDbSchema = async () => {
     const allZoteroPropsToBeSetup = [
       ...priorityProps,
       'zotero-code',
-      'zotero-last-sync',
       'zotero-attachment-key',
       ...remainingProps,
     ]

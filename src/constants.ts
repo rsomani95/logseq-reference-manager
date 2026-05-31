@@ -5,7 +5,6 @@ export const PLUGIN_ID = pkg.logseq.id
 
 export const ZOTERO_PROP = `:plugin.property.${PLUGIN_ID}`
 export const ZOTERO_CODE_PROP = `${ZOTERO_PROP}/zotero-code`
-export const ZOTERO_LAST_SYNC_PROP = `${ZOTERO_PROP}/zotero-last-sync`
 export const ZOTERO_ATTACHMENT_KEY_PROP = `${ZOTERO_PROP}/zotero-attachment-key`
 export const ZOT_URL = 'http://127.0.0.1:23119/api/users/0'
 export const ZOTERO_LIBRARY_ITEM = 'zotero://select/library/items?itemKey='
@@ -244,7 +243,6 @@ export const PROP_DISPLAY_NAMES: Record<string, string> = {
   year: 'Year',
   // Plugin-internal properties (already kebab-cased; not Zotero API fields)
   'zotero-code': 'Zotero Code',
-  'zotero-last-sync': 'Zotero Last Sync',
   'zotero-attachment-key': 'Zotero Attachment Key',
 }
 
@@ -381,7 +379,6 @@ export const PROP_DESCRIPTIONS: Record<string, string> = {
   year: 'Year component of the date',
   // Plugin-internal properties (already kebab-cased; not Zotero API fields)
   'zotero-code': 'Zotero item key linking this page to Zotero',
-  'zotero-last-sync': 'Timestamp of the last sync with Zotero',
   'zotero-attachment-key':
     'Zotero key of the attachment, used to sync annotations',
 }

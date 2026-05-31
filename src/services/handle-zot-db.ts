@@ -542,13 +542,6 @@ export const handleZotInDb = async (
     )
   }
 
-  // Set initial sync timestamp
-  await logseq.Editor.upsertBlockProperty(
-    existingPage.uuid,
-    'zotero-last-sync',
-    new Date().toISOString(),
-  )
-
   /*******
     Insert blocks
     *******/
