@@ -72,7 +72,7 @@ export const useSchemaState = (): SchemaState => {
 
   // One probe on open. `isSchemaAdded()` is the authoritative, *per-graph* check;
   // the snapshot (`appliedSchema`) is a GLOBAL setting — one file shared by every
-  // graph (see dev_notes/settings.md) — so a schema applied in one graph leaves a snapshot
+  // graph (see dev-notes/settings.md) — so a schema applied in one graph leaves a snapshot
   // that leaks into graphs where nothing was ever applied, falsely matching the
   // live config and disabling the first-ever Apply. So trust the snapshot only
   // when the schema actually exists *in this graph*:

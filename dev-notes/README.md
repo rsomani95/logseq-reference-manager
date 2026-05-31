@@ -1,4 +1,4 @@
-# `dev_notes/` — developer documentation
+# `dev-notes/` — developer documentation
 
 Two kinds of doc live here:
 
@@ -18,8 +18,8 @@ that `CLAUDE.md` is too dense to be.
 
 | Doc | Read it to learn… |
 |---|---|
-| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | What the project does, the tech stack, the cross-process mental model, the core data model, the four subsystems, and the canonical import flow. **Read first.** |
-| [`MODULE_MAP.md`](./MODULE_MAP.md) | Where everything lives in `src/`, and a "I want to change X, where do I look?" table. **Read second.** |
+| [`architecture.md`](./architecture.md) | What the project does, the tech stack, the cross-process mental model, the core data model, the four subsystems, and the canonical import flow. **Read first.** |
+| [`module-map.md`](./module-map.md) | Where everything lives in `src/`, and a "I want to change X, where do I look?" table. **Read second.** |
 
 After those two, you'll have the framing to read the code directly — which is the
 point. The notes below are for when a specific problem sends you looking.
@@ -31,10 +31,10 @@ point. The notes below are for when a specific problem sends you looking.
 | Doc | Reach for it when… |
 |---|---|
 | [`settings.md`](./settings.md) | You're adding or changing a setting, or need the settings ↔ web-clipper contract: every key (type, default, who reads it), the setup-hub structure, the save/dirty model, and the steps to add a setting. |
-| [`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md) | An `@logseq/libs` call misbehaves: property create/delete/type gotchas, the type-lock that *hangs* the SDK, `hide?` deletion traps, theming that won't cross the iframe, the local HTTP API, and **`build-import`** (the only way to write typed annotation blocks). The single most useful reference once you're past onboarding. |
-| [`ZOTERO_ATTACHMENT_PATHS.md`](./ZOTERO_ATTACHMENT_PATHS.md) | You need a Zotero attachment's absolute on-disk path: the four `linkMode`s, the `/file` `302`→`file://` route, decoding, and the "is the file actually here?" signal. |
-| [`LOGSEQ_FILE_LINKS.md`](./LOGSEQ_FILE_LINKS.md) | You're emitting a Markdown link to a local file and it won't open: which link form Logseq actually resolves (bare path, no `file://`, no `%20`), and the `!`-prefix that switches embedded-PDF-viewer vs. OS-default-app. |
-| [`debugging/cors_request.md`](./debugging/cors_request.md) | **Known open issue.** Zotero's local API is CORS-blocked for *marketplace* installs (works unpacked in dev). Root cause is diagnosed; the validated fix (`exper_request` over postMessage) is **not yet implemented**. Read before debugging "connection works in dev, fails when installed." |
+| [`logseq-sdk-notes.md`](./logseq-sdk-notes.md) | An `@logseq/libs` call misbehaves: property create/delete/type gotchas, the type-lock that *hangs* the SDK, `hide?` deletion traps, theming that won't cross the iframe, the local HTTP API, and **`build-import`** (the only way to write typed annotation blocks). The single most useful reference once you're past onboarding. |
+| [`zotero-attachment-paths.md`](./zotero-attachment-paths.md) | You need a Zotero attachment's absolute on-disk path: the four `linkMode`s, the `/file` `302`→`file://` route, decoding, and the "is the file actually here?" signal. |
+| [`logseq-file-links.md`](./logseq-file-links.md) | You're emitting a Markdown link to a local file and it won't open: which link form Logseq actually resolves (bare path, no `file://`, no `%20`), and the `!`-prefix that switches embedded-PDF-viewer vs. OS-default-app. |
+| [`debugging/cors-request.md`](./debugging/cors-request.md) | **Known open issue.** Zotero's local API is CORS-blocked for *marketplace* installs (works unpacked in dev). Root cause is diagnosed; the validated fix (`exper_request` over postMessage) is **not yet implemented**. Read before debugging "connection works in dev, fails when installed." |
 
 > Each deep-dive carries its own "Last verified" date and the source it was
 > traced against. They're empirical — "what actually happens," not "what the docs

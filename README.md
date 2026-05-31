@@ -16,13 +16,13 @@ Download from the plugin marketplace from within Logseq
 - Zotero:
   - Bring in references from Zotero (tested with Zotero 9, should work with 7+)
   - Single / Batch import
-  - (Advanced) Setup addding specific tags to references when custom defined conditions are met. See examples [here](TODO: Add examples)
+  - (Advanced) Set up rules to add specific tags to references when conditions you define are met — e.g. tag anything with `arxiv.org` in its URL as `#Paper`
 - Web:
   - This plugin is a pre-requisite + configurator to bring in sources from the web using [`logseq-web-clipper`](https://github.com/rsomani95/logseq-web-clipper/)
 - A dedicated settings panel for ease of setup and customisation
 - Plays nice with Logseq's theming system
 
-PS: This plugin only works with 
+PS: This plugin only works with Logseq **DB graphs** (not file graphs), on **desktop** — it reaches Zotero and Logseq over local HTTP APIs that the mobile and web builds don't expose.
 
 ## Setup & Customisation
 
@@ -73,4 +73,4 @@ As is glaringly obvious from the commit log, this has been developed with the he
 
 As a result, the code has been tested quite a bit, but not reviewed thoroughly, so I'm not taking PRs right now. I plan on doing this once the dust settles a bit. For now, feel free to open issues if you experience rough edges
 
-If you want to understand the codebase, the developer docs in [`dev_notes/`](./dev_notes/) are the place to start: [`ARCHITECTURE.md`](./dev_notes/ARCHITECTURE.md) for the high-level framing and tech stack, [`MODULE_MAP.md`](./dev_notes/MODULE_MAP.md) for where everything lives, plus deeper notes on the Logseq SDK and Zotero internals.
+If you want to understand the codebase, the developer docs in [`dev-notes/`](./dev-notes/) are the place to start: [`architecture.md`](./dev-notes/architecture.md) for the high-level framing and tech stack, [`module-map.md`](./dev-notes/module-map.md) for where everything lives, plus deeper notes on the Logseq SDK and Zotero internals.

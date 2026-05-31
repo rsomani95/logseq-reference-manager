@@ -165,7 +165,7 @@ const createTagProperties = async (props: string[]): Promise<SchemaResult> => {
         // — Logseq's expand path skips the empty-value check — so hide-by-default is
         // for the default view, not a guarantee. `hide?`=true also blocks deletion
         // (delete-zotero-schema strips it first).
-        // TODO: make the visible-by-default set user-configurable (see dev_notes/settings.md).
+        // TODO: make the visible-by-default set user-configurable (see dev-notes/settings.md).
         if (VISIBLE_BY_DEFAULT_PROPS.has(prop)) {
           await logseq.Editor.removeBlockProperty(
             property.uuid,

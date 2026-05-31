@@ -1,7 +1,7 @@
 # Module map — where everything lives
 
 A directory-by-directory guide to `src/`, built to **structure your
-exploration**, not to explain implementations. Read [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+exploration**, not to explain implementations. Read [`architecture.md`](./architecture.md)
 first for the mental model; this is the companion that tells you which file to
 open.
 
@@ -182,14 +182,14 @@ Tests sit alongside as `*.test.ts` and run under `bun test`.
 |---|---|
 | What properties an imported page gets | `constants.ts` (presets, display names) → `set-logseqdb-schema.ts` |
 | How a page is built / what a page looks like after import | `services/handle-zot-db.ts` |
-| How attachments / PDFs are emitted | `services/handle-zot-db.ts` + [`LOGSEQ_FILE_LINKS.md`](./LOGSEQ_FILE_LINKS.md) |
+| How attachments / PDFs are emitted | `services/handle-zot-db.ts` + [`logseq-file-links.md`](./logseq-file-links.md) |
 | The search popup (single import) | `features/search-item/` + `hooks/use-items.ts` |
 | The batch modal | `features/batch-import/` + `hooks/use-batch.ts` + `services/batch-insert-into-graph.ts` |
 | Any settings UI | `features/setup/` (find the matching `*Section.tsx`) |
 | Adding/renaming a setting key | `settings.ts` + [`settings.md`](./settings.md) |
 | Annotation extraction / coordinates | `services/pdf-annot/` (golden-tested; change the math deliberately, keep the fixtures green) |
 | Annotation native-vs-Zotero picking, or sync | `services/import-annotations.ts` |
-| The annotation write path / HTTP API | `services/logseq-transit.ts` + `logseq-import-edn.ts` + [`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md) |
+| The annotation write path / HTTP API | `services/logseq-transit.ts` + `logseq-import-edn.ts` + [`logseq-sdk-notes.md`](./logseq-sdk-notes.md) |
 | Tag rules (matching or the builder UI) | `extended-tags.ts` + `features/tag-rules/` |
 | The web-clip contract (keys the extension reads) | `web-sections.ts` + `features/setup/WebSection.tsx` + `set-web-schema.ts` |
 | Zotero API calls / what Zotero returns | `services/get-zot-items.ts` + `interfaces.ts` + the `.bruno/` collections |
@@ -197,7 +197,7 @@ Tests sit alongside as `*.test.ts` and run under `bun test`.
 | Theme / colors / typography / motion | `src/styles/components.css` (the `:root` token block) + `services/sync-theme.ts` |
 | Keyboard navigation in lists | `keyboard.ts` |
 | Commands / what's registered at startup | `index.tsx` |
-| An `@logseq/libs` call behaving oddly | [`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md) **first** |
+| An `@logseq/libs` call behaving oddly | [`logseq-sdk-notes.md`](./logseq-sdk-notes.md) **first** |
 
 ---
 
@@ -207,8 +207,7 @@ Tests sit alongside as `*.test.ts` and run under `bun test`.
 |---|---|
 | [`CLAUDE.md`](../CLAUDE.md) | The exhaustive behavioural reference (read alongside the code). |
 | [`settings.md`](./settings.md) | Every settings key; how to add one; the hidden-keys mechanism. |
-| `dev_notes/` | These docs + the deep-dive notes — see [`README.md`](./README.md). |
+| `dev-notes/` | These docs + the deep-dive notes — see [`README.md`](./README.md). |
 | `.bruno/` | Bruno HTTP collections for poking the Zotero local API by hand. |
 | `scripts/seed-test-collection.js` | Seeds a "Logseq Plugin Test" collection in Zotero (idempotent) for testing. |
-| `prototypes/`, `refs/` | Scratch / reference material (the `pdf-annot` port originates from a sibling prototype repo). |
 | `docs/` | The `*.gif` demos used by the README. |

@@ -157,7 +157,7 @@ flow. Branching by Zotero's `linkMode`:
   `http://127.0.0.1:23119/...` URL, and **no "Zotero data directory" setting is
   needed**. Decode it (strip `file://`, percent-decode) to get the bare path.
   Verified on Zotero 9.0.4 — full details in
-  [`ZOTERO_ATTACHMENT_PATHS.md`](./ZOTERO_ATTACHMENT_PATHS.md).
+  [`zotero-attachment-paths.md`](./zotero-attachment-paths.md).
 - **`imported_url`** → a saved snapshot, kept in Zotero storage like an
   `imported_file` and reached through the same `file://` enclosure. Usually
   HTML, but **can be a downloaded PDF** — decide by `contentType`, not by the

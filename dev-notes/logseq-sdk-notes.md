@@ -478,7 +478,7 @@ plugin iframe (Electron renderer):
 
 - **`fetch('file://…')` / `XMLHttpRequest` on a local path works.** Zotero's local
   API only `302`-redirects `/items/<key>/file` to a `file://` URL (it never
-  streams bytes — see [`ZOTERO_ATTACHMENT_PATHS.md`](./ZOTERO_ATTACHMENT_PATHS.md)),
+  streams bytes — see [`zotero-attachment-paths.md`](./zotero-attachment-paths.md)),
   so the plugin reads the file itself. `read-pdf-bytes.ts` tries `fetch` then an
   XHR fallback; one of them is permitted in the sandbox. (This is reading an
   *external* file, distinct from the plugin's own bundled assets.)

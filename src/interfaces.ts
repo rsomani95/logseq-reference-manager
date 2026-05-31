@@ -168,7 +168,7 @@ export interface ZotItem {
       title: string
       // Absent when Zotero holds the attachment record but the file's bytes
       // aren't on this machine; set (and equal to the byte size) when present.
-      // See `dev_notes/ZOTERO_ATTACHMENT_PATHS.md`.
+      // See `dev-notes/zotero-attachment-paths.md`.
       length?: number
     }
   }
@@ -334,7 +334,7 @@ export interface FileItem {
   // Byte size of the stored file. Absent when the bytes aren't on disk (Zotero
   // returns the enclosure record but omits `length`), so it doubles as a
   // "file is actually present locally" signal — see
-  // `dev_notes/ZOTERO_ATTACHMENT_PATHS.md`.
+  // `dev-notes/zotero-attachment-paths.md`.
   length?: number
   title: string
   type: string

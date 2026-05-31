@@ -1,7 +1,7 @@
 /**
  * Read a PDF attachment's raw bytes for mupdf (annotation extraction + page
  * geometry). Zotero's local API only 302-redirects to a `file://` URL — it never
- * streams the bytes (see `../../dev_notes/ZOTERO_ATTACHMENT_PATHS.md`) — so we
+ * streams the bytes (see `../../dev-notes/zotero-attachment-paths.md`) — so we
  * read the file directly from its on-disk path.
  *
  * Whether a Logseq plugin iframe may read a `file://` URL is environment

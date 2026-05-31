@@ -41,7 +41,11 @@ all real configuration lives in the plugin's own modal.
 | `creatorSeparator` | string | `, ` | Authors | `handle-zot-db` (joins names in text mode); **web-clipper extension** (pending — see Author formatting) |
 | `pagenameTemplate` | string template | `@<% citeKey %>` | Import formats | `resolvePageName` → `applyPageNameTemplate` |
 | `pagenamePrefix` | string | empty (migration peels a leading literal like `@` out of the template) | Import formats | `applyPageNameTemplate` (prefix arg) |
-| `openAttachmentInline` | boolean | `true` | Import formats | `handle-zot-db` (attachment link) |
+| `attachmentImportMode` | enum `PDFs only\|All attachments` | `PDFs only` | Attachments | `handle-zot-db` (gates whether non-PDF attachments import at all) |
+| `attachmentsBlockName` | string | `Attachments` | Attachments | `handle-zot-db` (name of the wrapping block) |
+| `openAttachmentInline` | boolean | `true` | Attachments | `handle-zot-db` (only the non-PDF markdown-link `!` embed/open toggle; PDFs always asset-block) |
+| `attachmentShowExternalLinks` | boolean | `false` | Attachments | `handle-zot-db` (appends a trailing "open externally" links block) |
+| `attachmentExternalPdfLabel` | string | `Open PDF Outside Logseq` | Attachments | `handle-zot-db` (label for the external-PDF link; shown only when `attachmentShowExternalLinks`) |
 | `logseqApiToken` | string | empty | Annotations | `logseq-import-edn` (Bearer for the `build-import` POST) — **required** for annotation import |
 | `logseqApiBaseUrl` | string | `http://127.0.0.1:12315` | Annotations | `logseq-import-edn` (HTTP API base) |
 | `annotationColor` | enum `auto\|yellow\|red\|green\|blue\|purple` | `auto` | Annotations | `import-annotations` (forced highlight color; `auto` = nearest-pastel) |
@@ -155,7 +159,7 @@ HTTP APIs Server and pastes its token into the hub's **Annotations** section
 the page + PDF asset still import; only the annotation step is skipped (with a
 one-time hint). Architecture + the Transit-encoding detail live in **Annotation
 import** in [`CLAUDE.md`](../CLAUDE.md) and the write-path section of
-[`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md).
+[`logseq-sdk-notes.md`](./logseq-sdk-notes.md).
 
 ## Setup hub
 
@@ -176,8 +180,10 @@ src/SetupContainer.tsx   (backdrop + CSS imports, mirrors BatchContainer)
          Zotero:
            ConnectSection.tsx — live connection test (testZotConnection)
            FormatsSection.tsx — page-name dropdown + prefix + live preview from
-                                a real library item (useFmtSample);
-                                openAttachmentInline (no schema footer)
+                                a real library item (useFmtSample) (no schema footer)
+           AttachmentsSection.tsx — import mode (PDFs only / All attachments),
+                                wrapping block name, openAttachmentInline,
+                                external-links toggle + external-PDF label
            AnnotationsSection.tsx — Logseq API token (+ Test connection via
                                 testLogseqApi), annotation highlight color,
                                 advanced API base URL
@@ -290,6 +296,27 @@ its own values (`zotTag`, `propertyPreset`) via `updateSettings` *before* callin
 it, since its change handlers are fire-and-forget; `pageProps` and
 `creatorsAsNodes` are autosaved by the `PropertyPicker` and the Authors
 section respectively, so they're already persisted by then.
+
+**Property types** are set only when a property is *first created* — re-apply
+checks `getProperty` first and skips any that already exist (Logseq won't change
+a property's type once it holds values, and the refused call *hangs* the SDK —
+see [`logseq-sdk-notes.md`](./logseq-sdk-notes.md)):
+
+| property | `:logseq.property/type` | cardinality |
+|---|---|---|
+| `creators`, `tags` | `node` | many |
+| `access-date`, `date-added`, `date-modified` | `date` | one |
+| `url`, `libraryLink` | `url` | one |
+| everything else | `default` | one |
+
+`zotero-code` + `zotero-attachment-key` are always created alongside the preset.
+Property names are kebab-cased everywhere they touch Logseq
+(`convert-prop-to-kebab.ts`) **except** `ISSN` / `ISBN` / `DOI`, which stay
+uppercase. The active preset is the `propertyPreset` setting: `Essentials`
+(`PROP_PRESET_ESSENTIALS` in `constants.ts`), `Full` (everything in the master
+key list `ZOT_DATA_KEY_MAP`), or `Custom` (the `pageProps` list). Each property
+write is isolated so one failure can't abort the rest, and a wanted-but-blocked
+type change is surfaced to the user (delete schema + re-apply to change a type).
 
 After the base tag + properties, `setLogseqDbSchema` wires the web tag —
 `ensureWebTagExtendsBase` (`services/set-web-schema.ts`), reading `webTag` — so

@@ -58,7 +58,7 @@ export const resolveCreatorName = (creator: CreatorItem): string =>
  * Builds a properly percent-encoded `file://` URL from an absolute filesystem
  * path. Distinct from the bare-path form used for the Markdown link in the
  * attachment loop below, which deliberately avoids `file://` to dodge mldoc's
- * missing decode (see `dev_notes/LOGSEQ_FILE_LINKS.md`). The asset-block
+ * missing decode (see `dev-notes/logseq-file-links.md`). The asset-block
  * renderer is a different code path — PDF.js consumes the URL directly, so it
  * wants a real, encoded URL.
  */
@@ -76,7 +76,7 @@ const extensionFromPath = (path: string): string => {
  * Inverse of `pathToFileUrl`: a percent-encoded `file://` URL back to a bare,
  * literal absolute path. Zotero's local API hands imported attachments their
  * on-disk location as exactly such a URL (`file://<dataDir>/storage/<key>/<file>`
- * — see `dev_notes/ZOTERO_ATTACHMENT_PATHS.md`); decoding per segment mirrors
+ * — see `dev-notes/zotero-attachment-paths.md`); decoding per segment mirrors
  * the per-segment encoding above.
  */
 const fileUrlToPath = (fileUrl: string): string =>
@@ -120,7 +120,7 @@ const isPdfAttachment = (att: AttachmentItem): boolean => {
  * else null. `linked_file` keeps its path verbatim; `imported_file` /
  * `imported_url` decode the enclosure's `file://` URL, gated on `length`
  * (Zotero only sets it when the stored file is actually present). `linked_url`
- * has no file. See `dev_notes/ZOTERO_ATTACHMENT_PATHS.md`.
+ * has no file. See `dev-notes/zotero-attachment-paths.md`.
  */
 const attachmentOnDiskPath = (att: AttachmentItem): string | null => {
   if (att.linkMode === 'linked_file') return att.path
@@ -170,7 +170,7 @@ const pdfAssetSource = (
  * (HTML, or a PDF whose bytes aren't on this machine). The `!` prefix (when
  * `openAttachmentInline` is on) makes Logseq try to embed.
  *
- * URL form per link mode (see `dev_notes/LOGSEQ_FILE_LINKS.md`):
+ * URL form per link mode (see `dev-notes/logseq-file-links.md`):
  * - `linked_file`: bare absolute path, literal characters (no `file://`, no
  *   percent-encoding) — survives mldoc and reaches `shell.openPath` verbatim.
  * - `imported_file` / `imported_url`: the enclosure is a `file://` URL to the
@@ -198,7 +198,7 @@ const formatAttachmentMarkdownLink = (att: AttachmentItem): string => {
  * Any PDF backed by a real on-disk file comes in as a first-class Logseq asset
  * block — `linked_file` PDFs (path on disk) and `imported_file` / `imported_url`
  * PDFs alike (Zotero's enclosure resolves to `<dataDir>/storage/<key>/<file>`;
- * see `dev_notes/ZOTERO_ATTACHMENT_PATHS.md`). The
+ * see `dev-notes/zotero-attachment-paths.md`). The
  * `:logseq.property.asset/external-url` family + the `logseq.class/Asset` tag
  * make the block an asset entity, so the embedded PDF viewer's annotation
  * tooling activates without popping the "Create asset" modal on first highlight.

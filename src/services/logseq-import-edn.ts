@@ -6,7 +6,7 @@
  * route that can write `Pdf-annotation` blocks with their closed-value
  * `hl-color` ref and `hl-value` EDN map — the `@logseq/libs` Editor API
  * sanitizes to scalar user-properties and cannot (see
- * `../../dev_notes/LOGSEQ_SDK_NOTES.md` and the prototype's
+ * `../../dev-notes/logseq-sdk-notes.md` and the prototype's
  * importing-into-logseq.md §5). Verified end-to-end against a live graph.
  *
  * Requires Logseq's "HTTP APIs Server" enabled and its auth token saved in

@@ -3,7 +3,7 @@
 High-level orientation for a developer new to this codebase. The goal is to
 give you the right *mental model* and point you at the right files — not to
 explain implementations (read the code for that). Pair this with
-[`MODULE_MAP.md`](./MODULE_MAP.md) (where everything lives) and
+[`module-map.md`](./module-map.md) (where everything lives) and
 [`CLAUDE.md`](../CLAUDE.md) (the exhaustive behavioural reference).
 
 > Reflects `main` as of **2026-05-31**. When this drifts from the code, the code
@@ -90,12 +90,12 @@ reference* (`hl-color`) and an *EDN-map* value (`hl-value`) that the SDK refuses
 The only route that writes those is Logseq's own `build-import`, reachable from a
 plugin **only** over the desktop HTTP API. So the annotation feature carries its
 own HTTP client. Full rationale in
-[`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md) ("Writing typed blocks…").
+[`logseq-sdk-notes.md`](./logseq-sdk-notes.md) ("Writing typed blocks…").
 
 **Why read files over `file://` (②)?** Zotero's local API never streams attachment
 bytes — `GET /items/<key>/file` just `302`s to a `file://` URL. So to extract
 annotations the plugin reads the file itself. See
-[`ZOTERO_ATTACHMENT_PATHS.md`](./ZOTERO_ATTACHMENT_PATHS.md).
+[`zotero-attachment-paths.md`](./zotero-attachment-paths.md).
 
 ---
 
@@ -123,7 +123,7 @@ annotations the plugin reads the file itself. See
 The dev-loop gotcha worth knowing on day one: **a prod `bun run build` clobbers the
 dev server's `dist/index.html`.** If source edits stop reaching Logseq after a
 build, restart the dev server and reload the plugin. (More in
-[`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md) → *Dev workflow*.)
+[`logseq-sdk-notes.md`](./logseq-sdk-notes.md) → *Dev workflow*.)
 
 ---
 
@@ -196,7 +196,7 @@ Create the base tag + its property schema in the graph before importing.
   `services/set-logseqdb-schema.ts`.
 - The native Logseq settings panel is reduced to a launcher; all real editing
   happens in the hub. (Logseq's settings panel can't render dynamic UI like rule
-  builders — see [`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md) → *Settings
+  builders — see [`logseq-sdk-notes.md`](./logseq-sdk-notes.md) → *Settings
   panel*, and [`settings.md`](./settings.md) for the per-key reference.)
 
 ### 3. Annotation import
@@ -268,7 +268,7 @@ the in-graph index once and reusing it.
   changes explicitly. (See [`CLAUDE.md`](../CLAUDE.md) → *Backward compatibility*.)
 - **`logseq.settings` is global, not per-graph.** Anything graph-specific must be
   derived by *querying the graph*, never cached in a setting. (This bit the
-  schema-applied state — see [`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md).)
+  schema-applied state — see [`logseq-sdk-notes.md`](./logseq-sdk-notes.md).)
 - **Pure logic is unit-tested; SDK-touching code is not.** Tests
   (`*.test.ts`, run by `bun test`) cover pure functions — template resolution,
   tag-rule matching, the `pdf-annot` core, geometry, keyboard intent. Anything
@@ -276,14 +276,14 @@ the in-graph index once and reusing it.
   graph.
 - **The `@logseq/libs` SDK has sharp edges.** Property deletion, type-locks that
   *hang* the SDK, `hide?` gotchas, theming that doesn't cascade into the iframe —
-  all documented empirically in [`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md).
+  all documented empirically in [`logseq-sdk-notes.md`](./logseq-sdk-notes.md).
   Check there first when an SDK call misbehaves.
 
 ---
 
 ## Where to go next
 
-- [`MODULE_MAP.md`](./MODULE_MAP.md) — the directory-by-directory map and a
+- [`module-map.md`](./module-map.md) — the directory-by-directory map and a
   "I want to change X, where do I look?" table.
 - [`CLAUDE.md`](../CLAUDE.md) — the exhaustive reference: every command, every
   setup-hub section, the full data-flow spec, design context.
