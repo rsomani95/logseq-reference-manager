@@ -65,7 +65,7 @@ export const PROP_PRIORITY_ORDER = [
 // marked "hide by default", so it's tucked into Logseq's collapsed "Hidden
 // properties" group and the page reads as notes, not a metadata dump. Kebab
 // form — compared against the kebab `prop` in `set-logseqdb-schema`.
-// Opinionated default for now; making it user-configurable is a TODO (settings.md).
+// Opinionated default for now; making it user-configurable is a TODO (dev_notes/settings.md).
 export const VISIBLE_BY_DEFAULT_PROPS = new Set<string>([
   'authors',
   'title',

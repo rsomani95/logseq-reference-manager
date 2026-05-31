@@ -154,8 +154,8 @@ HTTP APIs Server and pastes its token into the hub's **Annotations** section
 (`logseqApiBaseUrl` defaults to the standard `127.0.0.1:12315`). Without a token
 the page + PDF asset still import; only the annotation step is skipped (with a
 one-time hint). Architecture + the Transit-encoding detail live in **Annotation
-import** in [`CLAUDE.md`](./CLAUDE.md) and the write-path section of
-[`dev_notes/LOGSEQ_SDK_NOTES.md`](./dev_notes/LOGSEQ_SDK_NOTES.md).
+import** in [`CLAUDE.md`](../CLAUDE.md) and the write-path section of
+[`LOGSEQ_SDK_NOTES.md`](./LOGSEQ_SDK_NOTES.md).
 
 ## Setup hub
 

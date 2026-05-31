@@ -269,7 +269,7 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
     // Read over the HTTP API by the companion web-clipper extension (it reads
     // the live store; it cannot write these). Edited in the hub's Web
     // references section. The keys/types/defaults are a contract with the
-    // extension — see WEB references in settings.md before renaming any.
+    // extension — see WEB references in dev_notes/settings.md before renaming any.
     {
       key: 'webTag',
       type: 'string',
@@ -315,7 +315,7 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
     // Page-template keys: per-section heading name, fold-on-import, and the
     // optional-section enable toggles, plus the section order. Defaults mirror
     // `WEB_SECTIONS` / `WEB_SECTION_DEFAULT_ORDER` in web-sections.ts and the
-    // extension's own fallbacks — keep all three in sync (see settings.md).
+    // extension's own fallbacks — keep all three in sync (see dev_notes/settings.md).
     {
       key: 'webAbstractBlockName',
       type: 'string',

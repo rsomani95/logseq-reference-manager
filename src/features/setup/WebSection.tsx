@@ -141,7 +141,7 @@ const SortableSectionCard = ({
 // live settings but cannot write them), tags each clipped page with the Web
 // tag, and uses the rest to shape the page. So this section is a settings form
 // for a *consumer that lives in another process*, plus a button to wire the Web
-// tag into the shared schema. The keys are a contract — see settings.md.
+// tag into the shared schema. The keys are a contract — see dev_notes/settings.md.
 export const WebSection = ({
   webTag,
   baseTag,

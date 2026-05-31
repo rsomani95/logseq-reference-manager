@@ -3,13 +3,13 @@
 // are templated: each section's heading name, whether it arrives folded, and
 // (for the optional ones) whether it's captured at all — plus the order they're
 // written in. These keys are a contract the extension reads over the HTTP API;
-// see the Web references table in settings.md before renaming any.
+// see the Web references table in dev_notes/settings.md before renaming any.
 //
 // Highlights is always imported (when the page has them), so it has no capture
 // key; Abstract and Page Content each carry an enable toggle. Defaults here
 // mirror the seed defaults in settings.ts — the UI falls back to these when a
 // value is missing, Logseq seeds the same on a fresh install, and the extension
-// keeps its own matching fallback. All three must agree (see settings.md).
+// keeps its own matching fallback. All three must agree (see dev_notes/settings.md).
 
 export type WebSectionId = 'abstract' | 'highlights' | 'pageContent'
 
