@@ -2027,6 +2027,94 @@ html[data-theme="dark"] .tagrule-select {
   width: 100%;
 }
 
+/* Highlight-color picker — an inline swatch row (radiogroup) that replaces the
+   native <select>. Each option stacks a real-palette color dot over its name,
+   so the available Logseq highlight colors are visible at a glance and picking
+   is one click. The hidden native radio carries semantics + arrow-key nav; the
+   swatch + label carry the look — same split as .tagrule-seg. */
+.annot-color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  align-items: flex-start;
+  margin-top: 0.15rem;
+}
+
+.annot-color-opt {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Radio overlays the whole option so a click anywhere selects it; invisible
+   because the swatch + label are the visible control. */
+.annot-color-opt input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.annot-color-swatch {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  /* Hairline keeps the pale pastels from floating on a light surface; derived
+     from text so it tracks the theme. */
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--zot-color-text) 16%, transparent);
+  transition: box-shadow var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.annot-color-name {
+  font-size: var(--zot-text-sm);
+  line-height: var(--zot-leading-none);
+  color: var(--zot-color-text-muted);
+  transition: color var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+/* Hover (unselected only): a faint accent ring hints the target. */
+.annot-color-opt:not(:has(input:checked)):hover .annot-color-swatch {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--zot-color-text) 16%, transparent),
+    0 0 0 2px var(--zot-color-bg),
+    0 0 0 3px color-mix(in srgb, var(--zot-color-accent-host) 45%, transparent);
+}
+
+/* Selected: a full accent halo (gap ring) around the swatch + the name lifts to
+   the host accent. Mirrors .tagrule-seg's accent-on-surface selected state —
+   never a fill, so it reads in either theme. */
+.annot-color-opt:has(input:checked) .annot-color-swatch {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--zot-color-text) 16%, transparent),
+    0 0 0 2px var(--zot-color-bg),
+    0 0 0 4px var(--zot-color-accent-host);
+}
+
+.annot-color-opt:has(input:checked) .annot-color-name {
+  color: var(--zot-color-accent-host);
+  font-weight: var(--zot-weight-medium);
+}
+
+/* Keyboard focus rides just outside the selected halo so the two never merge. */
+.annot-color-opt:has(input:focus-visible) .annot-color-swatch {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 6px;
+}
+
+/* Touch: larger swatches for a comfortable tap target. */
+@media (pointer: coarse) {
+  .annot-color-swatch {
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+}
+
 /* Page template — a reorderable list of the section blocks the web clipper
    writes onto each clipped page (Abstract · Highlights · Page Content). */
 .web-template-head {

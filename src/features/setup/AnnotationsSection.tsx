@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { type CSSProperties, useState } from 'react'
 
 import { LOGSEQ_API_BASE_DEFAULT } from '../../constants'
 import { testLogseqApi } from '../../services/logseq-import-edn'
+import { hexOf, LOGSEQ_PALETTE } from '../../services/pdf-annot/colors'
 
 // Highlight colors Logseq supports, plus "auto" (nearest-pastel mapping from the
 // source annotation's color). Matches the `annotationColor` enum in settings.ts.
@@ -14,6 +15,35 @@ const COLOR_CHOICES = [
   'purple',
 ] as const
 type ColorChoice = (typeof COLOR_CHOICES)[number]
+
+// Capitalised display names; the stored setting value stays lowercase.
+const COLOR_LABELS: Record<ColorChoice, string> = {
+  auto: 'Auto',
+  yellow: 'Yellow',
+  red: 'Red',
+  green: 'Green',
+  blue: 'Blue',
+  purple: 'Purple',
+}
+
+// Each swatch is painted from Logseq's real fixed highlight palette
+// (LOGSEQ_PALETTE), so the dot is exactly the color the highlight will take.
+// "auto" has no single color — it snaps each mark to the nearest one — so its
+// dot is split into five equal wedges, one per palette color.
+const swatchStyle = (c: ColorChoice): CSSProperties => {
+  if (c === 'auto') {
+    const order = ['yellow', 'green', 'blue', 'purple', 'red'] as const
+    const step = 360 / order.length
+    const wedges = order
+      .map(
+        (n, i) =>
+          `${hexOf(LOGSEQ_PALETTE[n])} ${i * step}deg ${(i + 1) * step}deg`,
+      )
+      .join(', ')
+    return { background: `conic-gradient(${wedges})` }
+  }
+  return { background: hexOf(LOGSEQ_PALETTE[c]) ?? undefined }
+}
 
 // PDF-annotation import. Highlights you made in an external app (Preview / PDF
 // Expert / …) are read straight from the file; a PDF annotated only inside
@@ -117,21 +147,32 @@ export const AnnotationsSection = () => {
         </div>
 
         <div className="setup-field">
-          <label className="setup-field-label" htmlFor="annot-color">
+          <span className="setup-field-label" id="annot-color-label">
             Highlight color
-          </label>
-          <select
-            id="annot-color"
-            className="tagrule-select setup-control"
-            value={color}
-            onChange={(e) => onColor(e.target.value as ColorChoice)}
+          </span>
+          <div
+            className="annot-color-picker"
+            role="radiogroup"
+            aria-labelledby="annot-color-label"
           >
             {COLOR_CHOICES.map((c) => (
-              <option key={c} value={c}>
-                {c === 'auto' ? 'Auto (match the source)' : c}
-              </option>
+              <label key={c} className="annot-color-opt">
+                <input
+                  type="radio"
+                  name="annot-color"
+                  value={c}
+                  checked={color === c}
+                  onChange={() => onColor(c)}
+                />
+                <span
+                  className="annot-color-swatch"
+                  style={swatchStyle(c)}
+                  aria-hidden="true"
+                />
+                <span className="annot-color-name">{COLOR_LABELS[c]}</span>
+              </label>
             ))}
-          </select>
+          </div>
           <p className="setup-field-hint">
             Logseq highlights come in five fixed colors. “Auto” snaps each mark
             to the nearest one; pick a color to force every highlight to it
