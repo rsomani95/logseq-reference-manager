@@ -21,13 +21,12 @@ Deep-dive notes on importing a PDF's annotations into Logseq as first-class
 | Doc | What it covers |
 |---|---|
 | [`overview.md`](./overview.md) | Plain-language tour: what annotation import does, the highlight-type mapping, Logseq's limits as a destination. Start here. |
-| [`architecture.md`](./architecture.md) | The end-to-end pipeline, the tech stack, the **coordinate transform (§4)**, the write path (§5), the subsystem layout, and known gaps (§7). The spine. |
+| [`architecture.md`](./architecture.md) | The end-to-end pipeline, the tech stack, the **coordinate transform (§4)**, the write path + the `Pdf-annotation` block schema / `hl-value` sub-shape (§5), the subsystem layout, and known gaps (§7). The spine. |
 
 ## Reach for these when relevant
 
 | Doc | Reach for it when… |
 |---|---|
-| [`importing-into-logseq.md`](./importing-into-logseq.md) | You're touching the **write path**: the `build-import` payload, the `Pdf-annotation` block schema + `hl-value` sub-shape, the asset attach-trick, and the Transit-over-HTTP-API delivery (§4). Why the plugin Editor API can't do this is §5. |
 | [`zotero-annotations.md`](./zotero-annotations.md) | You're touching the **Zotero-database fallback**: the annotation `data` shape, the `annotationPosition` geometry, type→Logseq mapping, deterministic uuids, and the PDF-first ingestion policy (§9). |
 | [`pdf-annotations-across-platforms.md`](./pdf-annotations-across-platforms.md) | You need the **PDF/ISO-32000 taxonomy**: what the annotation subtypes are, why each app's list differs, and how Zotero/Logseq (the two database-backed outliers) map onto the standard. Evergreen platform knowledge. |
 | [`typescript-port.md`](./typescript-port.md) | You need the **engine & lineage**: why mupdf, the module map, the covered-text reconstruction, the two benign precision diffs, and exactly what the test suite proves (and the in-repo coverage gaps). |
@@ -62,6 +61,6 @@ Deep-dive notes on importing a PDF's annotations into Logseq as first-class
 
 | Path | What it is |
 |---|---|
-| [`../logseq-sdk-notes.md`](../logseq-sdk-notes.md) | The `build-import` write path, the closed-value-property gotcha, and the HTTP-API behavior — the SDK-level companion to `importing-into-logseq.md`. |
+| [`../logseq-sdk-notes.md`](../logseq-sdk-notes.md) | The general `build-import` write mechanism (payload + `:build/*` DSL), the closed-value-property gotcha, and the HTTP-API behavior — the SDK-level companion to the annotation write path in [`architecture.md`](./architecture.md) §5. |
 | [`../zotero-attachment-paths.md`](../zotero-attachment-paths.md) | Resolving an attachment's absolute on-disk path from Zotero's local API (every `linkMode`) — what `read-pdf-bytes.ts` consumes. |
 | [`../../CLAUDE.md`](../../CLAUDE.md) | The repo's behavioural reference; its **Annotation import** section is the dense summary these docs expand on. |

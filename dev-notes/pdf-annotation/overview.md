@@ -2,7 +2,7 @@
 
 A plain-language guide to what the plugin's annotation import does and what to expect from it. No code, minimal jargon.
 
-> **See also:** [`architecture.md`](./architecture.md) for how the pipeline works under the hood, and [`importing-into-logseq.md`](./importing-into-logseq.md) for how annotations are written into the graph.
+> **See also:** [`architecture.md`](./architecture.md) for how the pipeline works under the hood — the coordinate transform (§4) and the write path + block schema (§5).
 
 > **Logseq terms used here**
 > - **Graph** — your personal Logseq knowledge base (your collection of notes).

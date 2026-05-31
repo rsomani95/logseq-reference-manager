@@ -189,7 +189,7 @@ The glue (`import-annotations.ts`) consumes the core like this:
   → the same records.
 - The records go to `importAnnotationRecords` (`logseq-import-edn.ts`), which builds the
   attach payload (`buildLiveImportMap`, mirroring `edn.ts`'s `emitLiveEdn`), Transit-
-  encodes it, and POSTs it — see [`importing-into-logseq.md`](./importing-into-logseq.md).
+  encodes it, and POSTs it — see [`architecture.md`](./architecture.md) §5.
 
 ---
 

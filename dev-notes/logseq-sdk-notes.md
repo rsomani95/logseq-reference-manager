@@ -461,6 +461,23 @@ desktop **HTTP API** (the same `:12315` server in the section above):
   under the existing page (matched by `:block/title`) and set `:block/parent`
   explicitly by uuid; reference the asset by uuid, never re-declare it.
 
+**The payload shape (the build DSL).** Top level is exactly three keys —
+`{:pages-and-blocks [{:page {…} :blocks [{…}]}] :properties {} :classes {}}` (the
+last two usually empty). Inside a block map, a few `:build/*` convenience keys are
+expanded by `build-import`:
+
+| Key | Meaning |
+|---|---|
+| `:build/tags [:logseq.class/…]` | tag the block with classes (→ `:block/tags`, each resolved to `{:db/ident …}`) |
+| `:build/properties {<ident> <value>}` | set typed/internal properties by db-ident — the **only** thing that sets closed-value refs + EDN-map values (the whole reason for this path) |
+| `:build/keep-uuid? true` | preserve the supplied `:block/uuid` instead of minting one — what makes re-import idempotent |
+| `:build/children [...]` | nested child blocks |
+
+Plain `:block/*` attributes (`:block/uuid`, `:block/title`, `:block/parent`,
+`:block/collapsed?`) pass through as-is. A concrete typed-block example — the
+`:logseq.class/Pdf-annotation` schema with its `hl-value` map — is in
+[`pdf-annotation/architecture.md`](./pdf-annotation/architecture.md) §5.
+
 Verified against a live graph: a no-op `{:pages-and-blocks [] …}` returns HTTP
 200; a real annotation block round-trips with its `hl-color` closed-value ref
 (`{:ident ":logseq.property/color.yellow"}`) and full `hl-value` map intact.

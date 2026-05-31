@@ -26,10 +26,10 @@ orchestration and write path are sibling files in `src/services/`
 > choice and that lineage in full.
 
 > **See also:** [`overview.md`](./overview.md) for the plain-language tour,
-> [`importing-into-logseq.md`](./importing-into-logseq.md) for the full write-path /
-> import-payload details (§5 here is the condensed version),
 > [`zotero-annotations.md`](./zotero-annotations.md) for the Zotero-database source,
-> and [`typescript-port.md`](./typescript-port.md) for the engine and module map.
+> [`typescript-port.md`](./typescript-port.md) for the engine and module map, and
+> [`../logseq-sdk-notes.md`](../logseq-sdk-notes.md) for the general `build-import`
+> mechanism §5 builds on.
 
 ---
 
@@ -117,7 +117,7 @@ path (stage 2) is the orchestration + transport in `src/services/`.
 
 ### `logseq-transit.ts` + `logseq-import-edn.ts` — the write
 - **Input → output:** `ConvertedRecord[]` + the asset uuid + the host page title → blocks transacted into the live graph.
-- **Key idea:** build the `logseq.db.sqlite.build` import map (`buildLiveImportMap`, mirroring `pdf-annot/edn.ts`'s `emitLiveEdn`), hand-encode it as **Transit-JSON** (`transitWrite` — the arg shape the API method wants, *not* raw EDN), and POST it to the desktop HTTP API method `logseq.cli.import_edn` with the auth token. `importAnnotationRecords` treats an HTTP-200-with-`{error}`-body as a failure (the desktop API wraps a thrown method that way). See §5 and [`importing-into-logseq.md`](./importing-into-logseq.md).
+- **Key idea:** build the `logseq.db.sqlite.build` import map (`buildLiveImportMap`, mirroring `pdf-annot/edn.ts`'s `emitLiveEdn`), hand-encode it as **Transit-JSON** (`transitWrite` — the arg shape the API method wants, *not* raw EDN), and POST it to the desktop HTTP API method `logseq.cli.import_edn` with the auth token. `importAnnotationRecords` treats an HTTP-200-with-`{error}`-body as a failure (the desktop API wraps a thrown method that way). See §5.
 
 ---
 
@@ -231,30 +231,120 @@ not the EDN string.
  :classes {}}
 ```
 
-Each annotation block carries `:block/uuid` (== the `hl-value :id`),
-`:build/keep-uuid? true`, `:build/tags [:logseq.class/Pdf-annotation]`, and
-`:build/properties` for `:logseq.property/ls-type`, `:logseq.property/asset`,
-`:logseq.property.pdf/hl-color` (a **db-ident keyword**, not a string),
-`:logseq.property.pdf/hl-page`, and `:logseq.property.pdf/hl-value` (the EDN
-position map). On the Zotero path a markup's comment is nested via
-`:build/children`. `:build/keep-uuid?` makes re-import upsert by `:block/uuid` — no
-duplicates.
+The general DSL — the top-level three keys, the `:build/*` convenience keys, and why
+this path rather than the `@logseq/libs` Editor API (which can't set a closed-value
+ref or an EDN-map value) — lives in
+[`../logseq-sdk-notes.md`](../logseq-sdk-notes.md) → *Writing typed blocks…*. What's
+**annotation-specific** is the block schema below.
 
-### Attach-to-existing-asset (high level)
+### The `Pdf-annotation` block schema
 
-The viewer's highlight-loader query finds annotations by their
-`:logseq.property/asset` reference, **not** by tree position. So a highlight renders
-as long as it points at the asset block. To match native structure without
-corrupting the existing asset block, the writer:
+A Logseq PDF annotation is an ordinary block that (a) is tagged
+`:logseq.class/Pdf-annotation`, (b) carries a fixed set of typed properties, and (c)
+points at the PDF's asset block. The class **requires** five properties
+(`deps/db/src/logseq/db/frontend/class.cljs`) — omit one and the block is invalid:
+
+| Attribute | Type | Value |
+|---|---|---|
+| `:build/tags` | class ref | `[:logseq.class/Pdf-annotation]` |
+| `:block/title` | string | the highlighted text (or, for a note, the note text) — the readable body, and what the annotation list shows |
+| `:logseq.property/ls-type` | keyword | `:annotation` (constant) |
+| `:logseq.property/asset` | entity ref | the PDF **asset block** (`[:block/uuid #uuid "…"]`) — **the key the viewer's loader query uses** (below) |
+| `:logseq.property.pdf/hl-color` | closed-value ref | one of `:logseq.property/color.{yellow,red,green,blue,purple}` — the **db-ident**, not the string |
+| `:logseq.property.pdf/hl-page` | int | 1-based page number |
+| `:logseq.property.pdf/hl-value` | EDN map | the full geometry/content record (sub-shape below) |
+
+The renderer reads geometry and color **only** from `hl-value`; the individual
+`hl-page`/`hl-color` properties exist for queries and the annotation list. The five
+color db-idents are fixed (`yellow → :logseq.property/color.yellow`, likewise the
+other four) — no orange, no custom hex. The block property stores the **db-ident**;
+`hl-value`'s `:properties {:color "…"}` stores the lowercase **name** string. (Passing
+the string to `hl-color` fails the build with *"Tempids used only as value"*.)
+
+**The `hl-value` sub-shape** — the entire highlight map the live app persists verbatim.
+Position fields are `viewportToScaled` output — keys `{:x1 :y1 :x2 :y2 :width
+:height}`, **not** `{:left :top …}`. Read-back (`scaledToViewport`) **throws** *"You are
+using old position format"* if `:x1` is missing, so every rect (`:bounding` and each
+`:rects` entry) must carry all six numbers:
+
+```clojure
+{:id        #uuid "…"           ; MUST equal the block's :block/uuid
+ :page      3                    ; 1-based int (also the grouping key at render)
+ :position  {:page     3
+             :bounding {:x1 .. :y1 .. :x2 .. :y2 .. :width 612.0 :height 792.0}
+             :rects    [{:x1 .. :y1 .. :x2 .. :y2 .. :width 612.0 :height 792.0} …]}
+ :content   {:text "the highlighted text"}   ; NO :image key for a text highlight
+ :properties {:color "yellow"}}              ; lowercase NAME string (matches hl-color)
+```
+
+- `:width`/`:height` are the page dims in points at scale 1.0 (US-Letter `612.0 ×
+  792.0`); storing the rect verbatim in PDF points makes read-back proportional, hence
+  scale-independent (§4).
+- `:rects` is one entry per visual line (per `/QuadPoints` quad), sorted top→left;
+  `:bounding` is their union. Keep `:rects` non-empty or the highlight isn't
+  clickable/visible.
+- Store floats with a decimal point so the EDN reader yields a double (`edn.ts`'s
+  `ednFloat` renders integral values as `"N.0"`; Transit sends them as JSON numbers,
+  which the reader also treats as doubles).
+
+A **literal** text-highlight block (a red sticky-note on page 1, from the golden
+fixture; page dims rounded for readability, the asset uuid a placeholder — at import
+it's the uuid of the PDF asset block the plugin just created):
+
+```clojure
+{:block/uuid #uuid "b5d9eea7-ca28-4f7c-9b00-87a84bf88763"   ; == hl-value :id
+ :block/title "Make sure to check these out!"
+ ;; attach under the existing PDF asset block by uuid — but never re-declare it (below)
+ :block/parent {:db/id [:block/uuid #uuid "6a189ba1-a16a-4f18-b563-daacc36dc98d"]}
+ :build/keep-uuid? true                                     ; idempotent re-import
+ :build/tags [:logseq.class/Pdf-annotation]
+ :build/properties
+ {:logseq.property/ls-type :annotation
+  :logseq.property/asset [:block/uuid #uuid "6a189ba1-a16a-4f18-b563-daacc36dc98d"]
+  :logseq.property.pdf/hl-color :logseq.property/color.red  ; closed-value db-ident
+  :logseq.property.pdf/hl-page 1
+  :logseq.property.pdf/hl-value
+  {:id #uuid "b5d9eea7-ca28-4f7c-9b00-87a84bf88763"
+   :page 1
+   :position {:page 1
+              :bounding {:x1 492.725 :y1 136.657 :x2 510.725 :y2 154.657
+                         :width 595.276 :height 841.89}
+              :rects [{:x1 492.725 :y1 136.657 :x2 510.725 :y2 154.657
+                       :width 595.276 :height 841.89}]}
+   :content {:text "Make sure to check these out!"}
+   :properties {:color "red"}}}}
+```
+
+On the **Zotero path** a markup's comment is attached as a `:build/children` block
+(`{:block/title "my note…" :build/keep-uuid? true}`). **Area highlights** (a figure
+crop) are not emitted (no portable source equivalent; they'd need a generated PNG
+asset) but for completeness add `:logseq.property.pdf/hl-type :area`, an
+`:logseq.property.pdf/hl-image` ref to a PNG asset block, `:block/collapsed? true`, and
+`hl-value` `:content {:text "" :image […]}` with `:rects []`.
+
+### Attach-to-existing-asset
+
+The PDF viewer loads highlights with one Datascript query (`assets.cljs`) — it finds
+every block whose `:logseq.property/asset` points at the asset block, **regardless of
+tree position**:
+
+```clojure
+[:find (pull ?e [*]) :where [?e :logseq.property/asset ?asset-eid]]
+```
+
+So a highlight renders as long as it carries that ref. To match native structure
+(annotations as children of the asset block) without corrupting the existing asset, the
+writer:
 
 - **declares** the annotation blocks under the existing reference **page** (matched by `:block/title`, so `build-import`'s existing-entity check recognizes it and only minimally touches it), and
 - **sets** `:block/parent {:db/id [:block/uuid <asset-uuid>]}` explicitly on each block (honored at `build.cljs:249`).
 
-The asset block itself is **referenced by UUID, never re-stated** in the payload —
-re-declaring it would re-parent or duplicate it. (The asset block — its tags,
-`external-url`, checksum, etc. — is created by the plugin's own import flow in
-`handle-zot-db.ts`; this subsystem only attaches to it.) Full detail, with a literal
-annotated block, in [`importing-into-logseq.md`](./importing-into-logseq.md) §2–§3.
+The asset block itself is **referenced by UUID, never re-stated** — re-declaring it
+would re-parent or duplicate it (`build-import` only dedupes pages/classes/properties,
+not arbitrary nested blocks). The asset block (its tags, `external-url`, checksum) is
+created by the plugin's own import flow in `handle-zot-db.ts`; this subsystem only
+attaches to it. The general "attach children under an existing block without
+re-declaring it" trick is in [`../logseq-sdk-notes.md`](../logseq-sdk-notes.md).
 
 ### Safety / idempotency
 

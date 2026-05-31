@@ -7,7 +7,7 @@ embedded markup of its own.
 It is the companion to two sibling docs:
 
 - [`pdf-annotations-across-platforms.md`](./pdf-annotations-across-platforms.md) explains the PDF/ISO-32000 annotation taxonomy and how each app (Preview, Acrobat, PDF Expert, **and Zotero**) maps onto it. Read its §4–§6 first for *what* Zotero's annotation model is.
-- [`importing-into-logseq.md`](./importing-into-logseq.md) defines the **target**: the `:logseq.class/Pdf-annotation` block and its `hl-value` geometry sub-shape. Everything below produces exactly that shape.
+- [`architecture.md`](./architecture.md) §5 defines the **target**: the `:logseq.class/Pdf-annotation` block and its `hl-value` geometry sub-shape. Everything below produces exactly that shape.
 
 This doc is about the **source side for Zotero specifically**: where the data lives,
 its format, and its quirks/shortcomings. It focuses on annotations made **inside
@@ -142,7 +142,7 @@ the former.
 Notes:
 
 - **Comments on a highlight/underline become a nested child block** (`:build/children`
-  in the payload — see [`importing-into-logseq.md`](./importing-into-logseq.md) §2), so
+  in the payload — see [`architecture.md`](./architecture.md) §5), so
   your commentary reads as a child of the highlight — Logseq's idiom, and richer than
   the PDF path, which currently drops a markup's `/Contents`. For `note`/`text` the
   comment *is* the body, so it becomes the block title with no child.
@@ -173,7 +173,7 @@ so the EDN/Transit serializers and the write path need no changes
 - **`image` and `ink` are dropped.** Area/figure regions have no portable
   text-highlight representation (`pdf-annotations-across-platforms.md` §6); supporting
   them means building the area-highlight PNG path
-  ([`importing-into-logseq.md`](./importing-into-logseq.md) §"Area-highlight extras").
+  ([`architecture.md`](./architecture.md) §5, area highlights).
 - **Rotated pages are unvalidated.** As on the PDF path, a non-zero page rotation emits
   rot-0 geometry with a warning.
 - **Needs the PDF on disk for page dims** (§3) — see §6.
@@ -210,7 +210,7 @@ instead of duplicating**. The child comment block gets its own stable uuid (the 
 derivation with a `"comment"` suffix).
 
 This mirrors how the PDF path reuses an annotation's `/NM` UUID for idempotency
-([`importing-into-logseq.md`](./importing-into-logseq.md) §6) — Zotero just doesn't
+([`architecture.md`](./architecture.md) §5) — Zotero just doesn't
 hand us one, so the plugin synthesizes a stable one. (`uuid.ts` vendors a SHA-1 so it
 needs neither `node:crypto` nor the async `crypto.subtle`, keeping the converter
 synchronous and renderer-safe; a known-answer test covers it.)
@@ -284,4 +284,4 @@ explicitly); the only true external-vs-native discriminator would be Zotero's in
 - Why Zotero stores annotations in its database — Zotero KB: <https://www.zotero.org/support/kb/annotations_in_database>
 - Zotero PDF reader (highlight/underline/note/text/image/ink) — <https://www.zotero.org/support/pdf_reader>
 - Zotero annotation type constants — `chrome/content/zotero/xpcom/annotations.js`
-- Companion docs: [`pdf-annotations-across-platforms.md`](./pdf-annotations-across-platforms.md) (taxonomy), [`importing-into-logseq.md`](./importing-into-logseq.md) (Logseq target), [`architecture.md`](./architecture.md) (coordinate transform).
+- Companion docs: [`pdf-annotations-across-platforms.md`](./pdf-annotations-across-platforms.md) (taxonomy), [`architecture.md`](./architecture.md) (the Logseq target block schema §5 + the coordinate transform §4).

@@ -108,11 +108,11 @@ So:
 
 Logseq is the **second database-backed outlier** — and the *destination* this whole subsystem exists to serve. Like Zotero, it never writes standard subtypes into the PDF; it stores each annotation as a **first-class block in its DB graph** (a Datascript database persisted in SQLite). But Logseq's relationship to native PDF marks has a twist worth stating plainly:
 
-**Logseq renders native PDF marks yet has no data model for them.** Open a PDF carrying baked-in Preview/Acrobat/PDF-Expert annotations and Logseq's PDF.js viewer will *draw* them on screen — but you cannot click, link, query, or backlink one. Only annotations created in Logseq's own viewer (or injected as DB blocks, which is what this plugin does) are first-class graph citizens, and Logseq has **no feature to import** a PDF's existing marks. Native marks visible but inert, with no bridge to the graph — that gap is the entire reason this subsystem exists (see [`overview.md`](./overview.md) §1 and [`importing-into-logseq.md`](./importing-into-logseq.md)).
+**Logseq renders native PDF marks yet has no data model for them.** Open a PDF carrying baked-in Preview/Acrobat/PDF-Expert annotations and Logseq's PDF.js viewer will *draw* them on screen — but you cannot click, link, query, or backlink one. Only annotations created in Logseq's own viewer (or injected as DB blocks, which is what this plugin does) are first-class graph citizens, and Logseq has **no feature to import** a PDF's existing marks. Native marks visible but inert, with no bridge to the graph — that gap is the entire reason this subsystem exists (see [`overview.md`](./overview.md) §1 and [`architecture.md`](./architecture.md) §5).
 
 ### Logseq's two representations
 
-Where Zotero exposes six authoring types, Logseq's model is narrower still — effectively **two** (`importing-into-logseq.md` §2):
+Where Zotero exposes six authoring types, Logseq's model is narrower still — effectively **two** ([`architecture.md`](./architecture.md) §5):
 
 | Logseq representation | What it is | Standard subtypes it absorbs |
 |---|---|---|
@@ -127,7 +127,7 @@ Logseq highlights come in **exactly five** colors, stored as closed-value keywor
 
 ### How a Logseq annotation is stored
 
-Each annotation is a block tagged `:logseq.class/Pdf-annotation` that points at the PDF's *asset block* and carries its geometry as `viewportToScaled` coordinates — **anchored to page coordinates, not to the underlying text**, so a replaced or re-paginated PDF can drift the marks off their words. The full block schema, the color db-idents, and the import mechanics live in [`importing-into-logseq.md`](./importing-into-logseq.md).
+Each annotation is a block tagged `:logseq.class/Pdf-annotation` that points at the PDF's *asset block* and carries its geometry as `viewportToScaled` coordinates — **anchored to page coordinates, not to the underlying text**, so a replaced or re-paginated PDF can drift the marks off their words. The full block schema, the color db-idents, and the import mechanics live in [`architecture.md`](./architecture.md) §5.
 
 ---
 
@@ -158,4 +158,4 @@ See [`overview.md`](./overview.md) for the plain-language version and [`architec
 - Zotero annotation type constants: `chrome/content/zotero/xpcom/annotations.js`
 - "Why does Zotero store PDF annotations in its database?" — Zotero KB: <https://www.zotero.org/support/kb/annotations_in_database>
 - Zotero PDF reader (highlight/underline modes): <https://www.zotero.org/support/pdf_reader>
-- Logseq's PDF-annotation block schema, the five color closed-values, and the EDN import path — this repo's [`importing-into-logseq.md`](./importing-into-logseq.md) (and the Logseq source it cites, e.g. `logseq.db.frontend.class`, `logseq.property`).
+- Logseq's PDF-annotation block schema, the five color closed-values, and the EDN import path — this repo's [`architecture.md`](./architecture.md) §5 (and the Logseq source it cites, e.g. `logseq.db.frontend.class`, `logseq.property`).
