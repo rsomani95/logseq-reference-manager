@@ -4,7 +4,7 @@
  * Extract native PDF annotations from PDF bytes and convert them into Logseq
  * DB-graph annotation records (the `hl-value` shape) + a build-DSL EDN payload.
  * Filesystem-free and environment-agnostic so it runs inside the Logseq plugin's
- * Electron renderer; the CLI (`./cli`) wraps it with node:fs for local use.
+ * Electron renderer.
  *
  * Engine: mupdf (WASM) — the same MuPDF engine the Python source wraps via fitz.
  */
