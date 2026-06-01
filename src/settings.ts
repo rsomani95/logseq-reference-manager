@@ -112,7 +112,7 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       type: 'heading',
       title: 'Reference Manager',
       description:
-        'All settings live in the setup window. Open the command palette and run “Reference Manager: Settings” to configure the shared schema, Zotero (connection, import formats, tag rules), and Web references.',
+        'All settings live in the setup window. Open the command palette and run "Reference Manager: Settings" to configure the shared schema, Zotero (connection, import formats, tag rules), and Web references.',
       default: '',
     },
     {

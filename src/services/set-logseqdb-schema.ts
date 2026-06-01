@@ -343,16 +343,16 @@ export const setLogseqDbSchema = async () => {
       }
       if (failed.length) {
         bits.push(
-          `Couldn’t set up ${failed.map((f) => f.prop).join(', ')} — see the console.`,
+          `Couldn't set up ${failed.map((f) => f.prop).join(', ')}. See the console.`,
         )
       }
       await logseq.UI.showMsg(
-        `Schema for “${zotTag}” applied. ${bits.join(' ')}`,
+        `Schema for "${zotTag}" applied. ${bits.join(' ')}`,
         'warning',
         { timeout: 12000 },
       )
     } else {
-      await logseq.UI.showMsg(`Schema for “${zotTag}” is set up.`, 'success')
+      await logseq.UI.showMsg(`Schema for "${zotTag}" is set up.`, 'success')
     }
   } finally {
     // Always clear the sticky "Please wait" toast — even if something above

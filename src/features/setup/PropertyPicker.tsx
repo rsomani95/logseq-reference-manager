@@ -68,7 +68,7 @@ export const PropertyPicker = ({
       </div>
       <div className="setup-picker-list">
         {filtered.length === 0 ? (
-          <div className="batch-empty">No properties match “{query}”.</div>
+          <div className="batch-empty">No properties match "{query}".</div>
         ) : (
           <PropertyList
             options={filtered}

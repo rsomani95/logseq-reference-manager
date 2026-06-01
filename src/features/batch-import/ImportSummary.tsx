@@ -14,7 +14,7 @@ export const ImportSummary = ({ summary }: { summary: BatchResult }) => {
     <div className="batch-summary">
       {cancelled && (
         <div className="batch-summary-note">
-          Import cancelled — items already processed are kept.
+          Import cancelled. Items already processed are kept.
         </div>
       )}
 

@@ -53,6 +53,10 @@ export const RuleCard = ({
             value={rule.tag}
             placeholder="e.g. MLPaper"
             aria-label="Tag to apply"
+            aria-invalid={errors?.tag ? true : undefined}
+            aria-describedby={
+              errors?.tag ? `rule-${rule.id}-tag-err` : undefined
+            }
             disabled={disabled}
             onChange={(e) => update({ tag: e.target.value })}
           />
@@ -67,7 +71,11 @@ export const RuleCard = ({
           <Trash2 size={15} aria-hidden />
         </button>
       </div>
-      {errors?.tag && <div className="tagrule-error">{errors.tag}</div>}
+      {errors?.tag && (
+        <div className="tagrule-error" id={`rule-${rule.id}-tag-err`}>
+          {errors.tag}
+        </div>
+      )}
 
       <div className="tagrule-match" role="radiogroup" aria-label="Match mode">
         <span className="tagrule-label-text">Match</span>

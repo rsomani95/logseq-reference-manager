@@ -254,7 +254,7 @@ export const ResultCardBody = memo(({ item, query }: ResultCardBodyProps) => {
         <span className="result-card-title" title={title}>
           <Highlighted text={title} query={q} />
         </span>
-        {item.inGraph && <span className="sr-only"> — already in graph</span>}
+        {item.inGraph && <span className="sr-only">, already in graph</span>}
       </div>
 
       {displayCreators.length > 0 && (

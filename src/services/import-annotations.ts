@@ -153,7 +153,7 @@ export const syncAnnotationsForPage = async (
             : ''
     const failSuffix =
       failed > 0
-        ? ` (${failed} PDF${failed > 1 ? 's' : ''} failed — see console)`
+        ? ` (${failed} PDF${failed > 1 ? 's' : ''} failed, see console)`
         : ''
     if (total > 0) {
       await logseq.UI.showMsg(

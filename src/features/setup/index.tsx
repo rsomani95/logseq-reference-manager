@@ -11,8 +11,9 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 
+import { useFocusTrap } from '../../hooks/use-focus-trap'
 import { testZotConnection } from '../../services/get-zot-items'
 import { testLogseqApi } from '../../services/logseq-import-edn'
 import { AnnotationsSection } from './AnnotationsSection'
@@ -97,6 +98,11 @@ export const SetupApp = ({
   // All schema state (live config, applied snapshot, dirty flags, the apply /
   // delete / web-setup handlers, and the one isSchemaAdded probe) lives here.
   const schema = useSchemaState()
+
+  // Trap Tab within the dialog: it floats over the app inside an iframe, so
+  // Tab would otherwise escape into the obscured graph behind it.
+  const containerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(containerRef)
 
   // Connection probes on open — the schema probe runs inside useSchemaState. A
   // thrown probe falls back to "error"/"not ok" so the hub can't strand on its
@@ -217,10 +223,12 @@ export const SetupApp = ({
 
   return (
     <div
+      ref={containerRef}
       className="setup-container"
       role="dialog"
       aria-modal="true"
       aria-label="Reference Manager settings"
+      tabIndex={-1}
     >
       <div className="setup-header">
         <h2 className="setup-title">Reference Manager</h2>

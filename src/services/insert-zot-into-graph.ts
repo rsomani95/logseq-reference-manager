@@ -23,7 +23,7 @@ export const insertZotIntoGraph = async (
     )
     await logseq.UI.showMsg(
       status === 'exists'
-        ? `Already in graph as "${pageName}" — linked here`
+        ? `Already in graph as "${pageName}", linked here`
         : 'Inserted Zotero item successfully',
       'success',
     )

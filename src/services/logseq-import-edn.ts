@@ -67,7 +67,7 @@ export const testLogseqApi = async (): Promise<{
     }
     return {
       ok: true,
-      msg: '✅ Connected to Logseq — annotation import is ready.',
+      msg: '✅ Connected to Logseq. Annotation import is ready.',
     }
   } catch {
     return {

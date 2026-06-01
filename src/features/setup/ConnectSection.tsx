@@ -133,7 +133,7 @@ export const ConnectSection = ({
                     that it's open.
                   </li>
                   <li>
-                    Keep Zotero running while you import — references are read
+                    Keep Zotero running while you import; references are read
                     directly from it, with no cloud sync.
                   </li>
                   <li>

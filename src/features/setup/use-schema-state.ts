@@ -186,8 +186,8 @@ export const useSchemaState = (): SchemaState => {
       if (stillThere) {
         await logseq.UI.showMsg(
           removed > 0
-            ? `Removed ${removed}, but some reference properties remain — see the console.`
-            : 'Couldn’t remove the reference properties — see the console.',
+            ? `Removed ${removed}, but some reference properties remain. See the console.`
+            : "Couldn't remove the reference properties. See the console.",
           'warning',
         )
       } else {
@@ -239,12 +239,12 @@ export const useSchemaState = (): SchemaState => {
         await isWebTagExtendingBase(webTag, config.zotTag).catch(() => false),
       )
       await logseq.UI.showMsg(
-        `“#${webTag.trim()}” now extends “${config.zotTag.trim()}” — web clips inherit the schema.`,
+        `"#${webTag.trim()}" now extends "${config.zotTag.trim()}". Web clips inherit the schema.`,
         'success',
       )
     } catch (e) {
       await logseq.UI.showMsg(
-        `Couldn’t set up the web tag: ${e instanceof Error ? e.message : String(e)}`,
+        `Couldn't set up the web tag: ${e instanceof Error ? e.message : String(e)}`,
         'error',
       )
     } finally {

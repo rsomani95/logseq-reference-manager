@@ -260,9 +260,9 @@ export const WebSection = ({
     baseReady === false
       ? 'Apply the shared schema first (Schema section), then set up the web tag.'
       : isSetUp
-        ? `“#${webTag.trim()}” extends “${baseTag.trim()}”.`
+        ? `"#${webTag.trim()}" extends "${baseTag.trim()}".`
         : webDirty && webApplied
-          ? 'Web tag changed — set it up so clips inherit the schema.'
+          ? 'Web tag changed. Set it up so clips inherit the schema.'
           : 'Set up the web tag so clipped pages inherit the shared schema.'
 
   return (
@@ -271,9 +271,9 @@ export const WebSection = ({
         <h3 className="setup-section-title">Web references</h3>
         <p className="setup-section-desc">
           Settings for the companion web-clipper browser extension. It reads
-          these over Logseq’s API — it can’t edit them, so this is the only
-          place they’re set. Clipped pages are tagged with the Web tag and
-          inherit the same schema as Zotero imports.
+          these over Logseq's API but can't edit them, so this is the only place
+          they're set. Clipped pages are tagged with the Web tag and inherit the
+          same schema as Zotero imports.
         </p>
       </div>
 
@@ -284,7 +284,7 @@ export const WebSection = ({
             <div className="setup-status-text">
               Shared schema not set up yet
               <span className="setup-status-sub">
-                The Web tag inherits the shared schema — and the web clipper
+                The Web tag inherits the shared schema, and the web clipper
                 refuses to clip until it exists. Apply it in the Schema section
                 first, then set up the Web tag here.
               </span>
@@ -306,7 +306,7 @@ export const WebSection = ({
             Web tag
           </label>
           <p className="setup-field-hint">
-            The tag every clipped page carries. Extends “{baseTag}”, so it
+            The tag every clipped page carries. Extends "{baseTag}", so it
             inherits the shared schema.
           </p>
           <input
@@ -376,7 +376,7 @@ export const WebSection = ({
             Populate page tags
           </label>
           <p className="setup-field-hint">
-            Pre-fill the page’s tags from the clipped page’s own keywords.
+            Pre-fill the page's tags from the clipped page's own keywords.
           </p>
         </div>
       </div>

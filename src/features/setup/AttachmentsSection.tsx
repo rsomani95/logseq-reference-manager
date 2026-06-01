@@ -60,7 +60,7 @@ export const AttachmentsSection = () => {
       <div className="setup-section-head">
         <h3 className="setup-section-title">Attachments</h3>
         <p className="setup-section-desc">
-          How Zotero attachments come into the page — the wrapping block, which
+          How Zotero attachments come into the page: the wrapping block, which
           attachments to import, and optional shortcuts out to your OS or
           Zotero.
         </p>
@@ -87,7 +87,7 @@ export const AttachmentsSection = () => {
           </select>
           <p className="setup-field-hint">
             PDFs come in as first-class Logseq assets so the embedded viewer and
-            annotation tools work first-try. “All attachments” also brings in
+            annotation tools work first-try. "All attachments" also brings in
             snapshots, supplementary files, and linked web pages as markdown
             links.
           </p>
@@ -119,8 +119,8 @@ export const AttachmentsSection = () => {
             Open non-PDF attachments in Logseq
           </label>
           <p className="setup-field-hint">
-            Off = open in your default system app instead. Doesn’t affect PDFs —
-            those always use Logseq’s embedded viewer (use the link below to
+            Off = open in your default system app instead. Doesn't affect PDFs:
+            those always use Logseq's embedded viewer (use the link below to
             jump out).
           </p>
         </div>
@@ -132,7 +132,7 @@ export const AttachmentsSection = () => {
               checked={showExternalLinks}
               onChange={(e) => onShowExternalLinks(e.target.checked)}
             />
-            Add an “open externally” links block
+            Add an "open externally" links block
           </label>
           <p className="setup-field-hint">
             A single extra block with quick links: opens the PDF in your OS app

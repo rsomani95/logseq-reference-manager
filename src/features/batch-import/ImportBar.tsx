@@ -35,7 +35,7 @@ export const ImportBar = ({
         <div className="batch-footer-row">
           <span className="batch-footer-status">
             Importing {done} / {total}
-            {progress?.currentTitle ? ` — ${progress.currentTitle}` : '…'}
+            {progress?.currentTitle ? ` · ${progress.currentTitle}` : '…'}
           </span>
           <button type="button" className="btn btn-white" onClick={onCancel}>
             Cancel

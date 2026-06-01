@@ -142,7 +142,7 @@ export const AuthorsSection = ({
         <div className="setup-section-footer">
           <span className="setup-footer-status">
             {baseDirty
-              ? 'Schema settings changed — re-apply to update your graph.'
+              ? 'Schema settings changed. Re-apply to update your graph.'
               : 'Schema is up to date.'}
           </span>
           <button

@@ -12,6 +12,8 @@ const CUSTOM = '__custom__'
 interface FieldSelectProps {
   value: string
   invalid?: boolean
+  /** id of the error message to tie to the control via aria-describedby. */
+  errorId?: string
   disabled?: boolean
   onChange: (value: string) => void
 }
@@ -26,6 +28,7 @@ interface FieldSelectProps {
 export const FieldSelect = ({
   value,
   invalid,
+  errorId,
   disabled,
   onChange,
 }: FieldSelectProps) => {
@@ -40,6 +43,8 @@ export const FieldSelect = ({
           value={value}
           placeholder="field name"
           aria-label="Custom field name"
+          aria-invalid={invalid || undefined}
+          aria-describedby={errorId}
           disabled={disabled}
           autoFocus
           onChange={(e) => onChange(e.target.value)}
@@ -64,6 +69,8 @@ export const FieldSelect = ({
       className={`tagrule-select tagrule-field${invalid ? ' is-invalid' : ''}`}
       value={isKnownField(value) ? value : ''}
       aria-label="Condition field"
+      aria-invalid={invalid || undefined}
+      aria-describedby={errorId}
       disabled={disabled}
       onChange={(e) => {
         const next = e.target.value

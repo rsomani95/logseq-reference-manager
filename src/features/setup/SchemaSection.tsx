@@ -125,7 +125,7 @@ export const SchemaSection = ({
                 <span className="setup-field-hint">
                   Removes every reference property this plugin created. The tag
                   pages (base + Web) are left intact (deleting them would clear
-                  their backlinks — do that manually if you want). You can
+                  their backlinks, so do that manually if you want). You can
                   re-apply afterward.
                 </span>
               </div>

@@ -196,7 +196,7 @@ export const SearchItem = ({
 
   const renderStatus = () => {
     if (isLoadingInitial) return 'Loading library…'
-    if (error) return 'Can’t reach Zotero'
+    if (error) return "Can't reach Zotero"
     if (mode === 'recents') return `${results.length} recent`
     if (results.length === 0)
       return isLoadingFallback ? 'Searching library…' : 'No matches'

@@ -24,7 +24,7 @@ export const registerTagRulesWatcher = () => {
       const summary =
         errors.length === 1
           ? errors[0]
-          : `${errors.length} issues — see the console for details.`
+          : `${errors.length} issues. See the console for details.`
       logseq.UI.showMsg(`Tag rules: ${summary}`, 'warning', {
         timeout: TOAST_TIMEOUT_MS,
       })

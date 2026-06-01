@@ -135,7 +135,7 @@ export const parseTagRules = (
         try {
           new RegExp(value)
         } catch (e) {
-          errors.push(`${cref}: invalid regex — ${(e as Error).message}`)
+          errors.push(`${cref}: invalid regex (${(e as Error).message})`)
           condError = true
           return
         }

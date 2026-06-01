@@ -40,6 +40,7 @@ export const ConditionRow = ({
         <FieldSelect
           value={condition.field}
           invalid={!!errors?.field}
+          errorId={errors?.field ? `cond-${condition.id}-err` : undefined}
           disabled={disabled}
           onChange={(field) => onChange({ field })}
         />
@@ -66,6 +67,10 @@ export const ConditionRow = ({
           value={condition.value}
           placeholder={valuePlaceholder}
           aria-label="Condition value"
+          aria-invalid={errors?.value ? true : undefined}
+          aria-describedby={
+            errors?.value ? `cond-${condition.id}-err` : undefined
+          }
           disabled={disabled}
           onChange={(e) => onChange({ value: e.target.value })}
         />
@@ -80,7 +85,9 @@ export const ConditionRow = ({
         </button>
       </div>
       {(errors?.field || errors?.value) && (
-        <div className="tagrule-error">{errors.field ?? errors.value}</div>
+        <div className="tagrule-error" id={`cond-${condition.id}-err`}>
+          {errors.field ?? errors.value}
+        </div>
       )}
     </div>
   )

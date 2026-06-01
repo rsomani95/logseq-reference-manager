@@ -9,6 +9,7 @@ import {
 } from 'react'
 
 import { useBatchSources, useContainerItems } from '../../hooks/use-batch'
+import { useFocusTrap } from '../../hooks/use-focus-trap'
 import { useSearchItems } from '../../hooks/use-items'
 import { BatchSource, ZotData } from '../../interfaces'
 import { listNavIntent } from '../../keyboard'
@@ -51,6 +52,7 @@ export const BatchView = () => {
   const selectAllRef = useRef<HTMLInputElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   // Latches the one-time focus hand-off to the list for container sources.
   const listAutoFocusedRef = useRef(false)
 
@@ -61,6 +63,9 @@ export const BatchView = () => {
   } = useBatchSources()
   const search = useSearchItems(source === 'search' ? deferredQuery : '')
   const container = useContainerItems(source, collectionKey, savedSearchKey)
+
+  // Keep Tab inside the modal: it floats over the app in an iframe.
+  useFocusTrap(containerRef)
 
   const items = source === 'search' ? search.results : container.items
   const loading =
@@ -243,7 +248,7 @@ export const BatchView = () => {
     if (error)
       return (
         <div className="batch-empty">
-          Couldn’t reach Zotero. Make sure Zotero is running.
+          Couldn't reach Zotero. Make sure Zotero is running.
         </div>
       )
     if (source === 'collection' && !collectionKey)
@@ -292,7 +297,14 @@ export const BatchView = () => {
   const activeId = activeItem ? batchOptionId(activeItem.key) : undefined
 
   return (
-    <div className="batch-container" onKeyDown={handleKeyDown}>
+    <div
+      ref={containerRef}
+      className="batch-container"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Batch import"
+      onKeyDown={handleKeyDown}
+    >
       <div className="batch-source-tabs">
         {TABS.map((tab) => {
           const TabIcon = tab.icon
