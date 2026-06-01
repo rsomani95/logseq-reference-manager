@@ -2003,6 +2003,22 @@ html[data-theme="dark"] .tagrule-select {
   text-overflow: ellipsis;
 }
 
+/* One connection block inside the Connections section — its own heading,
+   status, failure help, and test button. The section body's gap spaces the
+   Zotero and Logseq blocks apart; this tighter gap is the rhythm within one. */
+.setup-conn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.setup-conn-title {
+  margin: 0;
+  font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-semibold);
+  color: var(--zot-color-text);
+}
+
 /* Fields */
 .setup-field {
   display: flex;

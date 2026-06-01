@@ -239,9 +239,10 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
     // PDF-annotation import writes first-class highlight blocks through
     // Logseq's own build-import over the desktop HTTP API — the only path that
     // can set the closed-value `hl-color` ref and the `hl-value` map (the plugin
-    // Editor API can't). These keys configure that path; edited in the hub's
-    // Annotations section. The token is the user's Logseq "HTTP APIs Server"
-    // auth token (Settings → Features → HTTP APIs Server).
+    // Editor API can't). These keys configure that path; the token + base URL
+    // are edited in the hub's Connections section, the highlight color in
+    // Annotations. The token is the user's Logseq "HTTP APIs Server" auth token
+    // (Settings → Features → HTTP APIs Server).
     {
       key: 'logseqApiBaseUrl',
       type: 'string',

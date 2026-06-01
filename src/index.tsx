@@ -68,7 +68,7 @@ const main = async () => {
     async () => {
       if (!hasLogseqApiToken()) {
         await logseq.UI.showMsg(
-          'Set the Logseq API token in Reference Manager → Settings → Annotations before syncing.',
+          'Set the Logseq API token in Reference Manager → Settings → Connections before syncing.',
           'warning',
         )
         return

@@ -14,6 +14,7 @@ import {
 import { Fragment, useEffect, useState } from 'react'
 
 import { testZotConnection } from '../../services/get-zot-items'
+import { testLogseqApi } from '../../services/logseq-import-edn'
 import { AnnotationsSection } from './AnnotationsSection'
 import { AttachmentsSection } from './AttachmentsSection'
 import { AuthorsSection } from './AuthorsSection'
@@ -39,6 +40,11 @@ export interface ConnResult {
   msg: string
 }
 
+export interface LogseqConnResult {
+  ok: boolean
+  msg: string
+}
+
 interface NavItem {
   id: SetupSection
   label: string
@@ -53,7 +59,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { id: 'schema', label: 'Schema', icon: Database, group: 'General' },
   { id: 'authors', label: 'Authors', icon: Users, group: 'General' },
-  { id: 'connect', label: 'Connection', icon: Link2, group: 'Zotero' },
+  { id: 'connect', label: 'Connections', icon: Link2, group: 'Zotero' },
   { id: 'formats', label: 'Import Formats', icon: Type, group: 'Zotero' },
   {
     id: 'attachments',
@@ -87,36 +93,50 @@ export const SetupApp = ({
     initialSection ?? null,
   )
   const [conn, setConn] = useState<ConnResult | null>(null)
+  const [logseqConn, setLogseqConn] = useState<LogseqConnResult | null>(null)
   // All schema state (live config, applied snapshot, dirty flags, the apply /
   // delete / web-setup handlers, and the one isSchemaAdded probe) lives here.
   const schema = useSchemaState()
 
-  // Connection probe on open — the schema probe runs inside useSchemaState. A
-  // thrown probe falls back to "error" so the hub can't strand on its spinner.
+  // Connection probes on open — the schema probe runs inside useSchemaState. A
+  // thrown probe falls back to "error"/"not ok" so the hub can't strand on its
+  // spinner. Both run so the Connections tick reflects Zotero + Logseq at once.
   useEffect(() => {
     let alive = true
     void testZotConnection()
       .then((c) => alive && setConn(c))
       .catch(() => alive && setConn({ code: 'error', msg: '' }))
+    void testLogseqApi()
+      .then((r) => alive && setLogseqConn(r))
+      .catch(() => alive && setLogseqConn({ ok: false, msg: '' }))
     return () => {
       alive = false
     }
   }, [])
 
-  // Land on the first incomplete step once both probes resolve. A deep-link
+  // Land on the first incomplete step once the probes resolve. A deep-link
   // (initialSection) sets `active` up front, so this no-ops then.
   useEffect(() => {
     if (active !== null) return
-    if (conn === null || schema.schemaReady === null) return
-    if (conn.code !== 'success') setActive('connect')
-    else if (!schema.schemaReady) setActive('schema')
+    if (conn === null || logseqConn === null || schema.schemaReady === null)
+      return
+    // Land on Schema only when both connections are live but the schema isn't
+    // applied yet; otherwise start on Connections (the first thing to fix, or
+    // the default home).
+    const bothConnected = conn.code === 'success' && logseqConn.ok
+    if (bothConnected && !schema.schemaReady) setActive('schema')
     else setActive('connect')
-  }, [active, conn, schema.schemaReady])
+  }, [active, conn, logseqConn, schema.schemaReady])
 
   const complete: Record<SetupSection, boolean | null> = {
     schema: schema.schemaReady,
     authors: true,
-    connect: conn ? conn.code === 'success' : null,
+    // Both connections must be live — the tick (and the "Next:" nudge) reflect
+    // Zotero *and* Logseq's HTTP API together.
+    connect:
+      conn === null || logseqConn === null
+        ? null
+        : conn.code === 'success' && logseqConn.ok,
     formats: true,
     attachments: true,
     annotations: true,
@@ -153,13 +173,22 @@ export const SetupApp = ({
           />
         )
       case 'connect':
-        return <ConnectSection initial={conn} onResult={setConn} />
+        return (
+          <ConnectSection
+            zot={conn}
+            logseqConn={logseqConn}
+            onZotResult={setConn}
+            onLogseqResult={setLogseqConn}
+          />
+        )
       case 'formats':
         return <FormatsSection />
       case 'attachments':
         return <AttachmentsSection />
       case 'annotations':
-        return <AnnotationsSection />
+        return (
+          <AnnotationsSection onGoToConnections={() => setActive('connect')} />
+        )
       case 'tagRules':
         return <TagRulesSection />
       case 'web':

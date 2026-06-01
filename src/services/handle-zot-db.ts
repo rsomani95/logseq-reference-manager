@@ -673,7 +673,7 @@ export const handleZotInDb = async (
     if (!hasLogseqApiToken()) {
       if (navigate) {
         await logseq.UI.showMsg(
-          'Imported the page. Annotation sync needs the Logseq API token — set it in Reference Manager settings (Annotations).',
+          'Imported the page. Annotation sync needs the Logseq API token — set it in Reference Manager settings (Connections).',
           'warning',
         )
       }

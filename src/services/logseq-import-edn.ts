@@ -34,8 +34,8 @@ export const hasLogseqApiToken = (): boolean => readApiConfig().token.length > 0
 
 /**
  * Validate the configured Logseq API base URL + token with a lightweight read
- * (`getCurrentGraph`). Powers the Annotations section's "Test" button so the
- * user can confirm the write path will work before importing. Never throws.
+ * (`getCurrentGraph`). Powers the Connections section's Logseq "Test" button so
+ * the user can confirm the write path will work before importing. Never throws.
  */
 export const testLogseqApi = async (): Promise<{
   ok: boolean
@@ -93,7 +93,7 @@ export const importAnnotationRecords = async (
   const { base, token } = readApiConfig()
   if (!token) {
     throw new LogseqApiError(
-      "No Logseq API token set. In Logseq, enable Settings → Features → HTTP APIs Server, then paste its auth token into Reference Manager's Annotations settings.",
+      "No Logseq API token set. In Logseq, enable Settings → Features → HTTP APIs Server, then paste its auth token into Reference Manager's Connections settings.",
     )
   }
 
