@@ -507,3 +507,17 @@ plugin iframe (Electron renderer):
   `node:fs` / `module` imports Vite externalizes are never reached. Keep it behind
   a **dynamic `import()`** so the 10 MB chunk loads only when annotations are
   actually imported, not on every plugin start.
+
+  **Dev caveat — `optimizeDeps: { exclude: ['mupdf'] }` is required** (in
+  `vite.config.ts`). That `new URL(..., import.meta.url)` rewrite only happens in
+  the **production build**. In **dev**, Vite's esbuild dep pre-bundler bundles
+  `mupdf.js` into `node_modules/.vite/deps/` *without* the sidecar
+  `mupdf-wasm.wasm`, so the runtime fetch resolves to a missing
+  `/node_modules/.vite/deps/mupdf-wasm.wasm`, falls through to the SPA
+  `index.html`, and `WebAssembly.compile` chokes on the HTML ("expected magic
+  word 00 61 73 6d, found 3c 21 44 4f" = `<!DO…`). Excluding mupdf makes Vite
+  serve it unbundled straight from `node_modules`, where the sibling wasm
+  resolves and is served as `application/wasm`. Symptom check: a request to
+  `/node_modules/.vite/deps/mupdf-wasm.wasm` returns `text/html` (broken) vs.
+  `/node_modules/mupdf/dist/mupdf-wasm.wasm` returning `application/wasm` (the
+  excluded path). The build is unaffected either way.
