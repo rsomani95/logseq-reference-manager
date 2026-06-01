@@ -193,7 +193,10 @@ export const SetupApp = ({
         return <AttachmentsSection />
       case 'annotations':
         return (
-          <AnnotationsSection onGoToConnections={() => setActive('connect')} />
+          <AnnotationsSection
+            logseqConn={logseqConn}
+            onGoToConnections={() => setActive('connect')}
+          />
         )
       case 'tagRules':
         return <TagRulesSection />

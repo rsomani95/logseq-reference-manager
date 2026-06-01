@@ -1,7 +1,8 @@
-import { Info } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { type CSSProperties, useState } from 'react'
 
 import { hexOf, LOGSEQ_PALETTE } from '../../services/pdf-annot/colors'
+import type { LogseqConnResult } from './index'
 
 // Highlight colors Logseq supports, plus "auto" (nearest-pastel mapping from the
 // source annotation's color). Matches the `annotationColor` enum in settings.ts.
@@ -51,8 +52,12 @@ const swatchStyle = (c: ColorChoice): CSSProperties => {
 // the Connections section (the write goes through Logseq's own HTTP API); this
 // section just configures how the highlights look.
 export const AnnotationsSection = ({
+  logseqConn,
   onGoToConnections,
 }: {
+  // Last probe/test of Logseq's HTTP API (lifted in SetupApp). `null` while the
+  // probe is still in flight.
+  logseqConn: LogseqConnResult | null
   onGoToConnections: () => void
 }) => {
   const [color, setColor] = useState<ColorChoice>(
@@ -63,6 +68,11 @@ export const AnnotationsSection = ({
     setColor(v)
     void logseq.updateSettings({ annotationColor: v })
   }
+
+  // The whole write path goes through Logseq's HTTP API, so import is dead
+  // without a working token. Only nag once the probe has resolved to "not
+  // connected" — stay quiet while it's in flight (null) or live (ok).
+  const apiDown = logseqConn !== null && !logseqConn.ok
 
   return (
     <>
@@ -78,24 +88,25 @@ export const AnnotationsSection = ({
       </div>
 
       <div className="setup-section-body">
-        <div>
-          <div className="setup-status">
-            <Info size={18} aria-hidden />
+        {apiDown && (
+          <div className="setup-status is-warn">
+            <AlertTriangle size={16} aria-hidden />
             <div className="setup-status-text">
-              Annotation import needs Logseq's HTTP API.
+              Annotation import is off
               <span className="setup-status-sub">
-                Set its token under Connections to turn it on.
+                It needs Logseq's HTTP API. Set its token under Connections to
+                turn it on.
               </span>
             </div>
+            <button
+              type="button"
+              className="btn btn-white setup-gate-action"
+              onClick={onGoToConnections}
+            >
+              Go to Connections
+            </button>
           </div>
-          <button
-            type="button"
-            className="setup-help-link"
-            onClick={onGoToConnections}
-          >
-            Open Connections →
-          </button>
-        </div>
+        )}
 
         <div className="setup-field">
           <span className="setup-field-label" id="annot-color-label">
