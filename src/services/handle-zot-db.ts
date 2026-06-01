@@ -590,14 +590,19 @@ export const handleZotInDb = async (
   // paints first and the (one-time, ~10MB) mupdf load happens off the hot path.
   const annotationTargets: AssetImportArgs[] = []
 
+  // The Attachments header, if one gets created. The abstract/notes batch below
+  // anchors off it so Attachments stays on top — see that insert for why.
+  let attachmentsHeaderUuid: string | undefined
+
   if (filteredAttachments.length > 0 || externalLinksContent.length > 0) {
     const headerBlock = await logseq.Editor.insertBlock(
       existingPage.uuid,
-      attachmentsBlockName,
+      `**${attachmentsBlockName}**`,
       { sibling: false },
     )
 
     if (headerBlock) {
+      attachmentsHeaderUuid = headerBlock.uuid
       // Lead with the "open externally" links so they sit directly under the
       // heading, above the attachment block(s). Children render in insertion
       // order, so this block has to be inserted before the loop below.
@@ -661,8 +666,23 @@ export const handleZotInDb = async (
     glossaryBatchBlk = [...glossaryBatchBlk, ...htmlBlk]
   }
 
-  if (glossaryBatchBlk.length > 0)
-    await logseq.Editor.insertBatchBlock(existingPage.uuid, glossaryBatchBlk)
+  if (glossaryBatchBlk.length > 0) {
+    // insertBatchBlock on a page prepends, which would push the abstract/notes
+    // above the Attachments block. When that block exists, anchor the batch as
+    // a sibling right after it so Attachments stays on top; otherwise fall back
+    // to the page (nothing above it to fight with).
+    if (attachmentsHeaderUuid) {
+      // Lead with a blank block — a visual break, and a ready writing line,
+      // between the Attachments section and the abstract/notes.
+      await logseq.Editor.insertBatchBlock(
+        attachmentsHeaderUuid,
+        [{ content: '' }, ...glossaryBatchBlk],
+        { sibling: true },
+      )
+    } else {
+      await logseq.Editor.insertBatchBlock(existingPage.uuid, glossaryBatchBlk)
+    }
+  }
 
   // The page is fully built — navigate to it now. Deferring the redirect to
   // here (createPage above uses redirect:false) means a single-item insert
