@@ -9,6 +9,12 @@ export const ZOTERO_ATTACHMENT_KEY_PROP = `${ZOTERO_PROP}/zotero-attachment-key`
 export const ZOT_URL = 'http://127.0.0.1:23119/api/users/0'
 export const ZOTERO_LIBRARY_ITEM = 'zotero://select/library/items?itemKey='
 
+// Default base reference tag every imported page carries (the `zotTag` setting's
+// fallback). Single-sourced here — consumers read `logseq.settings?.zotTag ??
+// ZOT_TAG_DEFAULT` — so the import + query flow doesn't depend on a 'Reference'
+// literal scattered across files. Mirrors the schema default in `settings.ts`.
+export const ZOT_TAG_DEFAULT = 'Reference'
+
 // Logseq's desktop HTTP API server (Settings → Features → HTTP APIs Server).
 // The annotation write path POSTs a Transit-encoded sqlite.build payload to
 // `${base}/api` (method `logseq.cli.import_edn`) — the only route that can write

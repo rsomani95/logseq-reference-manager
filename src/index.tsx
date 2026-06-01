@@ -4,7 +4,7 @@ import { BlockCursorPosition, BlockEntity } from '@logseq/libs/dist/LSPlugin'
 import { createRoot } from 'react-dom/client'
 
 import { BatchContainer } from './BatchContainer'
-import { PLUGIN_ID } from './constants'
+import { PLUGIN_ID, ZOT_TAG_DEFAULT } from './constants'
 import { handlePopup } from './handle-popup'
 import { QUERY_ALL_ZOT_PAGES } from './queries'
 import { SetupContainer } from './SetupContainer'
@@ -74,7 +74,7 @@ const main = async () => {
         return
       }
       // Track the configured base tag, not a hardcoded name (see queries.ts).
-      const zotTag = (logseq.settings?.zotTag as string) ?? 'Reference'
+      const zotTag = (logseq.settings?.zotTag as string) ?? ZOT_TAG_DEFAULT
       const allZoteroPages: BlockEntity[][] = await logseq.DB.datascriptQuery(
         QUERY_ALL_ZOT_PAGES,
         JSON.stringify(zotTag),

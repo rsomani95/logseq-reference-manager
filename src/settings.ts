@@ -6,6 +6,7 @@ import {
   PROP_DISPLAY_NAMES,
   PROP_PRESET_ESSENTIALS,
   ZOT_DATA_KEY_MAP,
+  ZOT_TAG_DEFAULT,
 } from './constants'
 import { PropertyPreset } from './interfaces'
 import { formatPagePropChoice } from './services/page-props-choice'
@@ -130,7 +131,7 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       title: 'Base reference tag',
       description:
         'The shared base tag every reference page carries. Web clips extend it, so it owns the schema.',
-      default: 'Reference',
+      default: ZOT_TAG_DEFAULT,
     },
     {
       key: 'propertyPreset',

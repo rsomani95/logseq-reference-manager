@@ -1,3 +1,4 @@
+import { ZOT_TAG_DEFAULT } from '../constants'
 import type { PropertyPreset } from '../interfaces'
 
 /**
@@ -35,7 +36,7 @@ const SNAPSHOT_KEY = 'appliedSchema'
 export const currentSchemaConfig = (): SchemaSnapshot => {
   const s = (logseq.settings ?? {}) as Record<string, unknown>
   return {
-    zotTag: (s.zotTag as string) ?? 'Reference',
+    zotTag: (s.zotTag as string) ?? ZOT_TAG_DEFAULT,
     propertyPreset: (s.propertyPreset as PropertyPreset) ?? 'Essentials',
     pageProps: Array.isArray(s.pageProps) ? [...(s.pageProps as string[])] : [],
     creatorsAsNodes: (s.creatorsAsNodes as boolean) ?? true,

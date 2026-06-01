@@ -1,4 +1,4 @@
-import { PLUGIN_ID, ZOTERO_CODE_PROP } from '../constants'
+import { PLUGIN_ID, ZOT_TAG_DEFAULT, ZOTERO_CODE_PROP } from '../constants'
 import { ZotData } from '../interfaces'
 import { QUERY_ALL_ZOT_PAGES } from '../queries'
 
@@ -55,9 +55,14 @@ export const buildZoteroCodeIndex = async (): Promise<
 > => {
   const index = new Map<string, ZoteroCodedPage>()
 
+  // QUERY_ALL_ZOT_PAGES is `:in $ ?tag` — the configured base tag must be passed
+  // as a query input or datascript throws "Too few inputs passed". Track the
+  // setting, not a hardcoded name (see queries.ts / the Sync-all path).
+  const zotTag = (logseq.settings?.zotTag as string) ?? ZOT_TAG_DEFAULT
+
   try {
     const [taggedRaw, recycledRaw] = await Promise.all([
-      logseq.DB.datascriptQuery(QUERY_ALL_ZOT_PAGES),
+      logseq.DB.datascriptQuery(QUERY_ALL_ZOT_PAGES, JSON.stringify(zotTag)),
       logseq.DB.datascriptQuery(QUERY_RECYCLED_PAGE_UUIDS),
     ])
 

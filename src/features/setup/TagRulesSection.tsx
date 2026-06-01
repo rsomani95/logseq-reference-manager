@@ -1,6 +1,7 @@
 import { Plus, Tags } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { ZOT_TAG_DEFAULT } from '../../constants'
 import {
   type DraftRule,
   emptyDraftRule,
@@ -17,7 +18,7 @@ import { RuleCard } from '../tag-rules/RuleCard'
 // Saving persists to the `tagRules` setting and shows an inline tick instead of
 // closing the window, so the user can keep editing other sections.
 export const TagRulesSection = () => {
-  const baseTag = (logseq.settings?.zotTag as string) ?? 'Reference'
+  const baseTag = (logseq.settings?.zotTag as string) ?? ZOT_TAG_DEFAULT
 
   const [drafts, setDrafts] = useState<DraftRule[]>(() =>
     rulesToDrafts(getConfiguredTagRules()),
