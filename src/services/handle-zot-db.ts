@@ -678,9 +678,20 @@ export const handleZotInDb = async (
         )
       }
     } else {
+      // Fold each PDF block once its highlights land (opt-out via setting) so a
+      // freshly imported page reads clean — they tuck under the PDF's
+      // expandable line, count badge still showing. Only here, on first import;
+      // Sync leaves the fold state alone so it never undoes a manual expand. A
+      // childless block would just show an empty toggle, so gate on count > 0.
+      const collapse = logseq.settings?.annotationCollapseOnImport !== false
       for (const target of annotationTargets) {
         try {
-          await importAnnotationsForAsset(target)
+          const { count } = await importAnnotationsForAsset(target)
+          if (collapse && count > 0) {
+            await logseq.Editor.setBlockCollapsed(target.assetUuid, {
+              flag: true,
+            })
+          }
         } catch (e) {
           console.warn(`[annotations] import failed for ${target.absPath}:`, e)
         }

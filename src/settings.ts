@@ -85,6 +85,7 @@ const HIDDEN_KEYS = [
   'annotationColorMarkup',
   'annotationColorText',
   'annotationColorNote',
+  'annotationCollapseOnImport',
   'webTag',
   'webCapturePageContent',
   'webPageContentBlockName',
@@ -293,6 +294,17 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       enumPicker: 'select' as const,
       enumChoices: [...ANNOTATION_COLOR_CHOICES],
     })),
+    // On a fresh import, fold each PDF asset block once its highlights land so
+    // the page reads clean (the highlights are children of that block). Read in
+    // handle-zot-db.ts; only on import, never on re-sync (which would undo a
+    // manual expand). Edited in the hub's Annotations section.
+    {
+      key: 'annotationCollapseOnImport',
+      type: 'boolean',
+      title: 'Collapse Highlights On Import',
+      description: '',
+      default: true,
+    },
     // ─── Web references ────────────────────────────────────────────────────
     // Read over the HTTP API by the companion web-clipper extension (it reads
     // the live store; it cannot write these). Edited in the hub's Web

@@ -53,6 +53,7 @@ all real configuration lives in the plugin's own modal.
 | `annotationColorMarkup` | enum `auto\|yellow\|red\|green\|blue\|purple` | `auto` | Annotations | `import-annotations` (color for the markup category — Highlight/Underline/StrikeOut/Squiggly; only when per-type) |
 | `annotationColorText` | enum `auto\|yellow\|red\|green\|blue\|purple` | `auto` | Annotations | `import-annotations` (color for on-page text — FreeText/Zotero `text`; only when per-type) |
 | `annotationColorNote` | enum `auto\|yellow\|red\|green\|blue\|purple` | `auto` | Annotations | `import-annotations` (color for sticky notes — PDF `Text`/Zotero `note`; only when per-type) |
+| `annotationCollapseOnImport` | boolean | `true` | Annotations | `handle-zot-db` (`setBlockCollapsed` on each PDF asset block after its highlights land — first import only, never on re-sync) |
 | `tagRules` | JSON string (array of `TagRule`) | empty | Tag rules | `getConfiguredTagRules`; watched by `watch-tag-rules` |
 | `appliedSchema` | JSON string (`SchemaSnapshot`) | empty | (internal — written by Apply / Set up web tag) | `use-schema-state` for the dirty diff (`schema-snapshot.ts`) |
 | `webTag` | string | `Web` | Web references | `set-web-schema` (extends base); **web-clipper extension** (clip tag) |
@@ -180,6 +181,14 @@ import). `import-annotations.ts` reads these and passes `convert()` /
 meaning "infer for this category". The category list + labels are single-sourced
 as `ANNOTATION_COLOR_TARGETS` in `constants.ts`, shared by the schema, the swatch
 UI, and the resolver.
+
+**Collapse on import.** `annotationCollapseOnImport` (default on) folds each PDF
+asset block right after its highlights land, so a freshly imported page reads
+clean — the highlights tuck under the PDF's expandable line (its count badge
+stays visible). `handle-zot-db.ts` does this via `logseq.Editor.setBlockCollapsed`
+on the asset uuid, gated on a non-zero annotation count (a childless block would
+just show an empty toggle). Deliberately **import-only**: `Sync annotations`
+never touches the fold state, so re-syncing won't undo a manual expand.
 
 ## Setup hub
 

@@ -103,6 +103,11 @@ export const AnnotationsSection = ({
     }
     return init
   })
+  // Fold the PDF block on import so its highlights start tucked away (default
+  // on). Only affects the initial import; re-sync leaves the fold state alone.
+  const [collapse, setCollapse] = useState<boolean>(
+    logseq.settings?.annotationCollapseOnImport !== false,
+  )
 
   const onColor = (v: ColorChoice) => {
     setColor(v)
@@ -115,6 +120,10 @@ export const AnnotationsSection = ({
   const onByType = (key: string, v: ColorChoice) => {
     setByType((m) => ({ ...m, [key]: v }))
     void logseq.updateSettings({ [key]: v })
+  }
+  const onCollapse = (v: boolean) => {
+    setCollapse(v)
+    void logseq.updateSettings({ annotationCollapseOnImport: v })
   }
 
   // The whole write path goes through Logseq's HTTP API, so import is dead
@@ -238,6 +247,22 @@ export const AnnotationsSection = ({
               ))}
             </div>
           )}
+        </div>
+
+        <div className="setup-field">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={collapse}
+              onChange={(e) => onCollapse(e.target.checked)}
+            />
+            Collapse highlights on import
+          </label>
+          <p className="setup-field-hint">
+            Fold the PDF block after importing so its highlights start tucked
+            away. The count stays visible; expand the PDF to read them. Only
+            applies on import, not when you re-sync.
+          </p>
         </div>
       </div>
     </>
