@@ -1,6 +1,8 @@
 import { SettingSchemaDesc } from '@logseq/libs/dist/LSPlugin.user'
 
 import {
+  ANNOTATION_COLOR_CHOICES,
+  ANNOTATION_COLOR_TARGETS,
   LOGSEQ_API_BASE_DEFAULT,
   PLUGIN_ID,
   PROP_DISPLAY_NAMES,
@@ -79,6 +81,10 @@ const HIDDEN_KEYS = [
   'logseqApiBaseUrl',
   'logseqApiToken',
   'annotationColor',
+  'annotationColorPerType',
+  'annotationColorMarkup',
+  'annotationColorText',
+  'annotationColorNote',
   'webTag',
   'webCapturePageContent',
   'webPageContentBlockName',
@@ -265,8 +271,28 @@ export const handleSettings = (opts: { msg?: string } = {}) => {
       description: '',
       default: 'auto',
       enumPicker: 'select',
-      enumChoices: ['auto', 'yellow', 'red', 'green', 'blue', 'purple'],
+      enumChoices: [...ANNOTATION_COLOR_CHOICES],
     },
+    // Opt-in per-type colors. When `annotationColorPerType` is on, the three
+    // category keys below (markup / text / note — exhaustive over what we
+    // import) replace the single `annotationColor`. All seeded to 'auto' so
+    // turning the toggle on changes nothing until a color is picked.
+    {
+      key: 'annotationColorPerType',
+      type: 'boolean',
+      title: 'Set Annotation Color Per Type',
+      description: '',
+      default: false,
+    },
+    ...ANNOTATION_COLOR_TARGETS.map((t) => ({
+      key: t.key,
+      type: 'enum' as const,
+      title: t.label,
+      description: '',
+      default: 'auto',
+      enumPicker: 'select' as const,
+      enumChoices: [...ANNOTATION_COLOR_CHOICES],
+    })),
     // ─── Web references ────────────────────────────────────────────────────
     // Read over the HTTP API by the companion web-clipper extension (it reads
     // the live store; it cannot write these). Edited in the hub's Web

@@ -23,10 +23,11 @@
  * the first time annotations are actually imported, not on every plugin start.
  */
 
+import { ANNOTATION_COLOR_TARGETS } from '../constants'
 import { findPdfAssetsForPage } from './find-pdf-asset'
 import { getRawAnnotationsForAttachment } from './get-zot-items'
 import { importAnnotationRecords } from './logseq-import-edn'
-import type { ColorName } from './pdf-annot/types'
+import type { ColorByType, ColorName } from './pdf-annot/types'
 import { readPdfBytes } from './read-pdf-bytes'
 
 export interface AnnotImportResult {
@@ -35,11 +36,33 @@ export interface AnnotImportResult {
   count: number
 }
 
-/** Optional forced highlight color from settings; null = nearest-pastel mapping. */
-const colorOverride = (): ColorName | null => {
-  const c = (logseq.settings?.annotationColor as string | undefined)?.trim()
-  const valid = ['yellow', 'red', 'green', 'blue', 'purple']
-  return c && valid.includes(c) ? (c as ColorName) : null
+const VALID_COLORS: ColorName[] = ['yellow', 'red', 'green', 'blue', 'purple']
+
+/** Parse a stored color setting → a forced ColorName, or null for "auto"/unset. */
+const parseColorSetting = (key: string): ColorName | null => {
+  const c = (logseq.settings?.[key] as string | undefined)?.trim()
+  return c && VALID_COLORS.includes(c as ColorName) ? (c as ColorName) : null
+}
+
+/**
+ * Resolve the highlight-color options from settings. With the per-type toggle
+ * (`annotationColorPerType`) off, a single flat `color` applies to every mark
+ * (the original behavior). With it on, `colorByType` forces a color per category
+ * (markup / text / note) and the flat color is dropped — the three categories
+ * cover everything we import, so they fully replace it.
+ */
+const colorOptions = (): {
+  color: ColorName | null
+  colorByType: ColorByType | null
+} => {
+  if (logseq.settings?.annotationColorPerType === true) {
+    const colorByType: ColorByType = {}
+    for (const t of ANNOTATION_COLOR_TARGETS) {
+      colorByType[t.category] = parseColorSetting(t.key)
+    }
+    return { color: null, colorByType }
+  }
+  return { color: parseColorSetting('annotationColor'), colorByType: null }
 }
 
 export interface AssetImportArgs {
@@ -60,7 +83,7 @@ export const importAnnotationsForAsset = async (
   const bytes = await readPdfBytes(absPath)
 
   const pa = await import('./pdf-annot')
-  const color = colorOverride()
+  const { color, colorByType } = colorOptions()
 
   // PDF-native first: convert whatever the file carries and decide on the
   // *records* it yields. A file with only ink / stamps / form-field widgets (or
@@ -70,6 +93,7 @@ export const importAnnotationsForAsset = async (
     assetUuid,
     assetTitle: pageTitle,
     color,
+    colorByType,
   })
   if (pdfConv.records.length > 0) {
     await importAnnotationRecords(pdfConv.records, assetUuid, pageTitle)
@@ -86,7 +110,7 @@ export const importAnnotationsForAsset = async (
   const conv = pa.convertZoteroAnnotations(
     annotations,
     pa.pageGeometriesFromBytes(bytes),
-    { assetUuid, assetTitle: pageTitle, libraryID, color },
+    { assetUuid, assetTitle: pageTitle, libraryID, color, colorByType },
   )
   await importAnnotationRecords(conv.records, assetUuid, pageTitle)
   return { source: 'zotero', count: conv.records.length }

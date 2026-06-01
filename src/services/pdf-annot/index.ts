@@ -24,12 +24,15 @@ export {
 } from './colors'
 export {
   buildRecord,
+  categoryForSubtype,
   convert,
   DEFAULT_ASSET_UUID,
   MARKUP_SUBTYPES,
   NOTE_SUBTYPES,
   pageMetaFor,
   pickUuid,
+  resolveColor,
+  validateColorByType,
 } from './convert'
 export {
   ednAnnotationBlock,
@@ -58,6 +61,8 @@ export { pageGeometriesFromBytes } from './pdf-pages'
 export type {
   AnnotationGeometry,
   AnnotationRecord,
+  AnnotCategory,
+  ColorByType,
   ColorInfo,
   ColorName,
   ConvertedRecord,

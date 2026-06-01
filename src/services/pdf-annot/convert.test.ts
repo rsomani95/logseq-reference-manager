@@ -18,7 +18,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { convert } from './convert'
+import { categoryForSubtype, convert } from './convert'
 import type { ConvertResult, ExtractResult, PageGeom } from './types'
 import { describe, expect, test } from 'bun:test'
 
@@ -127,6 +127,66 @@ describe('convert() forced flat color', () => {
     expect(() =>
       // @ts-expect-error — "orange" is not a valid ColorName / DB_IDENT key.
       convert(extractResult, { color: 'orange' }),
+    ).toThrow()
+  })
+})
+
+describe('convert() per-category color (colorByType)', () => {
+  // This fixture carries all three categories: Underline + Highlight (markup),
+  // FreeText (text), and a Text note (note).
+  const STEM = 'xu-et_al_2025_qwen3-omni_technical_report__pdf-expert'
+  const ASSET = '11111111-1111-4111-8111-111111111111'
+
+  test('forces a color per category; an "auto" (null) category stays inferred', () => {
+    const extractResult = loadExtractResult(STEM)
+    const baseline = convert(extractResult, {
+      assetUuid: ASSET,
+      assetTitle: STEM,
+    })
+    const result = convert(extractResult, {
+      assetUuid: ASSET,
+      assetTitle: STEM,
+      colorByType: { markup: 'green', text: 'blue', note: null },
+    })
+
+    const byCat = (cr: ConvertResult, c: string) =>
+      cr.records.filter((r) => categoryForSubtype(r.pdf_subtype) === c)
+
+    // All three categories are present, so each assertion below is meaningful.
+    expect(byCat(result, 'markup').length).toBeGreaterThan(0)
+    expect(byCat(result, 'text').length).toBeGreaterThan(0)
+    expect(byCat(result, 'note').length).toBeGreaterThan(0)
+
+    for (const r of byCat(result, 'markup')) expect(r.color_name).toBe('green')
+    for (const r of byCat(result, 'text')) expect(r.color_name).toBe('blue')
+    // note: null = infer from the source mark, exactly as with no override.
+    expect(byCat(result, 'note').map((r) => r.color_name)).toEqual(
+      byCat(baseline, 'note').map((r) => r.color_name),
+    )
+  })
+
+  test('a per-category override wins over the flat color; unset categories fall back', () => {
+    const result = convert(loadExtractResult(STEM), {
+      assetUuid: ASSET,
+      assetTitle: STEM,
+      color: 'purple',
+      colorByType: { markup: 'green' },
+    })
+    for (const r of result.records) {
+      if (categoryForSubtype(r.pdf_subtype) === 'markup') {
+        expect(r.color_name).toBe('green')
+      } else {
+        expect(r.color_name).toBe('purple')
+      }
+    }
+  })
+
+  test('an invalid colorByType color throws', () => {
+    expect(() =>
+      convert(loadExtractResult(STEM), {
+        // @ts-expect-error — "orange" is not a valid ColorName.
+        colorByType: { markup: 'orange' },
+      }),
     ).toThrow()
   })
 })

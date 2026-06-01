@@ -2056,19 +2056,18 @@ html[data-theme="dark"] .tagrule-select {
   margin-top: 0.15rem;
 }
 
-.annot-color-opt {
+/* Shared swatch option: an invisible radio overlaying a color dot. Used by the
+   single-row picker (.annot-color-opt, a swatch over its name) and the per-type
+   table's cells (.annot-color-cell, swatch only). The :has() states — hover hint,
+   selected halo, focus ring — live here so both layouts share them. */
+.annot-swatch-opt {
   position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
   cursor: pointer;
-  user-select: none;
 }
 
 /* Radio overlays the whole option so a click anywhere selects it; invisible
-   because the swatch + label are the visible control. */
-.annot-color-opt input {
+   because the swatch (+ optional name) is the visible control. */
+.annot-swatch-opt input {
   position: absolute;
   inset: 0;
   margin: 0;
@@ -2095,32 +2094,40 @@ html[data-theme="dark"] .tagrule-select {
 }
 
 /* Hover (unselected only): a faint accent ring hints the target. */
-.annot-color-opt:not(:has(input:checked)):hover .annot-color-swatch {
+.annot-swatch-opt:not(:has(input:checked)):hover .annot-color-swatch {
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--zot-color-text) 16%, transparent),
     0 0 0 2px var(--zot-color-bg),
     0 0 0 3px color-mix(in srgb, var(--zot-color-accent-host) 45%, transparent);
 }
 
-/* Selected: a full accent halo (gap ring) around the swatch + the name lifts to
-   the host accent. Mirrors .tagrule-seg's accent-on-surface selected state —
-   never a fill, so it reads in either theme. */
-.annot-color-opt:has(input:checked) .annot-color-swatch {
+/* Selected: a full accent halo (gap ring) around the swatch. Never a fill, so it
+   reads in either theme (mirrors .tagrule-seg's accent-on-surface selected). */
+.annot-swatch-opt:has(input:checked) .annot-color-swatch {
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--zot-color-text) 16%, transparent),
     0 0 0 2px var(--zot-color-bg),
     0 0 0 4px var(--zot-color-accent-host);
 }
 
+/* Keyboard focus rides just outside the selected halo so the two never merge. */
+.annot-swatch-opt:has(input:focus-visible) .annot-color-swatch {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 6px;
+}
+
+/* Single-row picker (per-type off): each swatch stacked over its color name. */
+.annot-color-opt {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  user-select: none;
+}
+
 .annot-color-opt:has(input:checked) .annot-color-name {
   color: var(--zot-color-accent-host);
   font-weight: var(--zot-weight-medium);
-}
-
-/* Keyboard focus rides just outside the selected halo so the two never merge. */
-.annot-color-opt:has(input:focus-visible) .annot-color-swatch {
-  outline: 2px solid var(--zot-color-accent-host);
-  outline-offset: 6px;
 }
 
 /* Touch: larger swatches for a comfortable tap target. */
@@ -2129,6 +2136,54 @@ html[data-theme="dark"] .tagrule-select {
     width: 1.6rem;
     height: 1.6rem;
   }
+}
+
+/* Opt-in "color per annotation type": the toggle sits a touch below the single
+   swatch + hint. */
+.annot-color-toggle {
+  margin-top: 0.5rem;
+}
+
+/* Per-type colors as a compact table: color names as column headers (shown
+   once), one row per annotation category, swatches aligned in their columns.
+   Hangs off a hairline rail so it reads as a sub-setting of the toggle — a rail,
+   not a heavy container, so the surface stays the page bg. */
+.annot-color-table {
+  display: grid;
+  grid-template-columns: auto repeat(6, minmax(2.4rem, max-content));
+  align-items: center;
+  gap: 0.65rem 0.7rem;
+  width: max-content;
+  max-width: 100%;
+  margin-top: 0.85rem;
+  padding-left: 0.9rem;
+  border-left: 1px solid var(--zot-color-border);
+}
+
+/* The per-category radiogroup spans a grid row without breaking column
+   alignment: its label + swatch cells become direct grid items. */
+.annot-color-row {
+  display: contents;
+}
+
+.annot-color-col-head {
+  justify-self: center;
+  font-size: var(--zot-text-sm);
+  line-height: var(--zot-leading-none);
+  color: var(--zot-color-text-muted);
+}
+
+.annot-color-row-label {
+  justify-self: start;
+  padding-right: 0.6rem;
+  font-size: var(--zot-text-base);
+  font-weight: var(--zot-weight-medium);
+  color: var(--zot-color-text);
+}
+
+.annot-color-cell {
+  display: inline-flex;
+  justify-self: center;
 }
 
 /* Page template — a reorderable list of the section blocks the web clipper

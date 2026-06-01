@@ -29,9 +29,15 @@
  * annotations plus page geometry (see pdf-pages.ts) and returns a ConvertResult.
  */
 import { colorFromCss, DB_IDENT, mapColor } from './colors'
-import { DEFAULT_ASSET_UUID } from './convert'
+import {
+  DEFAULT_ASSET_UUID,
+  resolveColor,
+  validateColorByType,
+} from './convert'
 import { bounding, flipRect, quadStoredRects, toStored } from './geometry'
 import type {
+  AnnotCategory,
+  ColorByType,
   ColorName,
   ConvertedRecord,
   ConvertResult,
@@ -83,6 +89,8 @@ export interface ZoteroConvertOptions {
   assetTitle?: string
   /** Force one flat highlight color for every record (else map from annotationColor). */
   color?: ColorName | null
+  /** Per-category color override (markup / text / note); wins over `color`. */
+  colorByType?: ColorByType | null
   /** Zotero library id — combined with the annotation key for stable uuids. */
   libraryID?: number | string
 }
@@ -90,8 +98,8 @@ export interface ZoteroConvertOptions {
 // highlight/underline → a text-highlight band over the rects.
 const MARKUP_TYPES = new Set<ZoteroAnnotationType>(['highlight', 'underline'])
 // note (sticky) / text (typed box) → a text-highlight anchored at the box; the
-// note's content is the user's comment.
-const _NOTE_TYPES = new Set<ZoteroAnnotationType>(['note', 'text'])
+// note's content is the user's comment. (Bucketed for per-category color:
+// `text` → the 'text' category, `note` → the 'note' category; see buildZoteroRecord.)
 // image (area) and ink have no Logseq text-highlight equivalent — an area
 // highlight is a cropped-region image (a different construct that needs the PNG
 // crop path, not built here). Skipped with a warning, like convert.ts does for
@@ -167,6 +175,7 @@ function buildZoteroRecord(
   pageMeta: Record<string, PageGeom>,
   libraryID: number | string,
   forceColor: ColorName | null,
+  forceColorByType: ColorByType | null,
   status: ConvertStatus,
   globalIndex: number,
 ): ConvertedRecord | null {
@@ -217,15 +226,18 @@ function buildZoteroRecord(
   let rects: StoredRect[]
   let text: string
   let comment = ''
+  let category: AnnotCategory
   if (MARKUP_TYPES.has(t)) {
+    category = 'markup'
     // Each rect (PDF y-up) → fitz (y-down) → stored; sort top-then-left.
     const fitz = pos.rects.map((r) => flipRect(r, pageH, cx0, cy0))
     rects = quadStoredRects(fitz, pageW, pageH)
     text = d.annotationText ?? ''
     comment = (d.annotationComment ?? '').trim()
   } else {
-    // note / text: the single rect is the anchor box; the note's body IS the
-    // user's comment (there is no covered text to title it with).
+    // note (sticky pin) / text (typed box): the single rect is the anchor box;
+    // the note's body IS the user's comment (no covered text to title it with).
+    category = t === 'text' ? 'text' : 'note'
     const fitz = flipRect(pos.rects[0]!, pageH, cx0, cy0)
     rects = [toStored(fitz, pageW, pageH)]
     text = (d.annotationComment ?? '').trim() || (d.annotationText ?? '')
@@ -238,9 +250,10 @@ function buildZoteroRecord(
 
   let colorName: ColorName
   let colorIdent: string
-  if (forceColor) {
-    colorName = forceColor
-    colorIdent = DB_IDENT[forceColor]
+  const forced = resolveColor(category, forceColor, forceColorByType)
+  if (forced) {
+    colorName = forced
+    colorIdent = DB_IDENT[forced]
   } else {
     ;[colorName, colorIdent] = mapColor(colorFromCss(d.annotationColor ?? null))
   }
@@ -292,6 +305,7 @@ function buildZoteroRecord(
  *
  * `opts.color`, if given (a DB_IDENT key), forces a single flat highlight color;
  * otherwise each color is mapped from the annotation's `annotationColor`.
+ * `opts.colorByType` overrides that per category (markup / text / note).
  * `opts.libraryID` should be the Zotero library id so block uuids are stable.
  */
 export function convertZoteroAnnotations(
@@ -302,6 +316,7 @@ export function convertZoteroAnnotations(
   const assetUuid = opts.assetUuid ?? DEFAULT_ASSET_UUID
   const assetTitle = opts.assetTitle ?? 'document'
   const forceColor = opts.color ?? null
+  const forceColorByType = opts.colorByType ?? null
   const libraryID = opts.libraryID ?? 0
 
   if (forceColor !== null && !(forceColor in DB_IDENT)) {
@@ -310,6 +325,7 @@ export function convertZoteroAnnotations(
         JSON.stringify(Object.keys(DB_IDENT).sort()),
     )
   }
+  validateColorByType(forceColorByType)
 
   const status: ConvertStatus = {
     skipped_links: 0,
@@ -328,6 +344,7 @@ export function convertZoteroAnnotations(
       pageMeta,
       libraryID,
       forceColor,
+      forceColorByType,
       status,
       gi,
     )

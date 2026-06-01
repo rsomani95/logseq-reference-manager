@@ -14,6 +14,23 @@ export type RGB = [number, number, number]
 /** Logseq's five fixed highlight colors. */
 export type ColorName = 'yellow' | 'red' | 'green' | 'blue' | 'purple'
 
+/**
+ * The kind of mark, for per-category color overrides. Exhaustive over
+ * everything we convert into a highlight block:
+ *   - `markup` — band over text: Highlight / Underline / StrikeOut / Squiggly
+ *     (PDF), highlight / underline (Zotero).
+ *   - `text`   — free text typed onto the page: FreeText (PDF), text (Zotero).
+ *   - `note`   — the sticky-note pin: Text (PDF), note (Zotero).
+ */
+export type AnnotCategory = 'markup' | 'text' | 'note'
+
+/**
+ * Optional per-category forced color. A present key forces that category's color
+ * (or `null` = infer from the source mark); an absent key falls back to the flat
+ * `color`. See `resolveColor` in convert.ts.
+ */
+export type ColorByType = Partial<Record<AnnotCategory, ColorName | null>>
+
 // ---------------------------------------------------------------------------
 // extract.ts output
 // ---------------------------------------------------------------------------

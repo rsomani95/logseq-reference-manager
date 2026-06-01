@@ -1,30 +1,18 @@
 import { AlertTriangle } from 'lucide-react'
 import { type CSSProperties, useState } from 'react'
 
+import {
+  ANNOTATION_COLOR_CHOICES,
+  ANNOTATION_COLOR_TARGETS,
+  type AnnotationColorChoice,
+} from '../../constants'
 import { hexOf, LOGSEQ_PALETTE } from '../../services/pdf-annot/colors'
 import type { LogseqConnResult } from './index'
 
-// Highlight colors Logseq supports, plus "auto" (nearest-pastel mapping from the
-// source annotation's color). Matches the `annotationColor` enum in settings.ts.
-const COLOR_CHOICES = [
-  'auto',
-  'yellow',
-  'red',
-  'green',
-  'blue',
-  'purple',
-] as const
-type ColorChoice = (typeof COLOR_CHOICES)[number]
+type ColorChoice = AnnotationColorChoice
 
-// Capitalised display names; the stored setting value stays lowercase.
-const COLOR_LABELS: Record<ColorChoice, string> = {
-  auto: 'Auto',
-  yellow: 'Yellow',
-  red: 'Red',
-  green: 'Green',
-  blue: 'Blue',
-  purple: 'Purple',
-}
+// Capitalised display name; the stored setting value stays lowercase.
+const label = (c: ColorChoice) => c.charAt(0).toUpperCase() + c.slice(1)
 
 // Each swatch is painted from Logseq's real fixed highlight palette
 // (LOGSEQ_PALETTE), so the dot is exactly the color the highlight will take.
@@ -45,12 +33,52 @@ const swatchStyle = (c: ColorChoice): CSSProperties => {
   return { background: hexOf(LOGSEQ_PALETTE[c]) ?? undefined }
 }
 
+// The swatch row: a radiogroup of color dots (auto + Logseq's five). The hidden
+// native radio carries semantics + arrow-key nav; the swatch + label carry the
+// look. `name` must be unique per row so independent rows don't share a group.
+const ColorPicker = ({
+  value,
+  onChange,
+  name,
+  labelId,
+}: {
+  value: ColorChoice
+  onChange: (v: ColorChoice) => void
+  name: string
+  labelId: string
+}) => (
+  <div
+    className="annot-color-picker"
+    role="radiogroup"
+    aria-labelledby={labelId}
+  >
+    {ANNOTATION_COLOR_CHOICES.map((c) => (
+      <label key={c} className="annot-color-opt annot-swatch-opt">
+        <input
+          type="radio"
+          name={name}
+          value={c}
+          checked={value === c}
+          onChange={() => onChange(c)}
+        />
+        <span
+          className="annot-color-swatch"
+          style={swatchStyle(c)}
+          aria-hidden="true"
+        />
+        <span className="annot-color-name">{label(c)}</span>
+      </label>
+    ))}
+  </div>
+)
+
 // PDF-annotation import. Highlights you made in an external app (Preview / PDF
 // Expert / …) are read straight from the file; a PDF annotated only inside
 // Zotero falls back to Zotero's database. Either way the marks become
 // first-class Logseq highlight blocks. The enabling Logseq API token lives in
 // the Connections section (the write goes through Logseq's own HTTP API); this
-// section just configures how the highlights look.
+// section just configures how the highlights look — one color for all marks, or
+// (opt-in) a color per annotation type.
 export const AnnotationsSection = ({
   logseqConn,
   onGoToConnections,
@@ -63,10 +91,30 @@ export const AnnotationsSection = ({
   const [color, setColor] = useState<ColorChoice>(
     (logseq.settings?.annotationColor as ColorChoice) ?? 'auto',
   )
+  const [perType, setPerType] = useState<boolean>(
+    (logseq.settings?.annotationColorPerType as boolean) ?? false,
+  )
+  // One stored color per category target (markup / text / note), keyed by the
+  // target's setting key.
+  const [byType, setByType] = useState<Record<string, ColorChoice>>(() => {
+    const init: Record<string, ColorChoice> = {}
+    for (const t of ANNOTATION_COLOR_TARGETS) {
+      init[t.key] = (logseq.settings?.[t.key] as ColorChoice) ?? 'auto'
+    }
+    return init
+  })
 
   const onColor = (v: ColorChoice) => {
     setColor(v)
     void logseq.updateSettings({ annotationColor: v })
+  }
+  const onPerType = (v: boolean) => {
+    setPerType(v)
+    void logseq.updateSettings({ annotationColorPerType: v })
+  }
+  const onByType = (key: string, v: ColorChoice) => {
+    setByType((m) => ({ ...m, [key]: v }))
+    void logseq.updateSettings({ [key]: v })
   }
 
   // The whole write path goes through Logseq's HTTP API, so import is dead
@@ -112,34 +160,84 @@ export const AnnotationsSection = ({
           <span className="setup-field-label" id="annot-color-label">
             Highlight color
           </span>
-          <div
-            className="annot-color-picker"
-            role="radiogroup"
-            aria-labelledby="annot-color-label"
-          >
-            {COLOR_CHOICES.map((c) => (
-              <label key={c} className="annot-color-opt">
-                <input
-                  type="radio"
-                  name="annot-color"
-                  value={c}
-                  checked={color === c}
-                  onChange={() => onColor(c)}
-                />
-                <span
-                  className="annot-color-swatch"
-                  style={swatchStyle(c)}
-                  aria-hidden="true"
-                />
-                <span className="annot-color-name">{COLOR_LABELS[c]}</span>
-              </label>
-            ))}
-          </div>
+
+          {!perType && (
+            <>
+              <ColorPicker
+                value={color}
+                onChange={onColor}
+                name="annot-color"
+                labelId="annot-color-label"
+              />
+              <p className="setup-field-hint">
+                Logseq highlights come in five fixed colors. "Auto" snaps each
+                mark to the nearest one; pick a color to force every highlight
+                to it instead.
+              </p>
+            </>
+          )}
+
+          <label className="checkbox-label annot-color-toggle">
+            <input
+              type="checkbox"
+              checked={perType}
+              onChange={(e) => onPerType(e.target.checked)}
+            />
+            Set a color per annotation type
+          </label>
           <p className="setup-field-hint">
-            Logseq highlights come in five fixed colors. "Auto" snaps each mark
-            to the nearest one; pick a color to force every highlight to it
-            instead.
+            {perType
+              ? 'Each kind of mark gets its own color. "Auto" snaps that kind to the nearest Logseq color.'
+              : 'Give highlights, on-page text, and sticky notes their own colors instead of one for all.'}
           </p>
+
+          {perType && (
+            <div className="annot-color-table">
+              {/* Column headers: the color names, shown once for the whole table. */}
+              <span aria-hidden="true" />
+              {ANNOTATION_COLOR_CHOICES.map((c) => (
+                <span
+                  key={c}
+                  className="annot-color-col-head"
+                  aria-hidden="true"
+                >
+                  {label(c)}
+                </span>
+              ))}
+
+              {/* One radiogroup row per category; cells align under the headers. */}
+              {ANNOTATION_COLOR_TARGETS.map((t) => (
+                <div
+                  key={t.key}
+                  className="annot-color-row"
+                  role="radiogroup"
+                  aria-label={t.label}
+                >
+                  <span className="annot-color-row-label">{t.label}</span>
+                  {ANNOTATION_COLOR_CHOICES.map((c) => (
+                    <label
+                      key={c}
+                      className="annot-color-cell annot-swatch-opt"
+                    >
+                      <input
+                        type="radio"
+                        name={t.key}
+                        value={c}
+                        checked={(byType[t.key] ?? 'auto') === c}
+                        onChange={() => onByType(t.key, c)}
+                        aria-label={label(c)}
+                      />
+                      <span
+                        className="annot-color-swatch"
+                        style={swatchStyle(c)}
+                        aria-hidden="true"
+                      />
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>

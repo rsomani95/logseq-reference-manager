@@ -23,6 +23,8 @@ import { DB_IDENT, mapColor } from './colors'
 import { bounding, flipRect, quadStoredRects, toStored } from './geometry'
 import type {
   AnnotationRecord,
+  AnnotCategory,
+  ColorByType,
   ColorName,
   ConvertedRecord,
   ConvertResult,
@@ -48,6 +50,49 @@ export const MARKUP_SUBTYPES = new Set<string>([
 export const NOTE_SUBTYPES = new Set<string>(['FreeText', 'Text'])
 // Link and Popup are skipped QUIETLY (known, expected companions — not their
 // own annotation); see buildRecord. Any other subtype is skipped with a warning.
+
+/**
+ * Bucket a PDF /Subtype into the category used for per-category color overrides.
+ * Markup → 'markup'; FreeText (typed-on-page) → 'text'; Text (sticky pin) →
+ * 'note'. Returns null for anything we don't convert (the caller skips it).
+ */
+export function categoryForSubtype(subtype: string): AnnotCategory | null {
+  if (MARKUP_SUBTYPES.has(subtype)) return 'markup'
+  if (subtype === 'FreeText') return 'text'
+  if (subtype === 'Text') return 'note'
+  return null
+}
+
+/**
+ * Resolve the forced color for one record. A per-category override wins when its
+ * key is present (`null` there meaning "infer from the source mark"); otherwise
+ * the flat `color` applies. `null` overall = infer from the source. Shared by
+ * the PDF (convert) and Zotero paths so both honor `colorByType` identically.
+ */
+export function resolveColor(
+  category: AnnotCategory,
+  color: ColorName | null,
+  colorByType: ColorByType | null | undefined,
+): ColorName | null {
+  if (colorByType && category in colorByType)
+    return colorByType[category] ?? null
+  return color
+}
+
+/** Throw if any `colorByType` value isn't a valid ColorName (null = auto, ok). */
+export function validateColorByType(
+  colorByType: ColorByType | null | undefined,
+): void {
+  if (!colorByType) return
+  for (const [cat, val] of Object.entries(colorByType)) {
+    if (val != null && !(val in DB_IDENT)) {
+      throw new Error(
+        `unknown color ${JSON.stringify(val)} for ${cat}; expected one of ` +
+          JSON.stringify(Object.keys(DB_IDENT).sort()),
+      )
+    }
+  }
+}
 
 // ---------------------------------------------------------------------------
 // UUID idempotency
@@ -97,6 +142,7 @@ export function pageMetaFor(
  *
  * `color`, if given (one of DB_IDENT's keys), forces the highlight color for
  * every record instead of inferring it from the source annotation's color.
+ * `colorByType` overrides that for the record's category (see resolveColor).
  *
  * `status` (optional) collects tallies: skipped_links, skipped_popups,
  * skipped_unsupported (list of subtypes), empty_content (count). buildRecord
@@ -108,6 +154,7 @@ export function buildRecord(
   seenUuids: Set<string>,
   status?: ConvertStatus,
   color?: ColorName | null,
+  colorByType?: ColorByType | null,
 ): ConvertedRecord | null {
   const subtype = a.subtype
   if (a.is_link || subtype === 'Link') {
@@ -143,7 +190,9 @@ export function buildRecord(
   let rects: StoredRect[]
   let bound: StoredRect
   let text: string
+  let category: AnnotCategory
   if (MARKUP_SUBTYPES.has(subtype)) {
+    category = 'markup'
     let quads = a.geometry.quads_rect_fitz
     if (!quads || quads.length === 0) {
       // markup without quads -> fall back to /Rect single band
@@ -161,6 +210,8 @@ export function buildRecord(
     bound = bounding(rects)
     text = a.covered_text || ''
   } else if (NOTE_SUBTYPES.has(subtype)) {
+    // FreeText = text typed on the page; Text = the sticky-note pin.
+    category = subtype === 'FreeText' ? 'text' : 'note'
     if (!a.rect_pdf) {
       console.warn(`  SKIP ${subtype} (page ${page1}): no /Rect to anchor`)
       if (status) status.skipped_unsupported.push(subtype)
@@ -184,10 +235,11 @@ export function buildRecord(
 
   let colorName: ColorName
   let colorIdent: string
-  if (color) {
-    // Forced flat color (same for every highlight).
-    colorName = color
-    colorIdent = DB_IDENT[color]
+  const forced = resolveColor(category, color ?? null, colorByType)
+  if (forced) {
+    // Forced color (flat, or this category's override).
+    colorName = forced
+    colorIdent = DB_IDENT[forced]
   } else {
     // Infer the nearest Logseq pastel from the source annotation's color.
     ;[colorName, colorIdent] = mapColor(a.color.effective_color_rgb255)
@@ -232,7 +284,9 @@ export function buildRecord(
  *
  * `opts.color`, if given, forces a single flat highlight color for every record
  * (one of DB_IDENT's keys: yellow/red/green/blue/purple); otherwise each color
- * is inferred from the source annotation (the default).
+ * is inferred from the source annotation (the default). `opts.colorByType`
+ * overrides that per category (markup / text / note) — a present key wins over
+ * the flat color (its `null` meaning "infer for this category").
  *
  * Never crashes on zero annotations, empty strings, or unknown subtypes.
  */
@@ -242,11 +296,13 @@ export function convert(
     assetUuid?: string
     assetTitle?: string
     color?: ColorName | null
+    colorByType?: ColorByType | null
   } = {},
 ): ConvertResult {
   const assetUuid = opts.assetUuid ?? DEFAULT_ASSET_UUID
   const assetTitle = opts.assetTitle ?? 'document'
   const color = opts.color ?? null
+  const colorByType = opts.colorByType ?? null
 
   if (color !== null && !(color in DB_IDENT)) {
     throw new Error(
@@ -255,6 +311,7 @@ export function convert(
       )}`,
     )
   }
+  validateColorByType(colorByType)
   const pageMeta = extractResult.pages ?? {}
   const annotations = extractResult.annotations ?? []
 
@@ -268,7 +325,7 @@ export function convert(
   const records: ConvertedRecord[] = []
   const seenUuids = new Set<string>()
   for (const a of annotations) {
-    const rec = buildRecord(a, pageMeta, seenUuids, status, color)
+    const rec = buildRecord(a, pageMeta, seenUuids, status, color, colorByType)
     if (rec) records.push(rec)
   }
 

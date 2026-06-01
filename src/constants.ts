@@ -29,6 +29,45 @@ export const ATTACHMENT_IMPORT_MODES = ['PDFs only', 'All attachments'] as const
 export type AttachmentImportMode = (typeof ATTACHMENT_IMPORT_MODES)[number]
 export const ATTACHMENT_EXTERNAL_PDF_LABEL_DEFAULT = 'Open PDF Outside Logseq'
 
+// Annotation highlight-color choices: "auto" (snap each mark to the nearest
+// Logseq pastel) plus Logseq's five fixed highlight colors. Single-sourced here
+// so the settings schema, the swatch UI, and the import-time color resolver all
+// share one list. `auto` is the stored value for "infer from the source mark".
+export const ANNOTATION_COLOR_CHOICES = [
+  'auto',
+  'yellow',
+  'red',
+  'green',
+  'blue',
+  'purple',
+] as const
+export type AnnotationColorChoice = (typeof ANNOTATION_COLOR_CHOICES)[number]
+
+// The per-type color targets behind the Annotations section's opt-in toggle
+// (`annotationColorPerType`). Each carries the setting key it persists to, the
+// annotation `category` the import resolver buckets marks into, and its
+// user-facing label/hint. The three categories are EXHAUSTIVE over everything we
+// translate into highlight blocks (markup = Highlight/Underline/StrikeOut/
+// Squiggly, text = FreeText, note = the sticky-note pin), so when the toggle is
+// on they fully replace the single `annotationColor`.
+export const ANNOTATION_COLOR_TARGETS = [
+  {
+    key: 'annotationColorMarkup',
+    category: 'markup',
+    label: 'Highlight, underline & strikethrough',
+  },
+  {
+    key: 'annotationColorText',
+    category: 'text',
+    label: 'Text on the page',
+  },
+  {
+    key: 'annotationColorNote',
+    category: 'note',
+    label: 'Sticky notes',
+  },
+] as const
+
 export const BASE_QUERY = {
   sort: 'dateAdded',
   direction: 'desc',

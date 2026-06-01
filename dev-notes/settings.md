@@ -48,7 +48,11 @@ all real configuration lives in the plugin's own modal.
 | `attachmentExternalPdfLabel` | string | `Open PDF Outside Logseq` | Attachments | `handle-zot-db` (label for the external-PDF link; shown only when `attachmentShowExternalLinks`) |
 | `logseqApiToken` | string | empty | Annotations | `logseq-import-edn` (Bearer for the `build-import` POST) — **required** for annotation import |
 | `logseqApiBaseUrl` | string | `http://127.0.0.1:12315` | Annotations | `logseq-import-edn` (HTTP API base) |
-| `annotationColor` | enum `auto\|yellow\|red\|green\|blue\|purple` | `auto` | Annotations | `import-annotations` (forced highlight color; `auto` = nearest-pastel) |
+| `annotationColor` | enum `auto\|yellow\|red\|green\|blue\|purple` | `auto` | Annotations | `import-annotations` (forced highlight color when per-type is off; `auto` = nearest-pastel) |
+| `annotationColorPerType` | boolean | `false` | Annotations | `import-annotations` (opt-in: when on, the three category keys below replace `annotationColor`) |
+| `annotationColorMarkup` | enum `auto\|yellow\|red\|green\|blue\|purple` | `auto` | Annotations | `import-annotations` (color for the markup category — Highlight/Underline/StrikeOut/Squiggly; only when per-type) |
+| `annotationColorText` | enum `auto\|yellow\|red\|green\|blue\|purple` | `auto` | Annotations | `import-annotations` (color for on-page text — FreeText/Zotero `text`; only when per-type) |
+| `annotationColorNote` | enum `auto\|yellow\|red\|green\|blue\|purple` | `auto` | Annotations | `import-annotations` (color for sticky notes — PDF `Text`/Zotero `note`; only when per-type) |
 | `tagRules` | JSON string (array of `TagRule`) | empty | Tag rules | `getConfiguredTagRules`; watched by `watch-tag-rules` |
 | `appliedSchema` | JSON string (`SchemaSnapshot`) | empty | (internal — written by Apply / Set up web tag) | `use-schema-state` for the dirty diff (`schema-snapshot.ts`) |
 | `webTag` | string | `Web` | Web references | `set-web-schema` (extends base); **web-clipper extension** (clip tag) |
@@ -160,6 +164,22 @@ the page + PDF asset still import; only the annotation step is skipped (with a
 one-time hint). Architecture + the Transit-encoding detail live in **Annotation
 import** in [`CLAUDE.md`](../CLAUDE.md) and the write-path section of
 [`logseq-sdk-notes.md`](./logseq-sdk-notes.md).
+
+**Highlight color.** By default a single `annotationColor` governs every mark
+(`auto` = snap each to the nearest Logseq pastel, or force one flat color).
+Turning on `annotationColorPerType` reveals three per-category swatches —
+`annotationColorMarkup` (Highlight / Underline / StrikeOut / Squiggly),
+`annotationColorText` (FreeText, the typed-on-page box / Zotero `text`), and
+`annotationColorNote` (the sticky-note pin: PDF `Text` / Zotero `note`) — which
+**replace** the single color (the three categories are exhaustive over what we
+import). `import-annotations.ts` reads these and passes `convert()` /
+`convertZoteroAnnotations()` either a flat `color` (per-type off) or a
+`colorByType` map (per-type on); each record is classified into one category
+(`categoryForSubtype` / the Zotero type) and resolves its color via
+`resolveColor` — a present category key wins over the flat color, its `null`
+meaning "infer for this category". The category list + labels are single-sourced
+as `ANNOTATION_COLOR_TARGETS` in `constants.ts`, shared by the schema, the swatch
+UI, and the resolver.
 
 ## Setup hub
 

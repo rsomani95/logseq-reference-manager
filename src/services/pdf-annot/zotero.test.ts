@@ -233,6 +233,74 @@ describe('convertZoteroAnnotations (synthetic)', () => {
     expect(r.records[0]!.color_name).toBe('blue')
   })
 
+  test('colorByType forces a color per category (highlight/text/note)', () => {
+    const items: ZoteroAnnotationData[] = [
+      {
+        key: 'HL',
+        annotationType: 'highlight',
+        annotationText: 'h',
+        annotationColor: '#ffd400',
+        annotationSortIndex: '00000|000000|00000',
+        annotationPosition: '{"pageIndex":0,"rects":[[100,700,300,720]]}',
+      },
+      {
+        key: 'TX',
+        annotationType: 'text',
+        annotationComment: 't',
+        annotationColor: '#ffd400',
+        annotationSortIndex: '00000|000001|00000',
+        annotationPosition: '{"pageIndex":0,"rects":[[100,600,300,620]]}',
+      },
+      {
+        key: 'NT',
+        annotationType: 'note',
+        annotationComment: 'n',
+        annotationColor: '#ffd400',
+        annotationSortIndex: '00000|000002|00000',
+        annotationPosition: '{"pageIndex":0,"rects":[[100,500,300,520]]}',
+      },
+    ]
+    const r = convertZoteroAnnotations(items, PM_1PAGE, {
+      libraryID: 1,
+      colorByType: { markup: 'green', text: 'blue', note: 'red' },
+    })
+    const byKey = (k: string) =>
+      r.records.find((rec) => rec.uuid === uuidForZoteroAnnotation(1, k))!
+    expect(byKey('HL').color_name).toBe('green')
+    expect(byKey('TX').color_name).toBe('blue')
+    expect(byKey('NT').color_name).toBe('red')
+  })
+
+  test('a per-category override wins over the flat color; unset categories fall back', () => {
+    const items: ZoteroAnnotationData[] = [
+      {
+        key: 'HL',
+        annotationType: 'highlight',
+        annotationText: 'h',
+        annotationColor: '#ffd400',
+        annotationSortIndex: '00000|000000|00000',
+        annotationPosition: '{"pageIndex":0,"rects":[[100,700,300,720]]}',
+      },
+      {
+        key: 'TX',
+        annotationType: 'text',
+        annotationComment: 't',
+        annotationColor: '#ffd400',
+        annotationSortIndex: '00000|000001|00000',
+        annotationPosition: '{"pageIndex":0,"rects":[[100,600,300,620]]}',
+      },
+    ]
+    const r = convertZoteroAnnotations(items, PM_1PAGE, {
+      libraryID: 1,
+      color: 'purple',
+      colorByType: { markup: 'green' },
+    })
+    const byKey = (k: string) =>
+      r.records.find((rec) => rec.uuid === uuidForZoteroAnnotation(1, k))!
+    expect(byKey('HL').color_name).toBe('green') // markup override
+    expect(byKey('TX').color_name).toBe('purple') // text not in map → flat
+  })
+
   test('an annotation on a page with no geometry is skipped (not thrown)', () => {
     const hl: ZoteroAnnotationData = {
       key: 'HL1',
