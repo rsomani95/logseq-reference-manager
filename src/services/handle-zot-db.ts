@@ -266,9 +266,11 @@ const buildExternalLinksContent = (
   if (firstPdfPath) {
     parts.push(`[${pdfLabel}](${firstPdfPath})`)
   }
-  if (libraryLink) {
-    parts.push(`[Open in Zotero](${libraryLink})`)
-  }
+  // Disabled for now. Don't see much value in an "Open in Zotero"
+  // as we already have that link stored in the properties
+  // if (libraryLink) {
+  //   parts.push(`[Open in Zotero](${libraryLink})`)
+  // }
   return parts.join(' · ')
 }
 
@@ -550,8 +552,8 @@ export const handleZotInDb = async (
 
   // ─── Attachments ──────────────────────────────────────────────────────
   // Filter by the user's Attachments → import-mode pick (PDFs only / All),
-  // emit each filtered attachment as its own block under a configurable
-  // heading, and (optionally) append a single "open externally" links block.
+  // (optionally) lead with a single "open externally" links block, then emit
+  // each filtered attachment as its own block under a configurable heading.
   // PDFs from `linked_file` come in as first-class asset blocks; everything
   // else is a markdown link. Annotations land as children of whichever block
   // represents the attachment, so `zotero-attachment-key` stays the sync hook.
@@ -596,6 +598,17 @@ export const handleZotInDb = async (
     )
 
     if (headerBlock) {
+      // Lead with the "open externally" links so they sit directly under the
+      // heading, above the attachment block(s). Children render in insertion
+      // order, so this block has to be inserted before the loop below.
+      if (externalLinksContent.length > 0) {
+        await logseq.Editor.insertBlock(
+          headerBlock.uuid,
+          externalLinksContent,
+          { sibling: false },
+        )
+      }
+
       for (const attachment of filteredAttachments) {
         const attachmentBlock = await emitAttachmentBlock(
           headerBlock.uuid,
@@ -621,14 +634,6 @@ export const handleZotInDb = async (
             attachmentKey: attachment.key,
           })
         }
-      }
-
-      if (externalLinksContent.length > 0) {
-        await logseq.Editor.insertBlock(
-          headerBlock.uuid,
-          externalLinksContent,
-          { sibling: false },
-        )
       }
     }
   }
