@@ -33,6 +33,51 @@ import {
 import { buildZoteroCodeIndex, ZoteroCodedPage } from './zotero-code-index'
 
 /**
+ * Applies one Logseq tag to a page, auto-creating the tag if it doesn't exist.
+ *
+ * `extendsBase` controls only what happens to a *newly created* tag: when true,
+ * it's made to `extends` the base `zotTag` so it inherits the shared reference
+ * schema (the rule-tag behavior, since those tags genuinely are kinds of
+ * Reference). Freeform UI tags pass false — a workflow label like "to-read" is
+ * not a kind of Reference, and extending would pollute every page that carries
+ * it with the full Reference property set. An already-existing tag is never
+ * re-parented either way.
+ *
+ * Per-tag failures are isolated so one bad tag can't abort the import: always
+ * logged, and toasted as a warning unless `quiet` is set. Batch import passes
+ * `quiet` (matching the annotation importer) because the same failing tag would
+ * otherwise fire one toast per imported item; single import still toasts.
+ */
+const applyTagToPage = async (
+  pageUuid: string,
+  tag: string,
+  zotTag: string,
+  opts: { extendsBase: boolean; quiet?: boolean },
+): Promise<void> => {
+  try {
+    const existing = await logseq.Editor.getTag(tag)
+    if (!existing) {
+      const created = await logseq.Editor.createTag(tag)
+      if (created && opts.extendsBase) {
+        await logseq.Editor.addTagExtends(tag, zotTag)
+      }
+    }
+    await logseq.Editor.addBlockTag(pageUuid, tag)
+  } catch (e) {
+    console.warn(`[tags] Failed to apply tag "${tag}":`, e)
+    if (!opts.quiet) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : typeof e === 'object' && e !== null
+            ? JSON.stringify(e)
+            : String(e)
+      await logseq.UI.showMsg(`Couldn't apply tag "${tag}": ${msg}`, 'warning')
+    }
+  }
+}
+
+/**
  * Resolves the Logseq page name for a Zotero item by filling the configured
  * `pagenameTemplate`. Shared by the single-item and batch import paths. The
  * substitution is tolerant of placeholder case/whitespace and falls back to a
@@ -281,6 +326,10 @@ export const handleZotInDb = async (
   opts: {
     navigate?: boolean
     zoteroCodeIndex?: Map<string, ZoteroCodedPage>
+    /** Freeform tags chosen in the import UI, applied to every item on top of
+     *  the base zotTag and any rule-matched tags. Standalone classes (they do
+     *  not extend the base). */
+    extraTags?: string[]
   } = {},
 ): Promise<{ status: 'created' | 'exists'; pageName: string }> => {
   // When false (batch import), suppress the page navigation that's helpful for
@@ -366,32 +415,42 @@ export const handleZotInDb = async (
   const zotTag = logseq.settings?.zotTag as string
   await logseq.Editor.addBlockTag(existingPage.uuid, zotTag)
 
+  // Track everything applied so far (case-folded) so later passes don't re-add
+  // the same tag — Logseq resolves page names case-insensitively, so "MLPaper"
+  // from a rule and "mlpaper" typed in the UI are one class. Seed with the base
+  // tag; neither rule tags nor freeform tags should re-tag it.
+  const appliedTags = new Set<string>([zotTag.toLowerCase()])
+
   // Apply matched extended tags, if any. Rules come from the `tagRules`
-  // setting (JSON). Auto-create the tag (extending the base Zotero tag) if
-  // it doesn't exist yet — a rule targeting e.g. "MLPaper" should work
-  // without the user pre-creating the class. Per-tag failures are isolated
-  // so one bad tag doesn't abort the whole import.
+  // setting (JSON). Auto-create the tag (extending the base Zotero tag) if it
+  // doesn't exist yet — a rule targeting e.g. "MLPaper" should work without the
+  // user pre-creating the class. These tags genuinely are kinds of Reference,
+  // so they extend the base.
   const tagRules = getConfiguredTagRules()
   for (const tag of matchTagRules(zotItem, tagRules)) {
-    if (tag === zotTag) continue
+    if (appliedTags.has(tag.toLowerCase())) continue
     console.log(`[extended-tags] Applying matched tag: ${tag}`)
-    try {
-      const existing = await logseq.Editor.getTag(tag)
-      if (!existing) {
-        const created = await logseq.Editor.createTag(tag)
-        if (created) await logseq.Editor.addTagExtends(tag, zotTag)
-      }
-      await logseq.Editor.addBlockTag(existingPage.uuid, tag)
-    } catch (e) {
-      console.warn(`[extended-tags] Failed to apply tag "${tag}":`, e)
-      const msg =
-        e instanceof Error
-          ? e.message
-          : typeof e === 'object' && e !== null
-            ? JSON.stringify(e)
-            : String(e)
-      await logseq.UI.showMsg(`Couldn't apply tag "${tag}": ${msg}`, 'warning')
-    }
+    await applyTagToPage(existingPage.uuid, tag, zotTag, {
+      extendsBase: true,
+      quiet: !navigate,
+    })
+    appliedTags.add(tag.toLowerCase())
+  }
+
+  // Apply freeform tags chosen in the import UI, deduped (case-folded) against
+  // the base tag and the rule tags above. These are standalone classes — a
+  // workflow label like "to-read" is not a kind of Reference, so it does NOT
+  // extend the base (that would pollute every tagged page with the Reference
+  // schema).
+  for (const rawTag of opts.extraTags ?? []) {
+    const tag = rawTag.trim()
+    if (!tag || appliedTags.has(tag.toLowerCase())) continue
+    console.log(`[extra-tags] Applying user-selected tag: ${tag}`)
+    await applyTagToPage(existingPage.uuid, tag, zotTag, {
+      extendsBase: false,
+      quiet: !navigate,
+    })
+    appliedTags.add(tag.toLowerCase())
   }
 
   /*

@@ -29,6 +29,9 @@ export interface BatchResult {
 interface BatchCallbacks {
   onProgress: (progress: BatchProgress) => void
   isCancelled: () => boolean
+  /** User-chosen tags applied to every imported item, on top of the base
+   *  zotTag and any rule-matched tags. */
+  extraTags?: string[]
 }
 
 /**
@@ -45,7 +48,7 @@ export const batchInsertIntoGraph = async (
   items: ZotData[],
   callbacks: BatchCallbacks,
 ): Promise<BatchResult> => {
-  const { onProgress, isCancelled } = callbacks
+  const { onProgress, isCancelled, extraTags = [] } = callbacks
 
   if (!(await isSchemaAdded())) {
     throw new Error(
@@ -89,7 +92,7 @@ export const batchInsertIntoGraph = async (
       const { status } = await handleZotInDb(
         fullItem,
         resolvePageName(fullItem),
-        { navigate: false, zoteroCodeIndex },
+        { navigate: false, zoteroCodeIndex, extraTags },
       )
       // `status === 'exists'` means the item was already in the graph but the
       // UI's pre-filter missed it — count it as skipped, not imported.
