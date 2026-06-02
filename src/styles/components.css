@@ -1350,12 +1350,185 @@ html[data-theme="dark"] input[type="checkbox"] {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Tag picker — chip-input combobox in the batch-import footer ("Also tag
+   with"). Surface == page bg, lifted by shadow (faint border only). Reuses the
+   tag-rules input/placeholder conventions and the .result-card-active highlight
+   for the keyboard-active row. Dropdown opens UPWARD: the picker sits just
+   above the footer and the modal shell clips (overflow: hidden).
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Row wrapper: eyebrow label + the control. A delimited band between the
+   scrolling list and the action footer — its border-top mirrors the list
+   header's border-bottom and the footer's border-top, so it reads as a calm,
+   deliberate control zone rather than crammed onto the last result. Picks up
+   the modal's 0.85rem horizontal rhythm (the row had none, so the input ran
+   edge-to-edge); flex-shrink:0 keeps it from being squeezed when the list
+   fills the modal. */
+.batch-tagpicker-row {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
+  border-top: 1px solid var(--zot-color-border);
+}
+
+.batch-tagpicker-label {
+  font-size: var(--zot-text-sm);
+  font-weight: var(--zot-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--zot-tracking-caps);
+  color: var(--zot-color-text-muted);
+  white-space: nowrap;
+}
+
+/* Root: anchor for the absolutely-positioned dropdown + the Guard-B
+   closest('.tag-picker') hook. */
+.tag-picker {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Chip + input wrapper. Focus-within mirrors the .search-input-wrapper /
+   .batch-source-input accent treatment. */
+.tag-picker-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.35rem;
+  background: var(--zot-color-bg);
+  border: 1px solid var(--zot-color-border);
+  border-radius: 4px;
+  cursor: text;
+}
+
+.tag-picker-control:focus-within {
+  border-color: var(--zot-color-accent-host);
+}
+
+/* Resting chip: neutral pill (no accent fill — these are removable labels, not
+   a "selected" state). Same visual family as .batch-picker-chip. */
+.tag-picker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.15rem 0.2rem 0.15rem 0.55rem;
+  font-size: var(--zot-text-base);
+  color: var(--zot-color-text);
+  background: var(--zot-color-bg-tertiary);
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+
+.tag-picker-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.1rem;
+  color: var(--zot-color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.tag-picker-chip-remove:hover:not(:disabled) {
+  color: var(--zot-color-text);
+}
+
+.tag-picker-chip-remove:focus-visible {
+  outline: 2px solid var(--zot-color-accent-host);
+  outline-offset: 1px;
+}
+
+.tag-picker-chip-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Borderless input that grows in the wrap. Pins fill-color like .tagrule-input
+   so entered text stays full-strength primary, and derives the placeholder from
+   primary->bg (don't trust the muted token — themes can invert the tiers). */
+.tag-picker-input {
+  flex: 1;
+  min-width: 6rem;
+  font-family: inherit;
+  font-size: var(--zot-text-base);
+  color: var(--zot-color-text);
+  -webkit-text-fill-color: var(--zot-color-text);
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0.2rem 0.15rem;
+  line-height: var(--zot-leading-normal);
+}
+
+.tag-picker-input::placeholder {
+  color: color-mix(in srgb, var(--zot-color-text) 50%, var(--zot-color-bg));
+  -webkit-text-fill-color: color-mix(
+    in srgb,
+    var(--zot-color-text) 50%,
+    var(--zot-color-bg)
+  );
+  opacity: 1;
+}
+
+/* Opens UPWARD (bottom: 100%) to clear the modal's overflow clip. Surface ==
+   page bg, lifted by --zot-shadow-modal, faint border. */
+.tag-picker-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  margin: 0 0 0.25rem;
+  padding: 0.2rem;
+  list-style: none;
+  max-height: 14rem;
+  overflow-y: auto;
+  scrollbar-color: var(--zot-color-scrollbar) transparent;
+  background: var(--zot-color-bg);
+  border: 1px solid var(--zot-color-border);
+  border-radius: 8px;
+  box-shadow: var(--zot-shadow-modal);
+  animation: zot-fade-in var(--zot-duration-micro) var(--zot-ease-out);
+}
+
+.tag-picker-option {
+  padding: 0.35rem 0.55rem;
+  font-size: var(--zot-text-base);
+  color: var(--zot-color-text);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tag-picker-option:hover,
+.tag-picker-option.is-active {
+  background: var(--zot-color-hover);
+}
+
+/* Create row reads as a host-accent action (matches .tagrule-add); the quoted
+   tag stays in primary text so it's legible. */
+.tag-picker-create {
+  color: var(--zot-color-info);
+}
+
+.tag-picker-create-name {
+  color: var(--zot-color-text);
+}
+
 /* Touch input: grow every hit area to the 44px minimum. Pointer-fine users
    keep the compact, deliberately dense layout. */
 @media (pointer: coarse) {
   .btn,
   .batch-source-tab,
-  .batch-picker-chip {
+  .batch-picker-chip,
+  .tag-picker-input,
+  .tag-picker-chip {
     min-height: 44px;
   }
 

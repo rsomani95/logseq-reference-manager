@@ -11,6 +11,7 @@ import {
 import { useBatchSources, useContainerItems } from '../../hooks/use-batch'
 import { useFocusTrap } from '../../hooks/use-focus-trap'
 import { useSearchItems } from '../../hooks/use-items'
+import { useTagSuggestions } from '../../hooks/use-tag-suggestions'
 import { BatchSource, ZotData } from '../../interfaces'
 import { listNavIntent } from '../../keyboard'
 import {
@@ -22,6 +23,7 @@ import { ImportBar } from './ImportBar'
 import { ImportSummary } from './ImportSummary'
 import { SelectableResultCard } from './SelectableResultCard'
 import { SourcePicker } from './SourcePicker'
+import { TagPicker } from './TagPicker'
 
 export type Phase = 'select' | 'importing' | 'done'
 
@@ -46,6 +48,9 @@ export const BatchView = () => {
   const [progress, setProgress] = useState<BatchProgress | null>(null)
   const [summary, setSummary] = useState<BatchResult | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
+  // Freeform tags the user adds, applied to every imported item on top of the
+  // base tag + any rule-matched tags. Cleared on "Import more".
+  const [extraTags, setExtraTags] = useState<string[]>([])
 
   const cancelledRef = useRef(false)
   const lastIndexRef = useRef<number | null>(null)
@@ -63,6 +68,7 @@ export const BatchView = () => {
   } = useBatchSources()
   const search = useSearchItems(source === 'search' ? deferredQuery : '')
   const container = useContainerItems(source, collectionKey, savedSearchKey)
+  const tagSuggestions = useTagSuggestions()
 
   // Keep Tab inside the modal: it floats over the app in an iframe.
   useFocusTrap(containerRef)
@@ -197,6 +203,10 @@ export const BatchView = () => {
   // source tabs, chips, select-all checkbox, or import buttons.
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (locked || items.length === 0) return
+    // Keys originating in the tag picker drive its own combobox, never the
+    // batch list. (Guard A in TagPicker stops propagation too; this is the
+    // belt-and-suspenders line that survives any key it forgets to stop.)
+    if ((e.target as HTMLElement).closest('.tag-picker')) return
     const nav = listNavIntent(e)
     if (nav) {
       e.preventDefault()
@@ -223,6 +233,7 @@ export const BatchView = () => {
       const result = await batchInsertIntoGraph(toImport, {
         onProgress: setProgress,
         isCancelled: () => cancelledRef.current,
+        extraTags,
       })
       setSummary(result)
       setPhase('done')
@@ -237,6 +248,7 @@ export const BatchView = () => {
 
   const resetForMore = () => {
     setSelected(new Map())
+    setExtraTags([])
     setSummary(null)
     setProgress(null)
     cancelledRef.current = false
@@ -402,6 +414,19 @@ export const BatchView = () => {
             {renderList()}
           </div>
         </>
+      )}
+
+      {phase !== 'done' && (
+        <div className="batch-tagpicker-row">
+          <span className="batch-tagpicker-label">Also tag with</span>
+          <TagPicker
+            value={extraTags}
+            onChange={setExtraTags}
+            suggestions={tagSuggestions}
+            disabled={locked}
+            label="Also tag with"
+          />
+        </div>
       )}
 
       <ImportBar
