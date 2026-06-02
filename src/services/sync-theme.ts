@@ -30,7 +30,21 @@ const syncTheme = async () => {
   }
 }
 
+// Mirror the active light/dark mode onto data-theme. This drives both the
+// plugin's own dark-mode tokens and the iframe canvas color-scheme
+// (components.css), so it must be correct before any overlay paints — hence we
+// set it at registration and again whenever an overlay becomes visible, not only
+// on onThemeModeChanged (which never fires if the mode was already set before the
+// plugin loaded).
+const syncThemeMode = async () => {
+  const { preferredThemeMode } = await logseq.App.getUserConfigs()
+  if (preferredThemeMode) {
+    document.documentElement.dataset.theme = preferredThemeMode
+  }
+}
+
 export const registerThemeSync = () => {
+  syncThemeMode().catch(console.error)
   syncTheme().catch(console.error)
 
   // The host's computed styles lag the change event slightly, hence the delay.
@@ -42,16 +56,12 @@ export const registerThemeSync = () => {
     setTimeout(() => syncTheme().catch(console.error), 100)
   })
 
-  // The popup is a showMainUI overlay; re-sync each time it becomes visible.
+  // Overlays are showMainUI iframes; re-sync vars + mode each time one shows so
+  // the first open (and any mode change missed above) lands correct.
   logseq.on('ui:visible:changed', ({ visible }: { visible: boolean }) => {
-    if (visible) syncTheme().catch(console.error)
+    if (visible) {
+      syncThemeMode().catch(console.error)
+      syncTheme().catch(console.error)
+    }
   })
-
-  logseq.App.getUserConfigs()
-    .then(({ preferredThemeMode }) => {
-      if (preferredThemeMode) {
-        document.documentElement.dataset.theme = preferredThemeMode
-      }
-    })
-    .catch(console.error)
 }

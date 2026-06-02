@@ -176,13 +176,28 @@ html[data-theme="dark"] {
   --zot-color-backdrop: rgba(0, 0, 0, 0.15);
 }
 
-/* Native controls (<select> dropdown popups, checkboxes) are browser-drawn; this
-   forwards Logseq's light/dark to them so they don't render light on dark surfaces.
-   Scoped to the controls, never the root — color-scheme on the root also paints the
-   plugin iframe's canvas opaque, which curtains off the graph behind our overlays.
-   The plugin's own surfaces use the --ls-* mirror and scrollbars use scrollbar-color,
-   so nothing else needs it. (<option> inherits the <select>'s scheme, so the popup
-   follows.) */
+/* ─── color-scheme · iframe canvas + native controls ──────────────────────────
+   We render into a showMainUI overlay iframe whose html/body we keep transparent
+   (bg.css). The iframe's *base canvas*, though, is painted by the UA per the
+   root's color-scheme — left unset it resolves to light, i.e. a WHITE canvas, and
+   that white shows through the transparent html/body as a light surround around
+   the modals even under a dark host theme (the faint dim scrim can't cover it).
+   So drive the canvas from the active mode — but ONLY while a full-viewport modal
+   is mounted (.zot-backdrop lays its own scrim, so an opaque canvas under it is
+   invisible and correct). The cursor-anchored popup (.zot-popup-layer) carries no
+   scrim and wants the canvas left alone so it can stay transparent over the graph,
+   so it's deliberately excluded. */
+html[data-theme="dark"]:has(.zot-backdrop) {
+  color-scheme: dark;
+}
+html[data-theme="light"]:has(.zot-backdrop) {
+  color-scheme: light;
+}
+
+/* Native controls (<select> popups, checkboxes) are UA-drawn; forward the active
+   mode so they don't render light-on-dark. Under a modal they'd inherit the root
+   color-scheme above anyway; this also covers the popup path. (<option> inherits
+   the <select>'s scheme, so the popup follows.) */
 select,
 input[type="checkbox"] {
   color-scheme: light;
