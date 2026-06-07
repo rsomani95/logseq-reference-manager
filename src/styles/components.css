@@ -181,23 +181,26 @@ html[data-theme="dark"] {
    (bg.css). The iframe's *base canvas*, though, is painted by the UA per the
    root's color-scheme — left unset it resolves to light, i.e. a WHITE canvas, and
    that white shows through the transparent html/body as a light surround around
-   the modals even under a dark host theme (the faint dim scrim can't cover it).
-   So drive the canvas from the active mode — but ONLY while a full-viewport modal
-   is mounted (.zot-backdrop lays its own scrim, so an opaque canvas under it is
-   invisible and correct). The cursor-anchored popup (.zot-popup-layer) carries no
-   scrim and wants the canvas left alone so it can stay transparent over the graph,
-   so it's deliberately excluded. */
-html[data-theme="dark"]:has(.zot-backdrop) {
+   whatever we mount, even under a dark host theme (no scrim can cover it). The
+   canvas can't be coaxed back to truly transparent, so drive it from the active
+   mode for BOTH overlay layers: the full-viewport modal (.zot-backdrop) and the
+   cursor-anchored search popup (.zot-popup-layer). The popup carries no scrim, so
+   its canvas IS the surround the user sees — matching it to the theme is exactly
+   the point (a white surround under a dark theme was the bug). Scoped to the
+   layers, never bare :root, so it engages only while an overlay is actually up. */
+html[data-theme="dark"]:has(.zot-backdrop),
+html[data-theme="dark"]:has(.zot-popup-layer) {
   color-scheme: dark;
 }
-html[data-theme="light"]:has(.zot-backdrop) {
+html[data-theme="light"]:has(.zot-backdrop),
+html[data-theme="light"]:has(.zot-popup-layer) {
   color-scheme: light;
 }
 
 /* Native controls (<select> popups, checkboxes) are UA-drawn; forward the active
-   mode so they don't render light-on-dark. Under a modal they'd inherit the root
-   color-scheme above anyway; this also covers the popup path. (<option> inherits
-   the <select>'s scheme, so the popup follows.) */
+   mode so they don't render light-on-dark. Under an overlay they'd inherit the
+   root color-scheme above anyway; this also covers any stray path. (<option>
+   inherits the <select>'s scheme, so the popup follows.) */
 select,
 input[type="checkbox"] {
   color-scheme: light;
