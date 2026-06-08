@@ -2,7 +2,7 @@
 
 This plugin is meant to help bring references in from various sources into Logseq in a structured manner. It uses the Zotero schema as the foundation, and helps you bring in references from Zotero and/or the Web (using a companion [web clipper chrome extension](https://github.com/rsomani95/logseq-web-clipper/)).
 
-![](./docs/main-demo.gif)
+<video src="https://github.com/rsomani95/logseq-reference-manager/raw/main/docs/Ref-Mngr-Main-Demo.mp4" controls width="100%"></video>
 
 ## Installation
 
