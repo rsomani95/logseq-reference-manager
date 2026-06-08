@@ -1,4 +1,4 @@
-docs/Main-Demo.gif filter=lfs diff=lfs merge=lfs -text
+docs/main-demo.gif filter=lfs diff=lfs merge=lfs -text
 docs/web-clipper.gif filter=lfs diff=lfs merge=lfs -text
 docs/Ref-Mngr-PDF-Annotation.mp4 filter=lfs diff=lfs merge=lfs -text
 docs/Ref-Mngr-Settings.mp4 filter=lfs diff=lfs merge=lfs -text
