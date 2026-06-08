@@ -2,7 +2,7 @@
 
 Reference Manager began as a fork of [benjypng/logseq-zoterolocal-plugin](https://github.com/benjypng/logseq-zoterolocal-plugin) and is now an independent plugin that has deviated quite a bit.
 
-## [0.2.0] - 2026-06-02
+## [0.2.0] - 2026-06-08
 
 ### Added
 
