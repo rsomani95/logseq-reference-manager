@@ -2,7 +2,7 @@
 
 This plugin is meant to help bring references in from various sources into Logseq in a structured manner. It uses the Zotero schema as the foundation, and helps you bring in references from Zotero and/or the Web (using a companion [web clipper chrome extension](https://github.com/rsomani95/logseq-web-clipper/)).
 
-<video src="https://github.com/rsomani95/logseq-reference-manager/raw/main/docs/Ref-Mngr-Main-Demo.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/5d3d5efe-7887-4d6c-a1a9-0247d75b8b41" controls width="100%"></video>
 
 ## Installation
 
@@ -34,7 +34,7 @@ I **strongly recommend** you try this in a standalone graph first to get a feel 
 
 Here's a quick preview of the different settings:
 
-<video src="https://github.com/rsomani95/logseq-reference-manager/raw/main/docs/Ref-Mngr-Settings.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/a131d00b-6958-437b-946d-66bd76e984d2" controls width="100%"></video>
 
 ## Importing From Zotero
 
@@ -45,7 +45,8 @@ Here's a quick preview of the different settings:
   - Also accessible from the Command Palette
   - Lets you add any additional tags when importing
 
-<video src="https://github.com/rsomani95/logseq-reference-manager/raw/main/docs/Ref-Mngr-Batch-Import.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/ffbfe9ac-6dea-44f5-9a44-bd27b54223fd" controls width="100%"></video>
+
 
 ### PDF Annotation Sync
 
@@ -53,7 +54,8 @@ When importing from Zotero, we first scan the actual PDF file for annotations. I
 
 If you continue doing any additional annotations in your PDF file using a PDF reader, then you can use the `Sync Annotations` functionality for a page (from the `...` on the top right) to bring those back into Logseq. This is a one way sync: annotations made inside Logseq do not make it back to the PDF file.
 
-<video src="https://github.com/rsomani95/logseq-reference-manager/raw/main/docs/Ref-Mngr-PDF-Annotation.mp4" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/c780f989-c62f-4c26-a489-223c0ac1fa49" controls width="100%"></video>
+
 
 ## Importing From The Web
 
@@ -61,7 +63,8 @@ If you continue doing any additional annotations in your PDF file using a PDF re
 - Download and setup the chrome extension from https://github.com/rsomani95/logseq-web-clipper
 - Clip
 
-![](./docs/web-clipper.gif)
+<video src="https://github.com/user-attachments/assets/63e7b568-8496-43c4-b0da-dbd3e3699ad6" controls width="100%"></video>
+
 
 ## Rough Edges
 
@@ -84,16 +87,3 @@ As is glaringly obvious from the commit log, this has been developed with the he
 As a result, the code has been tested quite a bit, but not reviewed thoroughly, so I'm not taking PRs right now. I plan on doing this once the dust settles a bit. For now, feel free to open issues if you experience rough edges
 
 If you want to understand the codebase, the developer docs in [`dev-notes/`](./dev-notes/) are the place to start: [`architecture.md`](./dev-notes/architecture.md) for the high-level framing and tech stack, [`module-map.md`](./dev-notes/module-map.md) for where everything lives, plus deeper notes on the Logseq SDK and Zotero internals.
-
----
-
-## TODOs
-
-- Show PDF annotation import
-  - Open Zotero. Click an item to open in PDF Expert. Then:
-    - Highlight some text
-    - Underline some text
-    - Make a sticky note
-    - Write some text
-  - Import that item into Logseq
-  - Show the imported highlights
