@@ -1,6 +1,13 @@
-/* The plugin renders into a showMainUI overlay iframe; both the root and body must
-   be transparent for the graph to show through behind our popup / modal layers. */
+/* The plugin renders into a showMainUI overlay iframe. We can't make that iframe
+   see-through: modern Chromium paints its base canvas opaque per color-scheme (an
+   unset / light scheme is a WHITE canvas), and the embedder, not us, controls
+   real transparency. So rather than leave html/body transparent and inherit that
+   canvas as the surround behind our popup / modal layers, paint them with the
+   host's own page background — synced onto :root by sync-theme.ts. The surround
+   then matches the active theme exactly, for any theme, light or dark, instead of
+   a neutral UA gray that only happened to suit some. The fallback only shows pre-
+   sync, and the UI is hidden then. */
 html,
 body {
-  background: transparent !important;
+  background: var(--ls-primary-background-color, transparent) !important;
 }

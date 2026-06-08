@@ -176,30 +176,14 @@ html[data-theme="dark"] {
   --zot-color-backdrop: rgba(0, 0, 0, 0.15);
 }
 
-/* ─── color-scheme · iframe canvas + native controls ──────────────────────────
-   We render into a showMainUI overlay iframe whose html/body we keep transparent
-   (bg.css). The iframe's *base canvas*, though, is painted by the UA per the
-   root's color-scheme — left unset it resolves to light, i.e. a WHITE canvas, and
-   that white shows through the transparent html/body as a light surround around
-   whatever we mount, even under a dark host theme (no scrim can cover it). The
-   canvas can't be coaxed back to truly transparent, so drive it from the active
-   mode for BOTH overlay layers: the full-viewport modal (.zot-backdrop) and the
-   cursor-anchored search popup (.zot-popup-layer). The popup carries no scrim, so
-   its canvas IS the surround the user sees — matching it to the theme is exactly
-   the point (a white surround under a dark theme was the bug). Scoped to the
-   layers, never bare :root, so it engages only while an overlay is actually up. */
-html[data-theme="dark"]:has(.zot-backdrop),
-html[data-theme="dark"]:has(.zot-popup-layer) {
-  color-scheme: dark;
-}
-html[data-theme="light"]:has(.zot-backdrop),
-html[data-theme="light"]:has(.zot-popup-layer) {
-  color-scheme: light;
-}
-
-/* Native controls (<select> popups, checkboxes) are UA-drawn; forward the active
-   mode so they don't render light-on-dark. Under an overlay they'd inherit the
-   root color-scheme above anyway; this also covers any stray path. (<option>
+/* ─── color-scheme · native controls only ─────────────────────────────────────
+   We deliberately do NOT set color-scheme on the root: its only visible effect
+   here would be repainting the iframe's base canvas, and that canvas is already
+   hidden — bg.css paints html/body with the host page background, so the surround
+   tracks the theme directly (driving the canvas from the mode instead gave a
+   neutral UA gray that clashed with non-neutral themes, and historically blacked
+   out overlays entirely). color-scheme stays scoped to the UA-drawn controls
+   (<select> popups, checkboxes) so they don't render light-on-dark. (<option>
    inherits the <select>'s scheme, so the popup follows.) */
 select,
 input[type="checkbox"] {
