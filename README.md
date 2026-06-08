@@ -32,17 +32,28 @@ I **strongly recommend** you try this in a standalone graph first to get a feel 
 - Type `Reference Manager: Settings` > hit Enter
 - Follow steps in the panel
 
+Here's a quick preview of the different settings:
+
+<video src="https://github.com/rsomani95/logseq-reference-manager/raw/main/docs/Ref-Mngr-Settings.mp4" controls width="100%"></video>
+
 ## Importing From Zotero
 
-### `/Zotero: Import single item`
+- `/Zotero: Import single item`: Imports a single reference from Zotero, and adds a wiki-link to the citation from where you imported this. By default, you see your most recent items, and can search to drill down and find exactly what you need. This was shown above in the demo
+- `/Zotero: Batch import`
+  - Imports multiple Zotero items at once
+  - Supports searching, importing Zotero collections and/or saved searches. Relies on Zotero's search and paginates queries to keep things snappy with larger libraries
+  - Also accessible from the Command Palette
+  - Lets you add any additional tags when importing
 
-Imports a single reference from Zotero, and adds a wiki-link to the citation from where you imported this. By default, you see your most recent items, and can search to drill down and find exactly what you need. This was shown above in the demo.
+<video src="https://github.com/rsomani95/logseq-reference-manager/raw/main/docs/Ref-Mngr-Batch-Import.mp4" controls width="100%"></video>
 
-### `/Zotero: Batch import`
+### PDF Annotation Sync
 
-Imports multiple Zotero items at once - supports searching, importing Zotero collections and/or saved searches. Relies on Zotero's search and paginates queries to keep things snappy with larger libraries. Also accessible from the Command Palette.
+When importing from Zotero, we first scan the actual PDF file for annotations. If found there, we import those into Logseq. If there are none, then we look inside Zotero. We **never** look in both or attempt to combine both as Zotero itself attempts to import the PDF file's annotations into it's own format, but has limitations. Read [this doc](./dev-notes/pdf-annotation/zotero-annotations.md#8-what-zotero-imports-from-an-externally-annotated-pdf-and-whats-lost) for a deeper dive.
 
-![](./docs/batch-import.gif)
+If you continue doing any additional annotations in your PDF file using a PDF reader, then you can use the `Sync Annotations` functionality for a page (from the `...` on the top right) to bring those back into Logseq. This is a one way sync: annotations made inside Logseq do not make it back to the PDF file.
+
+<video src="https://github.com/rsomani95/logseq-reference-manager/raw/main/docs/Ref-Mngr-PDF-Annotation.mp4" controls width="100%"></video>
 
 ## Importing From The Web
 
@@ -56,7 +67,6 @@ Imports multiple Zotero items at once - supports searching, importing Zotero col
 
 - Re-syncing annotations has not been tested extensively
 - Changing schemas and back-applying changes to already tagged content has not been given much thought and will be bumpy / impossible. Highly suggest you try this out in a test graph and get a feel for how you want to use it before bringing into your main graph
-- Currently doesn't work when installed from the marketplace. Ongoing issue about this: https://github.com/logseq/logseq/issues/12736
 - Import speed is slower and batch import is especially slow. It is however, _correct_. I plan to work on optimising this in the near future
 
 All my testing has been done on MacOS with Zotero 9+ and Logseq version `2.0.1-alpha+nightly.20260505`
@@ -74,3 +84,16 @@ As is glaringly obvious from the commit log, this has been developed with the he
 As a result, the code has been tested quite a bit, but not reviewed thoroughly, so I'm not taking PRs right now. I plan on doing this once the dust settles a bit. For now, feel free to open issues if you experience rough edges
 
 If you want to understand the codebase, the developer docs in [`dev-notes/`](./dev-notes/) are the place to start: [`architecture.md`](./dev-notes/architecture.md) for the high-level framing and tech stack, [`module-map.md`](./dev-notes/module-map.md) for where everything lives, plus deeper notes on the Logseq SDK and Zotero internals.
+
+---
+
+## TODOs
+
+- Show PDF annotation import
+  - Open Zotero. Click an item to open in PDF Expert. Then:
+    - Highlight some text
+    - Underline some text
+    - Make a sticky note
+    - Write some text
+  - Import that item into Logseq
+  - Show the imported highlights
