@@ -1,6 +1,4 @@
-import wretch from 'wretch'
-import QueryAddon from 'wretch/addons/queryString'
-import { WretchError } from 'wretch/resolver'
+import { HttpError, proxy } from '@benjypng/logseq-request'
 
 import { BASE_QUERY, BATCH_FETCH_LIMIT, PLUGIN_ID, ZOT_URL } from '../constants'
 import {
@@ -14,11 +12,37 @@ import {
 import { MapItemsOptions, mapItems } from './map-items'
 import type { ZoteroAnnotationData } from './pdf-annot/zotero'
 
-const api = wretch().url(ZOT_URL).headers({
+// Logseq's iframe CORS policy now blocks plain `fetch` (and fetch-based clients
+// like wretch) to external + localhost HTTP APIs, so every Zotero call routes
+// through Logseq's `exper_request` proxy via @benjypng/logseq-request.
+const ZOT_HEADERS = {
   'Content-Type': 'application/json',
   'x-zotero-connector-api-version': '3.0',
   'zotero-allowed-request': 'true',
-})
+}
+
+// The proxy builder has no query-string addon (unlike wretch), so params are
+// baked into the URL. `undefined` values are dropped; everything else is
+// stringified and percent-encoded by URLSearchParams.
+const withQuery = (
+  path: string,
+  query?: Record<string, string | number | undefined>,
+): string => {
+  const url = `${ZOT_URL}${path}`
+  if (!query) return url
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined) params.set(key, String(value))
+  }
+  const qs = params.toString()
+  return qs ? `${url}?${qs}` : url
+}
+
+/** A headers-preloaded proxy builder for the Zotero local API. */
+const zot = (
+  path: string,
+  query?: Record<string, string | number | undefined>,
+) => proxy(withQuery(path, query)).headers(ZOT_HEADERS)
 
 /**
  * Probes the Zotero local API. A pure status check — it returns the result
@@ -33,16 +57,24 @@ export const testZotConnection = async (): Promise<{
   msg: string
 }> => {
   try {
-    await api.url('/items').addon(QueryAddon).query({ limit: 1 }).get().res()
+    await zot('/items', { limit: 1 }).get().text()
     return { code: 'success', msg: '✅ Connection to Zotero is working' }
   } catch (error) {
-    // A missing status (vs. an HTTP error code) means Zotero isn't running.
-    const wretchError = error as WretchError
+    // An HttpError means Zotero answered but rejected the request; anything
+    // else (ProxyUnavailableError, etc.) means we couldn't reach it, i.e.
+    // Zotero isn't running.
+    if (error instanceof HttpError) {
+      return {
+        code: 'error',
+        msg: `❌ ${PLUGIN_ID}: Connection error
+Status: ${error.status}
+Response: ${error.body}`,
+      }
+    }
     return {
       code: 'error',
       msg: `❌ ${PLUGIN_ID}: Connection error
-Status: ${wretchError.status}
-Response: ${wretchError.message}`,
+${(error as Error).message}`,
     }
   }
 }
@@ -76,12 +108,7 @@ export const getZotParents = async (
       ? { ...BASE_QUERY, q: queryString, qmode: 'everything' }
       : BASE_QUERY
 
-    const parents = await api
-      .url('/items/top')
-      .addon(QueryAddon)
-      .query(searchQuery)
-      .get()
-      .json<ZotItem[]>()
+    const parents = await zot('/items/top', searchQuery).get().json<ZotItem[]>()
 
     const zotDataArr = await mapItems(parents, [])
 
@@ -92,11 +119,11 @@ export const getZotParents = async (
 
     return zotDataArr
   } catch (error) {
-    if (error instanceof WretchError) {
+    if (error instanceof HttpError) {
       logseq.UI.showMsg(
         `❌ Connection error: ${error.message}
 Status: ${error.status}
-Response: ${await error.response.text()}`,
+Response: ${error.body}`,
         'error',
       )
     } else {
@@ -117,10 +144,7 @@ Response: ${await error.response.text()}`,
  */
 export const getSampleParents = async (limit = 25): Promise<ZotData[]> => {
   try {
-    const parents = await api
-      .url('/items/top')
-      .addon(QueryAddon)
-      .query({ ...BASE_QUERY, limit })
+    const parents = await zot('/items/top', { ...BASE_QUERY, limit })
       .get()
       .json<ZotItem[]>()
     return await mapItems(parents, [])
@@ -139,10 +163,9 @@ export const getSampleParents = async (limit = 25): Promise<ZotData[]> => {
 export const getChildrenForItem = async (
   itemKey: string,
 ): Promise<{ attachments: AttachmentItem[]; notes: NoteItem[] }> => {
-  const directChildren = await api
-    .url(`/items/${itemKey}/children`)
-    .addon(QueryAddon)
-    .query({ itemType: 'note||attachment' })
+  const directChildren = await zot(`/items/${itemKey}/children`, {
+    itemType: 'note||attachment',
+  })
     .get()
     .json<ZotItem[]>()
 
@@ -203,10 +226,9 @@ export const getChildrenForItem = async (
 export const getRawAnnotationsForAttachment = async (
   attachmentKey: string,
 ): Promise<{ annotations: ZoteroAnnotationData[]; libraryID: number }> => {
-  const items = await api
-    .url(`/items/${attachmentKey}/children`)
-    .addon(QueryAddon)
-    .query({ itemType: 'annotation' })
+  const items = await zot(`/items/${attachmentKey}/children`, {
+    itemType: 'annotation',
+  })
     .get()
     .json<ZotItem[]>()
 
@@ -254,10 +276,7 @@ interface RawZotSavedSearch {
  */
 export const getZotCollections = async (): Promise<ZotCollection[]> => {
   try {
-    const raw = await api
-      .url('/collections')
-      .addon(QueryAddon)
-      .query({ limit: BATCH_FETCH_LIMIT })
+    const raw = await zot('/collections', { limit: BATCH_FETCH_LIMIT })
       .get()
       .json<RawZotCollection[]>()
     return raw
@@ -280,7 +299,7 @@ export const getZotCollections = async (): Promise<ZotCollection[]> => {
 /** Lists every saved search in the Zotero library. */
 export const getZotSavedSearches = async (): Promise<ZotSavedSearch[]> => {
   try {
-    const raw = await api.url('/searches').get().json<RawZotSavedSearch[]>()
+    const raw = await zot('/searches').get().json<RawZotSavedSearch[]>()
     return raw
       .map((s) => ({ key: s.key, name: s.data.name }))
       .sort((a, b) => a.name.localeCompare(b.name))
@@ -303,10 +322,10 @@ export const getItemsForCollection = async (
   options?: MapItemsOptions,
 ): Promise<ZotData[]> => {
   try {
-    const parents = await api
-      .url(`/collections/${collectionKey}/items/top`)
-      .addon(QueryAddon)
-      .query({ ...BASE_QUERY, limit: BATCH_FETCH_LIMIT })
+    const parents = await zot(`/collections/${collectionKey}/items/top`, {
+      ...BASE_QUERY,
+      limit: BATCH_FETCH_LIMIT,
+    })
       .get()
       .json<ZotItem[]>()
     return await mapItems(parents, [], options)
@@ -330,10 +349,9 @@ export const getItemsForSavedSearch = async (
   options?: MapItemsOptions,
 ): Promise<ZotData[]> => {
   try {
-    const all = await api
-      .url(`/searches/${searchKey}/items`)
-      .addon(QueryAddon)
-      .query({ limit: BATCH_FETCH_LIMIT })
+    const all = await zot(`/searches/${searchKey}/items`, {
+      limit: BATCH_FETCH_LIMIT,
+    })
       .get()
       .json<ZotItem[]>()
     const parents = all.filter((i) => !CHILD_ITEM_TYPES.has(i.data.itemType))

@@ -92,7 +92,7 @@ There are ~30 service files. Grouped by what they touch:
 ### Read from Zotero
 | File | Responsibility |
 |---|---|
-| `get-zot-items.ts` | All Zotero local-API calls (`wretch`); also `testZotConnection`. |
+| `get-zot-items.ts` | All Zotero local-API calls (`@benjypng/logseq-request`, over the `exper_request` proxy); also `testZotConnection`. |
 | `map-items.ts` | `ZotItem[]` → `ZotData[]`: join children, compute `inGraph`, build `citeKey`/`libraryLink`. The Zotero→plugin boundary. |
 | `parse-html.ts` | Zotero note HTML → Logseq block tree. |
 

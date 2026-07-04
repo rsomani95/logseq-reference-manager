@@ -4,6 +4,7 @@
     "": {
       "name": "logseq-zotero",
       "dependencies": {
+        "@benjypng/logseq-request": "^1.0.1",
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/modifiers": "^9.0.0",
         "@dnd-kit/sortable": "^10.0.0",
@@ -15,7 +16,6 @@
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
         "react-hook-form": "^7.66.1",
-        "wretch": "^3.0.3",
       },
       "devDependencies": {
         "@biomejs/biome": "2.4.8",
@@ -35,6 +35,8 @@
     },
   },
   "packages": {
+    "@benjypng/logseq-request": ["@benjypng/logseq-request@1.0.1", "", {}, "sha512-OprbbPZwgLxpk5zZpw98yqDJSdJrA/3Ific4agZ9ymXsBZHFxFlgwDvMkBPVASA8NXXi9ZQoUwV5Ik70lDfY6w=="],
+
     "@biomejs/biome": ["@biomejs/biome@2.4.8", "", { "optionalDependencies": { "@biomejs/cli-darwin-arm64": "2.4.8", "@biomejs/cli-darwin-x64": "2.4.8", "@biomejs/cli-linux-arm64": "2.4.8", "@biomejs/cli-linux-arm64-musl": "2.4.8", "@biomejs/cli-linux-x64": "2.4.8", "@biomejs/cli-linux-x64-musl": "2.4.8", "@biomejs/cli-win32-arm64": "2.4.8", "@biomejs/cli-win32-x64": "2.4.8" }, "bin": { "biome": "bin/biome" } }, "sha512-ponn0oKOky1oRXBV+rlSaUlixUxf1aZvWC19Z41zBfUOUesthrQqL3OtiAlSB1EjFjyWpn98Q64DHelhA6jNlA=="],
 
     "@biomejs/cli-darwin-arm64": ["@biomejs/cli-darwin-arm64@2.4.8", "", { "os": "darwin", "cpu": "arm64" }, "sha512-ARx0tECE8I7S2C2yjnWYLNbBdDoPdq3oyNLhMglmuctThwUsuzFWRKrHmIGwIRWKz0Mat9DuzLEDp52hGnrxGQ=="],
@@ -266,7 +268,5 @@
     "vite-plugin-logseq": ["vite-plugin-logseq@1.1.2", "", { "dependencies": { "magic-string": "^0.26.1" } }, "sha512-l5YvoH3K25Zx9eqgoJFug7NfVqSPwq7/FcYYhN1TkdG8ZOiD+c+TAwdCS2dJbGgvx8GmSpbgwSZWgslB+wH53g=="],
 
     "vite-tsconfig-paths": ["vite-tsconfig-paths@5.1.4", "", { "dependencies": { "debug": "^4.1.1", "globrex": "^0.1.2", "tsconfck": "^3.0.3" }, "peerDependencies": { "vite": "*" }, "optionalPeers": ["vite"] }, "sha512-cYj0LRuLV2c2sMqhqhGpaO3LretdtMn/BVX4cPLanIZuwwrkVl+lK84E/miEXkCHWXuq65rhNN4rXsBcOB3S4w=="],
-
-    "wretch": ["wretch@3.0.7", "", {}, "sha512-1zvhHLcwjGx5OMGHcdkuVmHWd/8NQ0gS4oV6+Er1YTnav4QTMTDl7ZI5QklELNVsX1BDNQk2kUrhoUSILomelg=="],
   }
 }

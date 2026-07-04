@@ -1,6 +1,6 @@
 # Connecting to the Zotero local API is CORS-blocked for marketplace installs
 
-**Status:** root cause fully diagnosed and validated (Zotero source + Logseq source + live tests). `effect: true` (the obvious community fix) **tested and rejected** — it doesn't relocate this plugin's UI iframe. The `exper_request` fix is validated but **not yet implemented**.
+**Status:** root cause fully diagnosed and validated (Zotero source + Logseq source + live tests). `effect: true` (the obvious community fix) **tested and rejected** — it doesn't relocate this plugin's UI iframe. The `exper_request` fix is validated and **implemented 2026-07-04** via the [`@benjypng/logseq-request`](https://www.npmjs.com/package/@benjypng/logseq-request) library — see [Recommended fix](#recommended-fix--exper_request-over-postmessage).
 **Issue:** <https://github.com/rsomani95/logseq-reference-manager/issues/1>
 **Last verified:** 2026-05-27
 
@@ -214,6 +214,8 @@ So `effect: true` does **not** relocate this plugin's `showMainUI`/`provideUI` i
 **Unresolved discrepancy:** Logseq's `master` source (`LSPlugin.core.ts:790`, `:613`) reads as though `effect: true` should resolve the entry + resources to `file://`. Empirically the UI iframe stays `lsp://`. Not pinned why — `effect` may not gate the UI-iframe path the way it gates the entry; the manifest `logseq.effect` may map to something other than `_options.effect`; or the installed Logseq build differs from `master`. The empirical verdict stands regardless.
 
 ## Recommended fix — `exper_request` over postMessage
+
+> **Implemented 2026-07-04 via a library.** Rather than hand-roll the helper below, the plugin now depends on **[`@benjypng/logseq-request`](https://www.npmjs.com/package/@benjypng/logseq-request)** — a zero-dependency, wretch-like builder over *exactly* this transport (`logseq._execCallableAPIAsync('exper_request', logseq.baseInfo.id, …)` → `logseq.Request.once('task_callback_<id>')`). It normalizes response shapes across DB/markdown builds, types failures as `HttpError` / `ProxyUnavailableError`, and transparently falls back to plain `fetch` when the host proxy is absent (unit tests / same-origin dev). Migrated: `get-zot-items.ts` (Zotero — the CORS-blocked path this doc is about) and, for one uniform HTTP client, `logseq-import-edn.ts` (Logseq's own HTTP API — which is in fact CORS-**open**: probed live, it returns `Access-Control-Allow-Origin: *`, so that path was never blocked). `read-pdf-bytes.ts` stays on `fetch`/`XHR`: it reads *binary* `file://` bytes, which an HTTP-and-text-only proxy structurally can't carry. The hand-rolled sketch below is kept for context.
 
 Refactor `get-zot-items.ts` off `wretch` onto a thin host-request helper built on the validated transport (the one path proven to work *inside* the `lsp://` iframe). Sketch:
 

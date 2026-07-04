@@ -78,10 +78,10 @@ The four channels the plugin uses:
 
 | # | From → To | Transport | Used for |
 |---|-----------|-----------|----------|
-| ① | plugin → Zotero | HTTP `:23119` (`wretch`) | fetch items / collections / saved searches / children |
+| ① | plugin → Zotero | HTTP `:23119` (`exper_request` proxy) | fetch items / collections / saved searches / children |
 | ② | plugin → disk | `fetch`/XHR on a `file://` path | read a PDF's bytes for annotation extraction |
 | ③ | plugin → Logseq | `@logseq/libs` SDK | **almost everything** — create pages, write properties, query the graph, settings, UI |
-| ④ | plugin → Logseq | HTTP `:12315` | the **one** write the SDK can't do: typed annotation blocks via `build-import` |
+| ④ | plugin → Logseq | HTTP `:12315` (`exper_request` proxy) | the **one** write the SDK can't do: typed annotation blocks via `build-import` |
 | ⑤ | web clipper → Logseq | HTTP `:12315` | (not us) reads our settings, writes clipped pages |
 
 **Why two ways to talk to Logseq (③ and ④)?** The `@logseq/libs` SDK can only
@@ -107,7 +107,7 @@ annotations the plugin reads the file itself. See
 | UI | **React 19** + react-dom | renders into the plugin iframe's `#app`; toggled via `showMainUI()` / `hideMainUI()` |
 | Logseq integration | **`@logseq/libs` 0.3.3** | DB-graph SDK. ⚠️ on npm the `latest` tag is the *old* 0.0.x line; the DB line is `next` → 0.3.x |
 | Forms | react-hook-form | the search form |
-| HTTP | wretch | Zotero local API + Logseq HTTP API |
+| HTTP | `@benjypng/logseq-request` | Zotero local API + Logseq HTTP API, over Logseq's `exper_request` proxy (direct `fetch`/wretch is CORS-blocked from the `lsp://` iframe) |
 | Dates | date-fns | |
 | Icons | lucide-react | |
 | PDF engine | **mupdf 1.27.0** (WASM, ~10 MB) | native annotation extraction; behind a dynamic `import()` so it only loads when annotations are imported |

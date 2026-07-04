@@ -13,6 +13,8 @@
  * plugin settings (`logseqApiToken`); the base URL defaults to
  * `LOGSEQ_API_BASE_DEFAULT` and is overridable via `logseqApiBaseUrl`.
  */
+import { HttpError, proxy } from '@benjypng/logseq-request'
+
 import { LOGSEQ_API_BASE_DEFAULT } from '../constants'
 import { buildLiveImportMap, transitWrite } from './logseq-transit'
 import type { ConvertedRecord } from './pdf-annot/types'
@@ -49,19 +51,19 @@ export const testLogseqApi = async (): Promise<{
     }
   }
   try {
-    const res = await fetch(`${base}/api`, {
-      method: 'POST',
-      headers: {
+    const bodyText = await proxy(`${base}/api`)
+      .headers({
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ method: 'logseq.App.getCurrentGraph', args: [] }),
-    })
-    if (res.status === 401) return { ok: false, msg: 'Token rejected (401).' }
-    if (!res.ok) return { ok: false, msg: `HTTP ${res.status}.` }
-    const body = (await res.json().catch(() => null)) as {
-      error?: unknown
-    } | null
+      })
+      .post({ method: 'logseq.App.getCurrentGraph', args: [] })
+      .text()
+    let body: { error?: unknown } | null = null
+    try {
+      body = JSON.parse(bodyText)
+    } catch {
+      body = null
+    }
     if (body && typeof body === 'object' && 'error' in body) {
       return { ok: false, msg: String(body.error) }
     }
@@ -69,7 +71,12 @@ export const testLogseqApi = async (): Promise<{
       ok: true,
       msg: '✅ Connected to Logseq. Annotation import is ready.',
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof HttpError) {
+      if (error.status === 401)
+        return { ok: false, msg: 'Token rejected (401).' }
+      return { ok: false, msg: `HTTP ${error.status}.` }
+    }
     return {
       ok: false,
       msg: `Couldn't reach ${base}. Is the HTTP APIs Server turned on?`,
@@ -101,31 +108,28 @@ export const importAnnotationRecords = async (
     buildLiveImportMap(records, assetUuid, pageTitle),
   )
 
-  let res: Response
+  let bodyText: string
   try {
-    res = await fetch(`${base}/api`, {
-      method: 'POST',
-      headers: {
+    bodyText = await proxy(`${base}/api`)
+      .headers({
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        method: 'logseq.cli.import_edn',
-        args: [transit],
-      }),
-    })
+      })
+      .post({ method: 'logseq.cli.import_edn', args: [transit] })
+      .text()
   } catch (e) {
+    // An HttpError carries the rejected status + body; anything else
+    // (ProxyUnavailableError, etc.) means the API server was unreachable.
+    if (e instanceof HttpError) {
+      throw new LogseqApiError(
+        `Logseq rejected the annotation import (HTTP ${e.status}). ${e.body.slice(0, 400)}`,
+      )
+    }
     throw new LogseqApiError(
       `Couldn't reach Logseq's HTTP API at ${base}. Is the HTTP APIs Server enabled? (${(e as Error).message})`,
     )
   }
 
-  const bodyText = await res.text().catch(() => '')
-  if (!res.ok) {
-    throw new LogseqApiError(
-      `Logseq rejected the annotation import (HTTP ${res.status}). ${bodyText.slice(0, 400)}`,
-    )
-  }
   // The desktop API wraps a thrown method in HTTP 200 + a JSON `{error: …}` body
   // (a build-import/transact rejection still returns 200), so a 2xx status alone
   // doesn't mean the import landed — inspect the body too (mirrors testLogseqApi).
