@@ -9,12 +9,18 @@
  * `../../dev-notes/logseq-sdk-notes.md` and the prototype's
  * importing-into-logseq.md §5). Verified end-to-end against a live graph.
  *
+ * Uses plain `fetch`, NOT the `@benjypng/logseq-request` proxy the Zotero path
+ * uses: Logseq's own HTTP API is CORS-open (returns `Access-Control-Allow-Origin: *`),
+ * so the proxy buys nothing here — and its unreachable-endpoint handling returns
+ * a value that this write path can't distinguish from a successful (empty) import,
+ * so a failed write (e.g. the HTTP APIs Server not running) got reported as
+ * success. `fetch` throws on a refused connection, so failures stay honest. See
+ * `../../dev-notes/debugging/cors-request.md`.
+ *
  * Requires Logseq's "HTTP APIs Server" enabled and its auth token saved in
  * plugin settings (`logseqApiToken`); the base URL defaults to
  * `LOGSEQ_API_BASE_DEFAULT` and is overridable via `logseqApiBaseUrl`.
  */
-import { HttpError, proxy } from '@benjypng/logseq-request'
-
 import { LOGSEQ_API_BASE_DEFAULT } from '../constants'
 import { buildLiveImportMap, transitWrite } from './logseq-transit'
 import type { ConvertedRecord } from './pdf-annot/types'
@@ -51,19 +57,19 @@ export const testLogseqApi = async (): Promise<{
     }
   }
   try {
-    const bodyText = await proxy(`${base}/api`)
-      .headers({
+    const res = await fetch(`${base}/api`, {
+      method: 'POST',
+      headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
-      })
-      .post({ method: 'logseq.App.getCurrentGraph', args: [] })
-      .text()
-    let body: { error?: unknown } | null = null
-    try {
-      body = JSON.parse(bodyText)
-    } catch {
-      body = null
-    }
+      },
+      body: JSON.stringify({ method: 'logseq.App.getCurrentGraph', args: [] }),
+    })
+    if (res.status === 401) return { ok: false, msg: 'Token rejected (401).' }
+    if (!res.ok) return { ok: false, msg: `HTTP ${res.status}.` }
+    const body = (await res.json().catch(() => null)) as {
+      error?: unknown
+    } | null
     if (body && typeof body === 'object' && 'error' in body) {
       return { ok: false, msg: String(body.error) }
     }
@@ -71,12 +77,7 @@ export const testLogseqApi = async (): Promise<{
       ok: true,
       msg: '✅ Connected to Logseq. Annotation import is ready.',
     }
-  } catch (error) {
-    if (error instanceof HttpError) {
-      if (error.status === 401)
-        return { ok: false, msg: 'Token rejected (401).' }
-      return { ok: false, msg: `HTTP ${error.status}.` }
-    }
+  } catch {
     return {
       ok: false,
       msg: `Couldn't reach ${base}. Is the HTTP APIs Server turned on?`,
@@ -108,28 +109,31 @@ export const importAnnotationRecords = async (
     buildLiveImportMap(records, assetUuid, pageTitle),
   )
 
-  let bodyText: string
+  let res: Response
   try {
-    bodyText = await proxy(`${base}/api`)
-      .headers({
+    res = await fetch(`${base}/api`, {
+      method: 'POST',
+      headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
-      })
-      .post({ method: 'logseq.cli.import_edn', args: [transit] })
-      .text()
+      },
+      body: JSON.stringify({
+        method: 'logseq.cli.import_edn',
+        args: [transit],
+      }),
+    })
   } catch (e) {
-    // An HttpError carries the rejected status + body; anything else
-    // (ProxyUnavailableError, etc.) means the API server was unreachable.
-    if (e instanceof HttpError) {
-      throw new LogseqApiError(
-        `Logseq rejected the annotation import (HTTP ${e.status}). ${e.body.slice(0, 400)}`,
-      )
-    }
     throw new LogseqApiError(
       `Couldn't reach Logseq's HTTP API at ${base}. Is the HTTP APIs Server enabled? (${(e as Error).message})`,
     )
   }
 
+  const bodyText = await res.text().catch(() => '')
+  if (!res.ok) {
+    throw new LogseqApiError(
+      `Logseq rejected the annotation import (HTTP ${res.status}). ${bodyText.slice(0, 400)}`,
+    )
+  }
   // The desktop API wraps a thrown method in HTTP 200 + a JSON `{error: …}` body
   // (a build-import/transact rejection still returns 200), so a 2xx status alone
   // doesn't mean the import landed — inspect the body too (mirrors testLogseqApi).
