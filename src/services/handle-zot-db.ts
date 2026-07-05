@@ -15,6 +15,7 @@ import {
   PropertyPreset,
   ZotData,
 } from '../interfaces'
+import { sha256Hex } from './asset-url'
 import { convertPropToKebabCase } from './convert-prop-to-kebab'
 import {
   type AssetImportArgs,
@@ -118,15 +119,6 @@ const fileUrlToPath = (fileUrl: string): string =>
     .split('/')
     .map(decodeURIComponent)
     .join('/')
-
-/** SHA-256 hex digest of a string. Needed upstram. */
-const sha256Hex = async (s: string): Promise<string> => {
-  const buf = new TextEncoder().encode(s)
-  const hash = await crypto.subtle.digest('SHA-256', buf)
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
 
 /**
  * True if the attachment is a PDF. Prefers Zotero's MIME (`contentType` for

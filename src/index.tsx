@@ -11,6 +11,7 @@ import { SetupContainer } from './SetupContainer'
 import { testZotConnection } from './services/get-zot-items'
 import { syncAnnotationsForPage } from './services/import-annotations'
 import { hasLogseqApiToken } from './services/logseq-import-edn'
+import { updateExternalFileUrls } from './services/migrate-asset-urls'
 import { registerThemeSync } from './services/sync-theme'
 import { registerTagRulesWatcher } from './services/watch-tag-rules'
 import {
@@ -107,6 +108,38 @@ const main = async () => {
             : ''),
         failedPages > 0 ? 'warning' : 'success',
       )
+    },
+  )
+
+  ///////////////////////////////////
+  //////// UPDATE ASSET URLS ////////
+  ///////////////////////////////////
+  // Batch-rewrite every PDF asset's external-url to the bare-path form so pages
+  // imported before that fix open on Logseq >= 20260612 (see migrate-asset-urls).
+  logseq.App.registerCommandPalette(
+    {
+      key: `${PLUGIN_ID}-update-external-file-urls`,
+      label: 'Reference Manager: Update External File URLs',
+    },
+    async () => {
+      // Non-blocking: for a large library the rewrite loop can be long, so Logseq
+      // stays responsive and the outcome is reported in a toast when it finishes.
+      await logseq.UI.showMsg('Updating external file URLs…')
+      try {
+        const r = await updateExternalFileUrls()
+        const parts = [`Updated ${r.updated} asset link(s)`]
+        if (r.unchanged > 0) parts.push(`${r.unchanged} already current`)
+        if (r.failed > 0) parts.push(`${r.failed} failed (see console)`)
+        await logseq.UI.showMsg(
+          parts.join(' · '),
+          r.failed > 0 ? 'warning' : 'success',
+        )
+      } catch (e) {
+        await logseq.UI.showMsg(
+          `Couldn't update external file URLs: ${(e as Error).message}`,
+          'error',
+        )
+      }
     },
   )
 

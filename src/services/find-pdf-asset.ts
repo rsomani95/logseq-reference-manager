@@ -9,24 +9,9 @@
 import type { BlockEntity } from '@logseq/libs/dist/LSPlugin'
 
 import { ZOTERO_ATTACHMENT_KEY_PROP } from '../constants'
+import { externalUrlToPath } from './asset-url'
 
 const ASSET_EXTERNAL_URL_PROP = ':logseq.property.asset/external-url'
-
-/**
- * An asset `external-url` back to its absolute on-disk path. Handles every shape
- * that may coexist in a graph: a **bare path** (current emit — returned verbatim,
- * its characters are already literal), a legacy per-segment-encoded **`file://`**
- * URL (pages imported before the `20260612` fix), and **`assets://`** (belt-and-
- * suspenders). A scheme-qualified value is per-segment decoded.
- */
-const externalUrlToPath = (url: string): string => {
-  if (!/^(file|assets):\/\//.test(url)) return url // already a bare path
-  return url
-    .replace(/^(file|assets):\/\//, '')
-    .split('/')
-    .map(decodeURIComponent)
-    .join('/')
-}
 
 export interface PdfAssetTarget {
   /** uuid of the Logseq asset block the annotations attach to. */
