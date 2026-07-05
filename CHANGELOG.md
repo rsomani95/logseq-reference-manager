@@ -2,6 +2,17 @@
 
 Reference Manager began as a fork of [benjypng/logseq-zoterolocal-plugin](https://github.com/benjypng/logseq-zoterolocal-plugin) and is now an independent plugin that has deviated quite a bit.
 
+## [0.3.0] - 2026-07-05
+
+### Fixed
+
+- **Works with the latest Logseq builds.** A recent change to how Logseq loads the app broke reading local PDF files: annotation sync silently imported nothing, and clicking a PDF attachment failed with "Missing PDF". Both work again.
+- **More reliable Zotero connection.** Requests to Zotero now route through Logseq's own request proxy, which fixes connection failures (CORS) on marketplace installs.
+
+### Added
+
+- **`Reference Manager: Update External File URLs` command.** A one-shot fix for the PDF links on references imported before this release, so they open in the latest Logseq. Idempotent, so it's safe to run anytime.
+
 ## [0.2.0] - 2026-06-08
 
 ### Added
