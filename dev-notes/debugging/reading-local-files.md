@@ -69,3 +69,31 @@ DevTools → pick the plugin's `lsp://…/dist/index.html` context → paste (re
 ```
 
 `%PDF-` + a nonzero byte count = that channel reads the file. Expected on the latest build: both succeed; a bare `fetch('file://'+enc)` still throws `Not allowed to load local resource`.
+
+---
+
+## Sibling symptom: **opening** the PDF ("Missing PDF")
+
+The same renderer change also breaks *clicking* a PDF asset block:
+
+> Error: Missing PDF "file:///…/zhu-….pdf". Is this the correct path?
+
+**Cause.** The plugin used to store `:logseq.property.asset/external-url` as a per-segment-encoded `file://` URL. Logseq's viewer runs it through `<make-asset-url` (`src/main/frontend/handler/assets.cljs` @`80aeb07d1c`); when the value already parses as a full URL, that fn **returns it verbatim**, so pdf.js gets `file://…` → `MissingPDFException` on the `lsp://` renderer (`pdf/core.cljs` `getDocument`).
+
+**Fix (`handle-zot-db.ts` `pdfAssetSource`).** Store the **bare on-disk path** as `external-url`, not a `file://` URL. For a bare (non-URL) path, `<make-asset-url`'s electron branch prepends the **build-correct scheme itself** — `path-join "assets://" "./Users/…"` → `assets:///Users/…` on `20260612`, `file:///Users/…` on `20260527` (proven by Logseq's own golden tests `deps/common/test/logseq/common/path_test.cljs:71` + `pdf/assets_test.cljs:24`). So a bare path opens on **both** builds, and it's the same form Logseq stores for its own linked assets. `assets://` would fix the new build but re-break the old one; `file://` is the reverse.
+
+**Annotation-sync coupling.** `find-pdf-asset.ts` recovers the on-disk path from `external-url`; its `externalUrlToPath` accepts a bare path (verbatim), a legacy `file://` URL, or `assets://`, so sync keeps working on both freshly-imported (bare) and pre-fix (`file://`) pages.
+
+**Existing pages need a one-off migration.** Pages imported before this fix hold `file://` external-urls and won't open on the new build; re-import (`'exists'` → no rewrite) and re-sync (reads, never writes) don't touch them. Run once in the plugin iframe devtools console:
+
+```js
+const sha256Hex = async (s) => { const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join('') }
+const rows = await logseq.DB.datascriptQuery(`[:find ?u ?url :where [?b :block/uuid ?u] [?b :logseq.property.asset/external-url ?url]]`)
+for (const [uuid, url] of rows) {
+  if (!/^file:\/\//.test(url)) continue
+  const path = url.replace(/^file:\/\//,'').split('/').map(decodeURIComponent).join('/')
+  await logseq.Editor.upsertBlockProperty(uuid, 'logseq.property.asset/external-url', path)
+  await logseq.Editor.upsertBlockProperty(uuid, 'logseq.property.asset/checksum', await sha256Hex(path))
+}
+console.log('migrated', rows.length, 'asset blocks scanned')
+```

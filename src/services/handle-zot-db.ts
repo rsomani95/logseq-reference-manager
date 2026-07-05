@@ -99,18 +99,6 @@ export const resolvePageName = (zotItem: ZotData): string =>
 export const resolveCreatorName = (creator: CreatorItem): string =>
   applyCreatorTemplate(logseq.settings?.creatorNameTemplate as string, creator)
 
-/**
- * Builds a properly percent-encoded `file://` URL from an absolute filesystem
- * path. Distinct from the bare-path form used for the Markdown link in the
- * attachment loop below, which deliberately avoids `file://` to dodge mldoc's
- * missing decode (see `dev-notes/logseq-file-links.md`). The asset-block
- * renderer is a different code path — PDF.js consumes the URL directly, so it
- * wants a real, encoded URL.
- */
-const pathToFileUrl = (absPath: string): string =>
-  // encodeURIComponent encodes `/` too, so encode per-segment then rejoin.
-  `file://${absPath.split('/').map(encodeURIComponent).join('/')}`
-
 /** Lowercase file extension without the dot, or '' if none. */
 const extensionFromPath = (path: string): string => {
   const dot = path.lastIndexOf('.')
@@ -177,30 +165,39 @@ const attachmentOnDiskPath = (att: AttachmentItem): string | null => {
 
 /**
  * For a PDF backed by a file on this machine, the inputs for a first-class
- * Logseq asset block: the percent-encoded `file://` URL PDF.js loads, the
- * extension, and the byte size (0 when Zotero doesn't expose it). Returns null
- * for anything that shouldn't become an asset — non-PDFs, web bookmarks, and
- * imported PDFs whose bytes aren't actually on disk (`enclosure.length` unset).
+ * Logseq asset block: the **bare on-disk path** stored as the asset's
+ * `external-url`, the extension, and the byte size (0 when Zotero doesn't expose
+ * it). Returns null for anything that shouldn't become an asset — non-PDFs, web
+ * bookmarks, and imported PDFs whose bytes aren't actually on disk
+ * (`enclosure.length` unset).
  *
- * `linked_file` builds the URL from its bare path; `imported_file` /
- * `imported_url` reuse Zotero's enclosure href, which already *is* such a URL.
+ * The external-url is a bare path (no `file://`, no encoding), NOT a URL: Logseq's
+ * own `<make-asset-url` prepends the build-correct scheme when the viewer opens it
+ * — `file:` on older builds, `assets:` since nightly `20260612` (which moved the
+ * renderer to `lsp://` and can no longer load `file://`). A bare path therefore
+ * opens on both; a stored `file://` URL is passed to PDF.js verbatim and fails on
+ * the new renderer with "Missing PDF". See `dev-notes/debugging/reading-local-files.md`.
+ *
+ * `linked_file` uses its bare path directly; `imported_file` / `imported_url`
+ * decode Zotero's enclosure `file://` href to the same bare form.
  */
 const pdfAssetSource = (
   att: AttachmentItem,
-): { fileUrl: string; ext: string; size: number } | null => {
+): { externalUrl: string; ext: string; size: number } | null => {
   if (!isPdfAttachment(att)) return null
   if (att.linkMode === 'linked_file') {
     return {
-      fileUrl: pathToFileUrl(att.path),
+      externalUrl: att.path,
       ext: extensionFromPath(att.path),
       size: 0, // not exposed by the API for linked files
     }
   }
   if (att.linkMode === 'imported_file' || att.linkMode === 'imported_url') {
     if (att.length == null) return null // bytes not on this machine
+    const path = fileUrlToPath(att.href)
     return {
-      fileUrl: att.href,
-      ext: extensionFromPath(fileUrlToPath(att.href)),
+      externalUrl: path,
+      ext: extensionFromPath(path),
       size: att.length,
     }
   }
@@ -256,7 +253,7 @@ const emitAttachmentBlock = async (
 ) => {
   const asset = pdfAssetSource(attachment)
   if (asset) {
-    const checksum = await sha256Hex(asset.fileUrl)
+    const checksum = await sha256Hex(asset.externalUrl)
 
     const assetBlock = await logseq.Editor.insertBlock(
       parentUuid,
@@ -265,7 +262,7 @@ const emitAttachmentBlock = async (
         sibling: false,
         properties: {
           'logseq.property.asset/type': asset.ext,
-          'logseq.property.asset/external-url': asset.fileUrl,
+          'logseq.property.asset/external-url': asset.externalUrl,
           'logseq.property.asset/checksum': checksum,
           'logseq.property.asset/size': asset.size,
         },
